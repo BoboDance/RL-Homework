@@ -1,6 +1,6 @@
 import gym
 import numpy as np
-
+import logging
 
 class DataGenerator():
 
@@ -21,6 +21,9 @@ class DataGenerator():
         # get the number of available action from the environment
         self.state_dim = self.env.observation_space.shape[0]
         self.n_actions = self.env.action_space.shape[0]
+
+        logging.debug('State Dimension: %d' % self.state_dim)
+        logging.debug('Number of Actions: %d' % self.n_actions)
 
     def get_samples(self, n_samples=None):
         """
