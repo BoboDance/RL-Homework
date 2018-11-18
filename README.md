@@ -1,2 +1,2 @@
 # RL-Homework
-## Collection of our solutions to the RL-Challegnes
+## Collection of our solutions to the RL-Challenges
