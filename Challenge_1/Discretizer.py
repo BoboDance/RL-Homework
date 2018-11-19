@@ -1,18 +1,25 @@
 import numpy as np
-from sklearn.preprocessing import KBinsDiscretizer
 
 
 class Discretizer(object):
 
-    def __init__(self, bins, space):
-        self.observation_space = space
-        self.bins = bins
-        self.discretizer = KBinsDiscretizer(n_bins=self.bins, encode='ordinal')
+    def __init__(self, n_bins, space):
+        self.space = space
+        self.n_bins = n_bins
 
-        high = self.observation_space.high
-        low = self.observation_space.low
-        self.discretizer.fit(np.concatenate([high, low], axis=0).reshape(-1, self.observation_space.shape[0]))
+        self.high = self.space.high
+        self.low = self.space.low
+
+        self.bins = np.array([np.linspace(self.low[i] - 1e-8, self.high[i] + 1e-10, self.n_bins + 1) for i in
+                              range(self.space.shape[0])])
 
     def discretize(self, state):
-        np.array(state)
-        return self.discretizer.transform(np.atleast_2d(state))
+        """
+        bins the state
+        :param state:
+        :return: discretized state
+        """
+        s_dis = np.empty(state.shape, dtype="int32")
+        for i, s in enumerate(state):
+            s_dis[i] = np.searchsorted(self.bins[i], s)
+        return s_dis - 1

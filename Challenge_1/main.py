@@ -1,6 +1,7 @@
 import logging
 
 import gym
+import quanser_robots
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -15,14 +16,11 @@ enable_color_logging(debug_lvl=logging.DEBUG)
 seed = 123
 
 env_name = "Pendulum-v0"
-
-
-# env_name = "Qube-v0"
+env_name = "Qube-v0"
 
 
 def start_policy_iteration(env_name, n_samples=400, bins=50, seed=1):
     env = gym.make(env_name)
-
     print("Training with {} samples.".format(n_samples))
 
     dg_train = DataGenerator(env_name=env_name, seed=seed)
@@ -41,13 +39,32 @@ def start_policy_iteration(env_name, n_samples=400, bins=50, seed=1):
     reward_model = GPModel()
     reward_model.fit(s_a_pairs, reward)
 
-    discretizer_state = Discretizer(bins=bins, space=env.observation_space)
-    discretizer_action = Discretizer(bins=bins, space=env.action_space)
+    discretizer_state = Discretizer(n_bins=bins, space=env.observation_space)
+    discretizer_action = Discretizer(n_bins=bins, space=env.action_space)
 
     pi = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                          discretizer_state=discretizer_state, discretizer_action=discretizer_action)
 
     pi.run()
+
+    return pi
+
+
+def test_run(env_name, policy):
+    env = gym.make(env_name)
+    state = env.reset()
+    done = False
+
+    r = 0
+    t = 0
+
+    while not done:
+        t += 1
+        action = policy[state[0]][state[1]][state[2]]
+        state, reward, done, _ = env.step(action)
+        r += reward
+
+    print(t, r)
 
 
 def find_good_sample_size(env_name, seed):
@@ -144,4 +161,5 @@ def find_good_sample_size(env_name, seed):
 
 
 # find_good_sample_size(env_name, seed)
-start_policy_iteration(env_name, seed=seed)
+pi = start_policy_iteration(env_name, seed=seed, bins=10)
+test_run(env_name, pi)
