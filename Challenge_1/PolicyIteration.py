@@ -25,37 +25,40 @@ class PolicyIteration(object):
         self.value_function = np.zeros((self.state_dim,))
 
         # Random policy with equally likely actions
-        self.policy = np.ones([self.state_dim, self.n_actions]) / self.n_actions
+        self.policy = np.ones([self.state_dim, self.state_dim, self.state_dim, self.n_actions]) / self.n_actions
 
     def _policy_evaluation(self, max_iter=1000000):
 
         for i in range(max_iter):
 
             delta = 0
-            for state in range(self.state_dim):
+            for state_0 in range(self.state_dim):
+                for state_1 in range(self.state_dim):
+                    for state_2 in range(self.state_dim):
 
-                state_dis = self.discretizer_state.discretize(state)
-                current_value = 0
+                        state_concat = np.array([state_0, state_1, state_2])
+                        state_dis = self.discretizer_state.discretize(state_concat)
+                        current_value = 0
 
-                # Try out all possible actions for this state
-                for action, prob in enumerate(self.policy[state_dis]):
-                    # compute actions based on models without interaction with env
-                    s_a = np.concatenate([state, action])
-                    state_prime = self.dynamics_model.predict(s_a)
-                    state_prime_dis = self.discretizer_state.discretize(state_prime)
-                    reward = self.reward_model.predict(s_a)
+                        # Try out all possible actions for this state
+                        for action, prob in enumerate(self.policy[state_dis[0], state_dis[1], state_dis[2]]):
+                            # compute actions based on models without interaction with env
+                            s_a = np.concatenate([state_concat, action])
+                            state_prime = self.dynamics_model.predict(s_a)
+                            state_prime_dis = self.discretizer_state.discretize(state_prime)
+                            reward = self.reward_model.predict(s_a)
 
-                    # Calculate the expected value of next state
-                    current_value += prob * (reward + self.discount * self.value_function[state_prime_dis])
+                            # Calculate the expected value of next state
+                            current_value += prob * (reward + self.discount * self.value_function[state_prime_dis])
 
-                # Change of value function
-                delta = np.maximum(delta, np.abs(self.value_function[state] - current_value))
-                self.value_function[state] = current_value
+                        # Change of value function
+                        delta = np.maximum(delta, np.abs(self.value_function[state_dis] - current_value))
+                        self.value_function[state_dis] = current_value
 
-            # Terminate if change is below threshold
-            if delta < self.theta:
-                print('Policy evaluation finished in {} iterations.'.format(i + 1))
-                break
+                    # Terminate if change is below threshold
+                    if delta < self.theta:
+                        print('Policy evaluation finished in {} iterations.'.format(i + 1))
+                        break
 
     def _get_action_dist(self, state):
 
@@ -83,19 +86,25 @@ class PolicyIteration(object):
             self._policy_evaluation(max_iter=max_iter)
 
             # policy improvement
-            for state in range(self.state_dim):
-                # Choose action with current policy
-                policy_action = np.argmax(self.policy[state])
+            for state_0 in range(self.state_dim):
+                for state_1 in range(self.state_dim):
+                    for state_2 in range(self.state_dim):
 
-                # Check if current action is actually best
-                action_prob = self._get_action_dist(state)
-                best_action = np.argmax(action_prob)
+                        state_concat = np.array([state_0, state_1, state_2])
+                        state_dis = self.discretizer_state.discretize(state_concat)
 
-                # If action didn't change
-                if policy_action != best_action:
-                    stable = True
-                    # Greedy policy update
-                    self.policy[state] = np.eye(self.n_actions)[best_action]
+                        # Choose action with current policy
+                        policy_action = np.argmax(self.policy[state_dis[0], state_dis[1], state_dis[2]])
+
+                        # Check if current action is actually best
+                        action_prob = self._get_action_dist(state_dis)
+                        best_action = np.argmax(action_prob)
+
+                        # If action didn't change
+                        if policy_action != best_action:
+                            stable = True
+                            # Greedy policy update
+                            self.policy[state_dis] = np.eye(self.n_actions)[best_action]
 
             # policy iteration converged
             if stable:
