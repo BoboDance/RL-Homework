@@ -16,10 +16,9 @@ enable_color_logging(debug_lvl=logging.DEBUG)
 seed = 123
 
 env_name = "Pendulum-v0"
-env_name = "Qube-v0"
+# env_name = "Qube-v0"
 
-
-def start_policy_iteration(env_name, n_samples=400, bins=50, seed=1):
+def start_policy_iteration(env_name, n_samples=400, bins=25, seed=1, theta=20):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -43,7 +42,7 @@ def start_policy_iteration(env_name, n_samples=400, bins=50, seed=1):
     discretizer_action = Discretizer(n_bins=bins, space=env.action_space)
 
     pi = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
-                         discretizer_state=discretizer_state, discretizer_action=discretizer_action)
+                         discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta)
 
     pi.run()
 

@@ -55,6 +55,7 @@ class PolicyIteration(object):
     def _policy_evaluation(self, max_iter=1000000):
 
         for i in range(max_iter):
+            print("Policy eval step: {}".format(i))
 
             delta = 0
             start = time.clock()
@@ -102,6 +103,7 @@ class PolicyIteration(object):
                         delta = np.maximum(delta, np.abs(value - current_value))
                         self.value_function[state_0, state_1, state_2] = current_value
 
+            print(delta)
             # Terminate if change is below threshold
             if delta < self.theta:
                 print('Policy evaluation finished in {} iterations.'.format(i + 1))
@@ -109,7 +111,8 @@ class PolicyIteration(object):
 
     def _get_action_dist(self, state):
 
-        action_prob = defaultdict(int)
+        # action_prob = defaultdict(int)
+        action_prob = np.zeros(self.n_actions)
         state_shifted = state - self.high_state
 
         for action, _ in enumerate(self.policy[state[0], state[1], state[2]]):
@@ -117,10 +120,14 @@ class PolicyIteration(object):
 
             action_shifted = action - self.high_action
 
-            s_a = np.concatenate([state_shifted, action_shifted])
-            state_prime = self.dynamics_model.predict(s_a)
-            state_prime_dis = self.dynamics_model.discretize(state_prime)
-            reward = self.reward_model.predict(s_a)
+            if state[2] == 8:
+                print()
+
+            s_a = np.concatenate([state_shifted, action_shifted]).reshape(1, -1)
+            state_prime = self.dynamics_model.predict(s_a).flatten()
+            state_prime_dis = self.discretizer_state.discretize(state_prime) + self.high_state
+            state_prime_dis = state_prime_dis.astype(np.int32)
+            reward = self.reward_model.predict(s_a).flatten()
 
             action_prob[action] += (reward + self.discount * self.value_function[
                 state_prime_dis[0], state_prime_dis[1], state_prime_dis[2]])
@@ -132,6 +139,7 @@ class PolicyIteration(object):
     def run(self, max_iter=100000):
 
         for i in range(max_iter):
+            print("Policy iter step: {}".format(i))
             stable = True
 
             # determines value function
@@ -148,14 +156,14 @@ class PolicyIteration(object):
                         state_concat = np.array([state_0, state_1, state_2])
 
                         # Choose action with current policy
-                        policy_action = np.argmax(self.policy[state_0, state_1, state_2])
+                        policy_action = np.argmax(self.policy[state_0, state_1, state_2]) - self.high_action
 
                         # Check if current action is actually best
-                        action_prob = self._get_action_dist(state_concat)
-                        best_action = np.argmax(action_prob)
+                        best_action = np.argmax(self._get_action_dist(state_concat))
+                        best_action_shifted = best_action - self.high_action
 
                         # If action didn't change
-                        if policy_action != best_action:
+                        if policy_action != best_action_shifted:
                             stable = True
                             # Greedy policy update
                             self.policy[state_0, state_1, state_2] = np.eye(self.n_actions)[best_action]

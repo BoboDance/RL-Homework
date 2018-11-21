@@ -13,6 +13,3 @@ class GPModel(object):
 
     def predict(self, X):
         return self.gp.predict(X)
-
-    def discretize(self, x):
-        raise NotImplementedError
