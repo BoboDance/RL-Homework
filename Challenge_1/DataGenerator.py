@@ -2,7 +2,7 @@ import gym
 import numpy as np
 
 
-class DataGenerator():
+class DataGenerator(object):
 
     def __init__(self, env_name, seed):
         self.env_name = env_name

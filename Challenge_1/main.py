@@ -1,7 +1,6 @@
 import logging
 
 import gym
-import quanser_robots
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -9,16 +8,19 @@ from Challenge_1.DataGenerator import DataGenerator
 from Challenge_1.Discretizer import Discretizer
 from Challenge_1.ModelsGP import GPModel
 from Challenge_1.PolicyIteration import PolicyIteration
+from Challenge_1.ValueIteration import ValueIteration
 from Challenge_1.util.ColorLogger import enable_color_logging
 
 enable_color_logging(debug_lvl=logging.DEBUG)
 
-seed = 123
+seed = 1234
 
 env_name = "Pendulum-v0"
+
+
 # env_name = "Qube-v0"
 
-def start_policy_iteration(env_name, n_samples=400, bins=25, seed=1, theta=20):
+def start_policy_iteration(env_name, algorithm, n_samples=2000, bins_state=25, bins_action=50, seed=1, theta=1e-3):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -38,32 +40,41 @@ def start_policy_iteration(env_name, n_samples=400, bins=25, seed=1, theta=20):
     reward_model = GPModel()
     reward_model.fit(s_a_pairs, reward)
 
-    discretizer_state = Discretizer(n_bins=bins, space=env.observation_space)
-    discretizer_action = Discretizer(n_bins=bins, space=env.action_space)
+    discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space)
+    discretizer_action = Discretizer(n_bins=bins_action, space=env.action_space)
 
-    pi = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
-                         discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta)
+    if algorithm == "pi":
+        algo = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
+                               discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta)
+    elif algorithm == "vi":
+        algo = ValueIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
+                              discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta)
+    else:
+        raise NotImplementedError()
 
-    pi.run()
+    algo.run()
 
-    return pi
+    return algo.policy, discretizer_state
 
 
-def test_run(env_name, policy):
+def test_run(env_name, policy, discretizer_state, n_episodes=100):
     env = gym.make(env_name)
-    state = env.reset()
-    done = False
+    rewards = np.zeros(n_episodes)
 
-    r = 0
-    t = 0
+    for i in range(n_episodes):
+        done = False
+        state = env.reset()
 
-    while not done:
-        t += 1
-        action = policy[state[0]][state[1]][state[2]]
-        state, reward, done, _ = env.step(action)
-        r += reward
+        while not done:
+            # env.render()
+            state = discretizer_state.discretize(state)
+            action = policy[state[0], state[1], state[2]]
+            state, reward, done, _ = env.step(action)
+            rewards[i] += reward
 
-    print(t, r)
+        print("Intermediate reward: {}".format(rewards[i]))
+
+    print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
 
 
 def find_good_sample_size(env_name, seed):
@@ -160,5 +171,5 @@ def find_good_sample_size(env_name, seed):
 
 
 # find_good_sample_size(env_name, seed)
-pi = start_policy_iteration(env_name, seed=seed, bins=10)
-test_run(env_name, pi)
+policy, discretizer_state = start_policy_iteration(env_name, algorithm="vi", seed=seed)
+test_run(env_name, policy, discretizer_state)

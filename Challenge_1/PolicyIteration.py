@@ -1,5 +1,4 @@
 import time
-from collections import defaultdict
 
 import gym
 import numpy as np
@@ -10,7 +9,7 @@ from Challenge_1 import Discretizer
 class PolicyIteration(object):
 
     def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
-                 discretizer_action: Discretizer, discount=1., theta=1e-9):
+                 discretizer_action: Discretizer, discount=1., theta=1e-3):
 
         self.env = env
         self.discretizer_state = discretizer_state
@@ -52,30 +51,25 @@ class PolicyIteration(object):
         #
         # self.init_dicts(self.policy, self.state_dim)
 
-    def _policy_evaluation(self, max_iter=1000000):
+    def _policy_evaluation(self, max_iter=1000):
 
+        start = time.clock()
         for i in range(max_iter):
-            print("Policy eval step: {}".format(i))
 
             delta = 0
-            start = time.clock()
-
             # for state_0, d1 in self.policy.items():
             for state_0 in range(self.state_dim):
-
-                start = time.clock() - start
-                # print("Time taken:", int(start) // 60, int(start) % 60)
 
                 # for state_1, d2 in d1.items():
                 #     for state_2 in d2.keys():
                 for state_1 in range(self.state_dim):
                     for state_2 in range(self.state_dim):
 
+                        current_value = 0
+
                         state_concat = np.array([state_0, state_1, state_2])
                         # shift to be in the actual state range and not 0 to 2*high
                         state_concat = state_concat - self.high_state
-
-                        current_value = 0
 
                         # Try out all possible actions for this state
                         # for action, prob in self.policy[state_0][state_1][state_2].items():
@@ -103,7 +97,10 @@ class PolicyIteration(object):
                         delta = np.maximum(delta, np.abs(value - current_value))
                         self.value_function[state_0, state_1, state_2] = current_value
 
-            print(delta)
+            start = time.clock() - start
+            print(
+                "Policy eval step: {:d} -- delta: {:4.4f} -- time taken: {:d}:{:2d}".format(i, delta[0], int(start) // 60, int(start) % 60))
+
             # Terminate if change is below threshold
             if delta < self.theta:
                 print('Policy evaluation finished in {} iterations.'.format(i + 1))
@@ -115,74 +112,100 @@ class PolicyIteration(object):
         action_prob = np.zeros(self.n_actions)
         state_shifted = state - self.high_state
 
+        # print(self.env.observation_space.high)
+
         for action, _ in enumerate(self.policy[state[0], state[1], state[2]]):
             # compute actions based on models without interaction with env
 
             action_shifted = action - self.high_action
 
-            if state[2] == 8:
-                print()
-
             s_a = np.concatenate([state_shifted, action_shifted]).reshape(1, -1)
             state_prime = self.dynamics_model.predict(s_a).flatten()
-            state_prime_dis = self.discretizer_state.discretize(state_prime) + self.high_state
+            # print(state_prime)
+            state_prime = np.clip(state_prime, self.env.observation_space.low,
+                                  self.env.observation_space.high)
+            # print(state_prime)
+            state_prime_dis = self.discretizer_state.discretize(state_prime)
             state_prime_dis = state_prime_dis.astype(np.int32)
+            # print(state_prime_dis)
+
             reward = self.reward_model.predict(s_a).flatten()
 
-            action_prob[action] += (reward + self.discount * self.value_function[
-                state_prime_dis[0], state_prime_dis[1], state_prime_dis[2]])
+            value = self.value_function[state_prime_dis[0], state_prime_dis[1], state_prime_dis[2]]
+            action_prob[action] += (reward + self.discount * value)
 
-        # normalize to sum up to one
+        # normalize to sum up to one, not really necessary, we only look for argmax
         action_prob /= np.sum(action_prob)
         return action_prob
 
-    def run(self, max_iter=100000):
+    def policy_improvement(self):
+        # policy improvement
+        # for state_0, d1 in self.policy.items():
+        #     for state_1, d2 in d1.items():
+        #         for state_2 in d2.keys():
+        stable = True
+        start = time.clock()
 
-        for i in range(max_iter):
-            print("Policy iter step: {}".format(i))
-            stable = True
+        for state_0 in range(self.state_dim):
+            for state_1 in range(self.state_dim):
+                for state_2 in range(self.state_dim):
+
+                    state_concat = np.array([state_0, state_1, state_2])
+
+                    # Choose action with current policy
+                    policy_action = np.argmax(self.policy[state_0, state_1, state_2]) - self.high_action
+
+                    # Check if current action is actually best
+                    best_action = np.argmax(self._get_action_dist(state_concat))
+                    best_action_shifted = best_action - self.high_action
+
+                    # If action didn't change
+                    if policy_action != best_action_shifted:
+                        stable = False
+                        # Greedy policy update
+                        self.policy[state_0, state_1, state_2] = np.eye(self.n_actions)[best_action]
+                        # for k, v in self.policy[state_0][state_1,state_2].items():
+                        #     if k != best_action:
+                        #         self.policy[state_0][state_1][state_2][k] = 0
+                        #     else:
+                        #         self.policy[state_0][state_1][state_2][k] = 1
+
+        start = time.clock() - start
+        print(
+            "Policy improvement finished -- stable: {} -- time taken: {}:{:2d}".format(stable, int(start) // 60,
+                                                                                       int(start) % 60))
+        return stable
+
+    def run(self, max_iter=1000):
+
+        stable = False
+        i = 0
+
+        while not stable:
+            print("Policy iteration step: {}".format(i))
 
             # determines value function
             self._policy_evaluation(max_iter=max_iter)
-
-            # policy improvement
-            # for state_0, d1 in self.policy.items():
-            #     for state_1, d2 in d1.items():
-            #         for state_2 in d2.keys():
-            for state_0 in range(self.state_dim):
-                for state_1 in range(self.state_dim):
-                    for state_2 in range(self.state_dim):
-
-                        state_concat = np.array([state_0, state_1, state_2])
-
-                        # Choose action with current policy
-                        policy_action = np.argmax(self.policy[state_0, state_1, state_2]) - self.high_action
-
-                        # Check if current action is actually best
-                        best_action = np.argmax(self._get_action_dist(state_concat))
-                        best_action_shifted = best_action - self.high_action
-
-                        # If action didn't change
-                        if policy_action != best_action_shifted:
-                            stable = True
-                            # Greedy policy update
-                            self.policy[state_0, state_1, state_2] = np.eye(self.n_actions)[best_action]
-                            # for k, v in self.policy[state_0][state_1,state_2].items():
-                            #     if k != best_action:
-                            #         self.policy[state_0][state_1][state_2][k] = 0
-                            #     else:
-                            #         self.policy[state_0][state_1][state_2][k] = 1
+            stable = self.policy_improvement()
+            i += 1
 
             # policy iteration converged
             if stable:
                 print('Evaluated {} policies and found stable policy'.format(i + 1))
-                import json
-                with open('./result.json', 'w') as fp:
-                    json.dump(self.policy, fp)
-                break
+                # import json
+                # with open('./result.json', 'w') as fp:
+                #     json.dump(self.policy, fp)
+                # break
+                np.save('./policy', self.policy)
 
-    def init_dicts(self, dict, n):
-        for i in range(n):
-            d = dict[i]
-            if isinstance(d, defaultdict):
-                self.init_dicts(d, n)
+    # def load_policy(self):
+    #     import json
+    #     with open('./result.json', 'w') as fp:
+    #         json.dump(self.policy, fp)
+    #     break
+
+    # def init_dicts(self, dict, n):
+    #     for i in range(n):
+    #         d = dict[i]
+    #         if isinstance(d, defaultdict):
+    #             self.init_dicts(d, n)
