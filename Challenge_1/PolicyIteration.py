@@ -65,7 +65,7 @@ class PolicyIteration(object):
                 for state_1 in range(self.state_dim):
                     for state_2 in range(self.state_dim):
 
-                        current_value = 0
+                        # current_value = 0
 
                         state_concat = np.array([state_0, state_1, state_2])
                         # shift to be in the actual state range and not 0 to 2*high
@@ -73,24 +73,27 @@ class PolicyIteration(object):
 
                         # Try out all possible actions for this state
                         # for action, prob in self.policy[state_0][state_1][state_2].items():
-                        for action, prob in enumerate(self.policy[state_0, state_1, state_2]):
-                            action = action - self.high_action
 
-                            # compute actions based on models without interaction with env
-                            s_a = np.concatenate([state_concat, action])
-                            s_a = s_a.reshape(-1, self.env.observation_space.shape[0] + self.env.action_space.shape[0])
-                            state_prime = self.dynamics_model.predict(s_a)
-                            reward = self.reward_model.predict(s_a)
+                        # for action, prob in enumerate(self.policy[state_0, state_1, state_2]):
+                        prob = self.policy[state_0, state_1, state_2]
+                        action = np.argmax(prob)
+                        action = action - self.high_action
 
-                            # clip to avoid being outside of allowed state space
-                            state_prime = np.clip(state_prime, self.env.observation_space.low,
-                                                  self.env.observation_space.high).flatten()
-                            state_prime_dis = self.discretizer_state.discretize(state_prime)
+                        # compute actions based on models without interaction with env
+                        s_a = np.concatenate([state_concat, action])
+                        s_a = s_a.reshape(-1, self.env.observation_space.shape[0] + self.env.action_space.shape[0])
+                        state_prime = self.dynamics_model.predict(s_a)
+                        reward = self.reward_model.predict(s_a)
 
-                            # Calculate the expected value of next state
-                            value_prime = self.value_function[
-                                state_prime_dis[0], state_prime_dis[1], state_prime_dis[2]]
-                            current_value += prob * (reward + self.discount * value_prime)
+                        # clip to avoid being outside of allowed state space
+                        state_prime = np.clip(state_prime, self.env.observation_space.low,
+                                              self.env.observation_space.high).flatten()
+                        state_prime_dis = self.discretizer_state.discretize(state_prime)
+
+                        # Calculate the expected value of next state
+                        value_prime = self.value_function[
+                            state_prime_dis[0], state_prime_dis[1], state_prime_dis[2]]
+                        current_value = prob[action.astype(np.int32)] * (reward + self.discount * value_prime)
 
                         # Change of value function
                         value = self.value_function[state_0, state_1, state_2]

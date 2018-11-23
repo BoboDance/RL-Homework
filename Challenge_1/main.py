@@ -20,7 +20,7 @@ env_name = "Pendulum-v0"
 
 # env_name = "Qube-v0"
 
-def start_policy_iteration(env_name, algorithm, n_samples=2000, bins_state=25, bins_action=50, seed=1, theta=1e-3):
+def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=15, bins_action=100, seed=1, theta=1e-3):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -171,5 +171,5 @@ def find_good_sample_size(env_name, seed):
 
 
 # find_good_sample_size(env_name, seed)
-policy, discretizer_state = start_policy_iteration(env_name, algorithm="vi", seed=seed)
+policy, discretizer_state = start_policy_iteration(env_name, algorithm="pi", seed=seed)
 test_run(env_name, policy, discretizer_state)
