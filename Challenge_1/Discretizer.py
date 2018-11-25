@@ -20,6 +20,6 @@ class Discretizer(object):
         :return: discretized state
         """
         s_dis = np.zeros(state.shape, dtype="int32")
-        for i, s in enumerate(state):
-            s_dis[i] = np.searchsorted(self.bins[i], s)
+        for i in range(state.shape[1]):
+            s_dis[:, i] = np.searchsorted(self.bins[i], state[:, i])
         return s_dis - 1

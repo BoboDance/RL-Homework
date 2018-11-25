@@ -16,11 +16,9 @@ enable_color_logging(debug_lvl=logging.DEBUG)
 seed = 1234
 
 env_name = "Pendulum-v0"
-
-
 # env_name = "Qube-v0"
 
-def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=15, bins_action=100, seed=1, theta=1e-3):
+def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=20, bins_action=10, seed=1, theta=1e-3):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 

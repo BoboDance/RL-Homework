@@ -15,7 +15,7 @@ class ValueIteration(object):
         self.discretizer_state = discretizer_state
         self.discretizer_action = discretizer_action
 
-        self.state_dim = self.discretizer_state.n_bins
+        self.n_states = self.discretizer_state.n_bins
         self.n_actions = self.discretizer_action.n_bins
 
         self.dynamics_model = dynamics_model
@@ -24,83 +24,70 @@ class ValueIteration(object):
         self.discount = discount
         self.theta = theta
 
-        state_space = [self.state_dim] * self.env.observation_space.shape[0]
+        state_space = [self.n_states] * self.env.observation_space.shape[0]
 
-        self.policy = np.zeros(state_space + [self.n_actions])
+        self.states = np.indices(state_space).reshape(self.env.observation_space.shape[0], -1).T
+        self.actions = np.array(range(0, self.n_actions))
+        self.policy = np.random.choice(self.n_actions, size=state_space)
         self.value_function = np.zeros(state_space)
 
         self.high_state = self.env.observation_space.high
         self.high_action = self.env.action_space.high
 
-    def run(self, max_iter=1000):
+    def run(self, max_iter=100000):
 
-        start = time.clock()
+        # TODO: time returns a weird value
+        start = time.time()
 
         for i in range(int(max_iter)):
 
             delta = 0
 
-            for state_0 in range(self.state_dim):
-                for state_1 in range(self.state_dim):
-                    for state_2 in range(self.state_dim):
-                        state_concat = np.array([state_0, state_1, state_2])
-                        best_action_value = np.argmax(self._get_action_dist(state_concat))
+            # compute value of state with lookahead
+            best_value = np.amax(self._look_ahead(), axis=1)
 
-                        delta = np.maximum(delta,
-                                           np.abs(self.value_function[state_0, state_1, state_2] - best_action_value))
+            # get value of all states
+            values = self.value_function[tuple(self.states.T)]
 
-                        self.value_function[state_0, state_1, state_2] = best_action_value
+            # update value function with new best value
+            delta = np.maximum(delta, np.abs(values - best_value))
+            self.value_function = best_value.reshape(self.value_function.shape)
 
-            start = time.clock() - start
-            print(
-                "Value iteration step: {:d} -- delta: {:4.4f} -- time taken: {:d}:{:2d}".format(i, delta,
-                                                                                                int(start) // 60,
-                                                                                                int(start) % 60))
+            start = time.time() - start
+            print("Value iteration step: {:6d} -- mean delta: {:4.4f} -- max delta {:4.4f} -- min delta {:4.4f} "
+                  "-- time taken: {:d}:{:2d}".format(i, delta.mean(), delta.max(), delta.min(), int(start) // 60,
+                                                     int(start) % 60))
 
-            # print(self.value_function)
-
-            if delta < self.theta:
+            if np.all(delta < self.theta):
                 print('Value iteration finished in {} iterations.'.format(i + 1))
                 break
 
         # Create policy in order to use optimal value function
+        self.policy = np.argmax(self._look_ahead(), axis=1).reshape(self.policy.shape)
 
-        for state_0 in range(self.state_dim):
-            for state_1 in range(self.state_dim):
-                for state_2 in range(self.state_dim):
-                    state_concat = np.array([state_0, state_1, state_2])
-                    # Select best action based on the highest state-action value
-                    best_action = np.argmax(self._get_action_dist(state_concat))
-                    self.policy[state_0, state_1, state_2, best_action] = 1.0
+        np.save('./policy_VI.npc', self.policy)
 
-    def _get_action_dist(self, state):
+    def _look_ahead(self):
 
-        # action_prob = defaultdict(int)
-        action_prob = np.zeros(self.n_actions)
-        state_shifted = state - self.high_state
+        # scale states to stay within action space
+        states = self.states - (self.n_states - 1) / 2
+        states = states / ((self.n_states - 1) / (2 * self.high_state))
+        states = np.repeat(states, self.n_actions, axis=0)
 
-        # print(self.env.observation_space.high)
+        # actions = self.policy[tuple(self.states.T)]
+        actions = np.tile(self.actions, self.n_states ** self.env.observation_space.shape[0])
 
-        for action, _ in enumerate(self.policy[state[0], state[1], state[2]]):
-            # compute actions based on models without interaction with env
+        # create state-action pairs and use models
+        s_a = np.concatenate([states, actions.T.reshape(-1, 1)], axis=1)
+        state_prime = self.dynamics_model.predict(s_a)
+        reward = self.reward_model.predict(s_a)
 
-            action_shifted = action - self.high_action
+        # clip to avoid being outside of allowed state space
+        state_prime = np.clip(state_prime, -self.high_state, self.high_state)
+        state_prime_dis = self.discretizer_state.discretize(state_prime)
 
-            s_a = np.concatenate([state_shifted, action_shifted]).reshape(1, -1)
-            state_prime = self.dynamics_model.predict(s_a).flatten()
-            # print(state_prime)
-            state_prime = np.clip(state_prime, self.env.observation_space.low,
-                                  self.env.observation_space.high)
-            # print(state_prime)
-            state_prime_dis = self.discretizer_state.discretize(state_prime)
-            state_prime_dis = state_prime_dis.astype(np.int32)
-            # print(state_prime_dis)
+        # Calculate the expected values of next state
+        values_prime = self.value_function[tuple(state_prime_dis.T)]
+        values_new = reward + self.discount * values_prime
 
-            reward = self.reward_model.predict(s_a).flatten()
-
-            value = self.value_function[state_prime_dis[0], state_prime_dis[1], state_prime_dis[2]]
-            action_prob[action] += (reward + self.discount * value)
-
-        # normalize to sum up to one, not really necessary, we only look for argmax
-        action_prob /= np.sum(action_prob)
-        return action_prob
+        return values_new.reshape(-1, self.n_actions)
