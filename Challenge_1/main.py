@@ -3,6 +3,7 @@ import logging
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
+from gym.envs.classic_control import PendulumEnv
 
 from Challenge_1.DataGenerator import DataGenerator
 from Challenge_1.Discretizer import Discretizer
@@ -15,14 +16,25 @@ enable_color_logging(debug_lvl=logging.DEBUG)
 
 seed = 1234
 
-#env_name = "Pendulum-v0"
-# env_name = "Qube-v0"
-env_name = "MountainCarContinuous-v0"
+env_name = "Pendulum-v0"
 
-def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=20, bins_action=10, seed=1, theta=1e-3):
+
+# env_name = "Qube-v0"
+# env_name = "MountainCarContinuous-v0"
+
+def _get_obs_new(self):
+    theta, thetadot = self.state
+    return np.array([theta, thetadot])
+
+def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=10, bins_action=20, seed=1, theta=1e-3):
     env = gym.make(env_name)
+
+    funcType = type(env.env._get_obs)
+    env.env._get_obs = funcType(_get_obs_new, env.env, PendulumEnv)
+
+    print(env.reset())
+
     print("Training with {} samples.".format(n_samples))
-    print(env.action_space.high)
 
     dg_train = DataGenerator(env_name=env_name, seed=seed)
 
@@ -70,8 +82,8 @@ def test_run(env_name, policy, discretizer_state, n_episodes=100):
             env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]  # TODO: REMOVE THIS HARDCODING AND MAKE IT MORE GENRAL
-            action = action - (10 - 1) / 2
-            action = action / ((10 - 1) / (2 * 1))
+            action = action - (20 - 1) / 2
+            action = action / ((20 - 1) / (2 * 2))
             state, reward, done, _ = env.step(action)
             rewards[i] += reward
 

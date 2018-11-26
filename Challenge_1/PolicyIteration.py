@@ -144,6 +144,9 @@ class PolicyIteration(object):
             stable = False
             # Greedy policy update
             self.policy = best_action.reshape(self.policy.shape)
+            print(np.count_nonzero(policy_action != best_action))
+            if np.count_nonzero(policy_action != best_action) < 5:
+                stable = True
 
         start = time.time() - start
         print(
