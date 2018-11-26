@@ -65,7 +65,7 @@ class ValueIteration(object):
         # Create policy in order to use optimal value function
         self.policy = np.argmax(self._look_ahead(), axis=1).reshape(self.policy.shape)
 
-        np.save('./policy_VI.npc', self.policy)
+        np.save('./policy_VI', self.policy)
 
     def _look_ahead(self):
 

@@ -62,7 +62,7 @@ class PolicyIteration(object):
             # policy iteration converged
             if stable:
                 print('Evaluated {} policies and found stable policy'.format(i + 1))
-                np.save('./policy_PI.npc', self.policy)
+                np.save('./policy_PI', self.policy)
 
     def _policy_evaluation(self, max_iter=100000):
 
@@ -72,7 +72,7 @@ class PolicyIteration(object):
             delta = 0
 
             # choose best action for each state
-            # actions = np.argmax(self.policy, axis=self.env.observation_space.shape[0])
+            # actions = np.argmax(self.policy, axis=self.custom_envs.observation_space.shape[0])
             actions = self.policy
 
             # scale actions to stay within action space
@@ -123,7 +123,7 @@ class PolicyIteration(object):
         start = time.time()
 
         # Choose action with current policy
-        # policy_action = np.argmax(self.policy, axis=self.env.observation_space.shape[0])
+        # policy_action = np.argmax(self.policy, axis=self.custom_envs.observation_space.shape[0])
         policy_action = self.policy
 
         # scale policy_action to stay within action space

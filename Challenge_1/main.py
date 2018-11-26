@@ -10,31 +10,21 @@ from Challenge_1.Discretizer import Discretizer
 from Challenge_1.ModelsGP import GPModel
 from Challenge_1.PolicyIteration import PolicyIteration
 from Challenge_1.ValueIteration import ValueIteration
+import Challenge_1.custom_env
 from Challenge_1.util.ColorLogger import enable_color_logging
 
 enable_color_logging(debug_lvl=logging.DEBUG)
 
 seed = 1234
 
-#env_name = "Pendulum-v0"
-
+# env_name = "Pendulum-v0"
 env_name = "PendulumCustom-v0"
-
 # env_name = "Qube-v0"
 # env_name = "MountainCarContinuous-v0"
 
-#def _get_obs_new(self):
-#    theta, thetadot = self.state
-#    return np.array([theta, thetadot])
-
 def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=10, bins_action=20, seed=1, theta=1e-3):
+
     env = gym.make(env_name)
-
-    #funcType = type(env.env._get_obs)
-    #env.env._get_obs = funcType(_get_obs_new, env.env, PendulumEnv)
-
-    print(env.reset())
-
     print("Training with {} samples.".format(n_samples))
 
     dg_train = DataGenerator(env_name=env_name, seed=seed)

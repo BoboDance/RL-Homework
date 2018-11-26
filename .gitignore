@@ -86,7 +86,7 @@ celerybeat-schedule
 # Environments
 .env
 .venv
-env/
+Challenge_1/custom_envs/
 venv/
 ENV/
 env.bak/
