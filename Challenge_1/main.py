@@ -15,12 +15,14 @@ enable_color_logging(debug_lvl=logging.DEBUG)
 
 seed = 1234
 
-env_name = "Pendulum-v0"
+#env_name = "Pendulum-v0"
 # env_name = "Qube-v0"
+env_name = "MountainCarContinuous-v0"
 
 def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=20, bins_action=10, seed=1, theta=1e-3):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
+    print(env.action_space.high)
 
     dg_train = DataGenerator(env_name=env_name, seed=seed)
 
@@ -56,6 +58,7 @@ def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=20, bi
 
 
 def test_run(env_name, policy, discretizer_state, n_episodes=100):
+    print(policy)
     env = gym.make(env_name)
     rewards = np.zeros(n_episodes)
 
@@ -64,9 +67,11 @@ def test_run(env_name, policy, discretizer_state, n_episodes=100):
         state = env.reset()
 
         while not done:
-            # env.render()
-            state = discretizer_state.discretize(state)
-            action = policy[state[0], state[1], state[2]]
+            env.render()
+            state = discretizer_state.discretize(np.atleast_2d(state))
+            action = policy[tuple(state.T)]  # TODO: REMOVE THIS HARDCODING AND MAKE IT MORE GENRAL
+            action = action - (10 - 1) / 2
+            action = action / ((10 - 1) / (2 * 1))
             state, reward, done, _ = env.step(action)
             rewards[i] += reward
 

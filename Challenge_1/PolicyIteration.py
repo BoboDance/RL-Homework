@@ -10,6 +10,16 @@ class PolicyIteration(object):
 
     def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
                  discretizer_action: Discretizer, discount=.99, theta=1e-3):
+        """
+
+        :param env:
+        :param dynamics_model:
+        :param reward_model:
+        :param discretizer_state:
+        :param discretizer_action:
+        :param discount:
+        :param theta:
+        """
 
         self.env = env
         self.discretizer_state = discretizer_state
@@ -24,8 +34,10 @@ class PolicyIteration(object):
         self.discount = discount
         self.theta = theta
 
+        # state_space stores the shape of the state
         state_space = [self.n_states] * self.env.observation_space.shape[0]
 
+        # np indices returns all possible permutations
         self.states = np.indices(state_space).reshape(self.env.observation_space.shape[0], -1).T
         self.actions = np.array(range(0, self.n_actions))
         self.policy = np.random.choice(self.n_actions, size=state_space)
@@ -137,7 +149,6 @@ class PolicyIteration(object):
         return stable
 
     def _look_ahead(self):
-
         # scale states to stay within action space
         states = self.states - (self.n_states - 1) / 2
         states = states / ((self.n_states - 1) / (2 * self.high_state))
