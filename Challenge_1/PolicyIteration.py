@@ -153,8 +153,10 @@ class PolicyIteration(object):
 
     def _look_ahead(self):
         # scale states to stay within action space
-        states = self.states - (self.n_states - 1) / 2
-        states = states / ((self.n_states - 1) / (2 * self.high_state))
+        total_range = (self.high_state - self.low_state)
+        state_01 = self.states / (self.n_states - 1)
+        states = (state_01 * total_range) + self.low_state
+
         states = np.repeat(states, self.n_actions, axis=0)
 
         # actions = self.policy[tuple(self.states.T)]
