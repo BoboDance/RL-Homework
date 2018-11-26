@@ -44,6 +44,7 @@ class PolicyIteration(object):
         self.value_function = np.zeros(state_space)
 
         self.high_state = self.env.observation_space.high
+        self.low_state = self.env.observation_space.low
         self.high_action = self.env.action_space.high
 
     def run(self, max_iter=100000):
@@ -79,8 +80,9 @@ class PolicyIteration(object):
             actions = actions / ((self.n_actions - 1) / (2 * self.high_action))
 
             # scale states to stay within action space
-            states = self.states - (self.n_states - 1) / 2
-            states = states / ((self.n_states - 1) / (2 * self.high_state))
+            total_range = (self.high_state - self.low_state)
+            state_01 = self.states / (self.n_states-1)
+            states = (state_01 * total_range) + self.low_state
 
             # create state-action pairs and use models
             s_a = np.concatenate([states, actions.T.reshape(-1, self.env.action_space.shape[0])], axis=1)
@@ -130,6 +132,7 @@ class PolicyIteration(object):
         policy_action = policy_action.T.reshape(-1, self.env.action_space.shape[0])
 
         # Check if current policy_action is actually best
+        # TODO: Implement the negative shift into the mountain car problem to see if it's working then
         best_action = np.argmax(self._look_ahead(), axis=1).reshape(-1, self.env.action_space.shape[0])
 
         # scale best_action to stay within action space
