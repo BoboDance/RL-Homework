@@ -16,21 +16,22 @@ enable_color_logging(debug_lvl=logging.DEBUG)
 
 seed = 1234
 
-env_name = "Pendulum-v0"
+#env_name = "Pendulum-v0"
 
+env_name = "PendulumCustom-v0"
 
 # env_name = "Qube-v0"
 # env_name = "MountainCarContinuous-v0"
 
-def _get_obs_new(self):
-    theta, thetadot = self.state
-    return np.array([theta, thetadot])
+#def _get_obs_new(self):
+#    theta, thetadot = self.state
+#    return np.array([theta, thetadot])
 
 def start_policy_iteration(env_name, algorithm, n_samples=400, bins_state=10, bins_action=20, seed=1, theta=1e-3):
     env = gym.make(env_name)
 
-    funcType = type(env.env._get_obs)
-    env.env._get_obs = funcType(_get_obs_new, env.env, PendulumEnv)
+    #funcType = type(env.env._get_obs)
+    #env.env._get_obs = funcType(_get_obs_new, env.env, PendulumEnv)
 
     print(env.reset())
 
