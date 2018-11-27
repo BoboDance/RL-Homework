@@ -196,6 +196,15 @@ def train_and_eval_nn(train=True, n_samples=10000):
     model = NNModel(env)
 
     if train:
+
+        dg_train = DataGenerator(env_name=env_name, seed=seed)
+
+        # s_prime - future state after you taken the action from state s
+        state_prime, state, action, reward = dg_train.get_samples(n_samples)
+
+        # create training input pairs
+        s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
+
         model.train_network(s_a_pairs, state_prime, reward, steps=10000)
     else:
         model.load_model(path)
@@ -211,5 +220,5 @@ def train_and_eval_nn(train=True, n_samples=10000):
 
 # find_good_sample_size(env_name, seed)
 train_and_eval_nn(train=False)
-policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
-test_run(env_name, policy, discretizer_action, discretizer_state)
+# policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
+# test_run(env_name, policy, discretizer_action, discretizer_state)

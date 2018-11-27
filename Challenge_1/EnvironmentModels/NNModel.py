@@ -113,8 +113,8 @@ class NNModel(torch.nn.Module):
 
             reward_out, s_prime_out = self(s_a)
 
-            mse_dynamics_test = ((s_prime.item() - s_prime_out.item()) ** 2).mean(axis=0)
-            mse_reward_test = ((reward.item() - reward_out.item()) ** 2).mean()
+            mse_dynamics_test = ((s_prime.detach().numpy() - s_prime_out.detach().numpy()) ** 2).mean(axis=0)
+            mse_reward_test = ((reward.detach().numpy() - reward_out.detach().numpy()) ** 2).mean()
 
             print("Test MSE for dynamics: {}".format(mse_dynamics_test))
             print("Test MSE for reward: {}".format(mse_reward_test))
