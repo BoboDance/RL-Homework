@@ -7,6 +7,7 @@ import quanser_robots
 
 from Challenge_1.Algorithms.PolicyIteration import PolicyIteration
 from Challenge_1.Algorithms.ValueIteration import ValueIteration
+from Challenge_1.EnvironmentModels.NNModel import NNModel
 from Challenge_1.EnvironmentModels.SklearnModel import SklearnModel
 from Challenge_1.util.ColorLogger import enable_color_logging
 from Challenge_1.util.DataGenerator import DataGenerator
@@ -18,14 +19,16 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-# env_name = "Pendulum-v2"
+env_name = "Pendulum-v2"
+
+
 # env_name = "PendulumCustom-v0"
 # env_name = "MountainCarContinuous-v0"
-env_name = "Qube-v0"
+# env_name = "Qube-v0"
 
 
-def start_policy_iteration(env_name, algorithm="pi", n_samples=100, bins_state=10, bins_action=10, seed=1,
-                           theta=1e-3):
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=10, bins_action=10, seed=1,
+                           theta=1e-3, path=None):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -38,15 +41,15 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=100, bins_state=1
     s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
 
     # solve regression problem s_prime = f(s,a)
-    dynamics_model = SklearnModel()
-    dynamics_model.fit(s_a_pairs, state_prime)
-
-    # model = NNModel(env.observation_space.shape[0] + env.action_space.shape[0], 1, env.observation_space.high)
-    # model.train_network(s_a_pairs, state_prime, reward, steps=10000)
+    # dynamics_model = SklearnModel()
+    # dynamics_model.fit(s_a_pairs, state_prime)
 
     # solve regression problem r = g(s,a)
-    reward_model = SklearnModel()
-    reward_model.fit(s_a_pairs, reward)
+    # reward_model = SklearnModel()
+    # reward_model.fit(s_a_pairs, reward)
+
+    model = NNModel(env)
+    model.load_model(path)
 
     discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space)
     discretizer_action = Discretizer(n_bins=bins_action, space=env.action_space)
@@ -186,6 +189,27 @@ def find_good_sample_size(env_name, seed, n_samples_test=1000):
     plt.show()
 
 
+def train_and_eval_nn(train=True, n_samples=10000):
+    env = gym.make(env_name)
+    path = "./NN-state_dict"
+
+    model = NNModel(env)
+
+    if train:
+        model.train_network(s_a_pairs, state_prime, reward, steps=10000)
+    else:
+        model.load_model(path)
+
+    dg_test = DataGenerator(env_name=env_name, seed=seed + 1)
+    s_prime, s, a, r = dg_test.get_samples(n_samples)
+
+    # create test input pairs
+    s_a = np.concatenate([s, a[:, np.newaxis]], axis=1)
+
+    model.validate_model(s_a, s_prime, r)
+
+
 # find_good_sample_size(env_name, seed)
+train_and_eval_nn(train=False)
 policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
 test_run(env_name, policy, discretizer_action, discretizer_state)

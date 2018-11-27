@@ -89,19 +89,11 @@ class PolicyIteration(DynamicProgramming):
 
         # Choose action with current policy
         policy_action = self.policy
-
-        # scale policy_action to stay within action space
-        # policy_action = policy_action - (self.n_actions - 1) / 2
-        # policy_action = policy_action / ((self.n_actions - 1) / (2 * self.high_action))
         policy_action = policy_action.reshape(-1, self.env.action_space.shape[0])
 
         # Check if current policy_action is actually best by checking all actions
         best_action = np.argmax(self._look_ahead(), axis=1)
         best_action = best_action.reshape(-1, self.env.action_space.shape[0])
-
-        # scale best_action to stay within action space
-        # best_action = best_action - (self.n_actions - 1) / 2
-        # best_action = best_action / ((self.n_actions - 1) / (2 * self.high_action))
 
         # If better action was found
         if np.any(policy_action != best_action):
