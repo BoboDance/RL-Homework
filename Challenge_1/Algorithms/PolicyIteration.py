@@ -50,13 +50,14 @@ class PolicyIteration(DynamicProgramming):
             # choose best action for each state
             # scale actions to stay within action space
             actions = self.policy
+            actions = actions.reshape(-1, self.env.action_space.shape[0])
             actions = self.discretizer_action.scale_values(actions)
 
             # scale states to stay within action space
             states = self.discretizer_state.scale_values(self.states)
 
             # create state-action pairs and use models
-            s_a = np.concatenate([states, actions.reshape(-1, self.env.action_space.shape[0])], axis=1)
+            s_a = np.concatenate([states, actions], axis=1)
             state_prime = self.dynamics_model.predict(s_a)
             reward = self.reward_model.predict(s_a)
 

@@ -27,8 +27,8 @@ env_name = "Pendulum-v2"
 # env_name = "Qube-v0"
 
 
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=10, bins_action=10, seed=1,
-                           theta=1e-3, path=None):
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=50, bins_action=50, seed=1,
+                           theta=1e-3, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -41,15 +41,17 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
     s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
 
     # solve regression problem s_prime = f(s,a)
-    # dynamics_model = SklearnModel()
-    # dynamics_model.fit(s_a_pairs, state_prime)
+    dynamics_model = SklearnModel()
+    dynamics_model.fit(s_a_pairs, state_prime)
 
     # solve regression problem r = g(s,a)
-    # reward_model = SklearnModel()
-    # reward_model.fit(s_a_pairs, reward)
+    reward_model = SklearnModel()
+    reward_model.fit(s_a_pairs, reward)
 
-    model = NNModel(env)
-    model.load_model(path)
+    # TODO: Not integraded in the DP algos
+    # But performance should not change much
+    # model = NNModel(env)
+    # model.load_model(path)
 
     discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space)
     discretizer_action = Discretizer(n_bins=bins_action, space=env.action_space)
@@ -69,14 +71,15 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
 
 
 def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=100):
+    env = gym.make(env_name)
+
     if len(policy.shape) == 2:
-        p = discretizer_action.scale_values(policy)
-        plt.matshow(p)
+        p = discretizer_action.scale_values(policy.reshape(-1, env.action_space.shape[0]))
+        plt.matshow(p.reshape(policy.shape))
         plt.colorbar()
         plt.title("Policy for {}".format(env_name))
         plt.show()
 
-    env = gym.make(env_name)
     rewards = np.zeros(n_episodes)
 
     for i in range(n_episodes):
@@ -88,7 +91,7 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
             # env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
-            action = discretizer_action.scale_values(action)
+            action = discretizer_action.scale_values(np.atleast_2d(action)).flatten()
             state, reward, done, _ = env.step(action)
             rewards[i] += reward
 
@@ -97,13 +100,42 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
     print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
 
 
-def find_good_sample_size(env_name, seed, n_samples_test=1000):
+def train_and_eval_nn(train=True, n_samples=10000):
+    env = gym.make(env_name)
+    path = "./NN-state_dict"
+
+    model = NNModel(env)
+
+    if train:
+
+        dg_train = DataGenerator(env_name=env_name, seed=seed)
+
+        # s_prime - future state after you taken the action from state s
+        state_prime, state, action, reward = dg_train.get_samples(n_samples)
+
+        # create training input pairs
+        s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
+
+        model.train_network(s_a_pairs, state_prime, reward, steps=10000)
+    else:
+        model.load_model(path)
+
+    dg_test = DataGenerator(env_name=env_name, seed=seed + 1)
+    s_prime, s, a, r = dg_test.get_samples(n_samples)
+
+    # create test input pairs
+    s_a = np.concatenate([s, a[:, np.newaxis]], axis=1)
+
+    model.validate_model(s_a, s_prime, r)
+
+
+def find_good_sample_size(env_name, seed, steps=250, max=10000, n_samples_test=1000):
     dyn_history_test = []
     rwd_history_test = []
     rwd_history_train = []
     dyn_history_train = []
 
-    data_point_range = range(250, 10001, 250)
+    data_point_range = range(steps, max + 1, steps)
 
     dg_test = DataGenerator(env_name=env_name, seed=seed + 1)
     s_prime_test, s_test, a_test, r_test = dg_test.get_samples(n_samples_test)
@@ -189,36 +221,7 @@ def find_good_sample_size(env_name, seed, n_samples_test=1000):
     plt.show()
 
 
-def train_and_eval_nn(train=True, n_samples=10000):
-    env = gym.make(env_name)
-    path = "./NN-state_dict"
-
-    model = NNModel(env)
-
-    if train:
-
-        dg_train = DataGenerator(env_name=env_name, seed=seed)
-
-        # s_prime - future state after you taken the action from state s
-        state_prime, state, action, reward = dg_train.get_samples(n_samples)
-
-        # create training input pairs
-        s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
-
-        model.train_network(s_a_pairs, state_prime, reward, steps=10000)
-    else:
-        model.load_model(path)
-
-    dg_test = DataGenerator(env_name=env_name, seed=seed + 1)
-    s_prime, s, a, r = dg_test.get_samples(n_samples)
-
-    # create test input pairs
-    s_a = np.concatenate([s, a[:, np.newaxis]], axis=1)
-
-    model.validate_model(s_a, s_prime, r)
-
-
 # find_good_sample_size(env_name, seed)
-train_and_eval_nn(train=False)
-# policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
-# test_run(env_name, policy, discretizer_action, discretizer_state)
+# train_and_eval_nn(train=False)
+policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
+test_run(env_name, policy, discretizer_action, discretizer_state)

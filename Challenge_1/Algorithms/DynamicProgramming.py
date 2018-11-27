@@ -57,7 +57,8 @@ class DynamicProgramming(object):
         states = np.repeat(states, self.n_actions, axis=0)
 
         # scale actions to stay within action space
-        actions = self.discretizer_action.scale_values(self.actions)
+        actions = self.actions.reshape(-1, self.env.action_space.shape[0])
+        actions = self.discretizer_action.scale_values(actions).flatten()
         actions = np.tile(actions, self.n_states ** self.state_dim)
 
         # create state-action pairs and use models
