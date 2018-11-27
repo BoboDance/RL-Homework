@@ -1,0 +1,46 @@
+import time
+
+import gym
+import numpy as np
+
+from Challenge_1.Algorithms.DynamicProgramming import DynamicProgramming
+from Challenge_1.util.Discretizer import Discretizer
+
+
+class ValueIteration(DynamicProgramming):
+
+    def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
+                 discretizer_action: Discretizer, discount=.99, theta=1e-3):
+
+        super(ValueIteration, self).__init__(env, dynamics_model, reward_model, discretizer_state, discretizer_action,
+                                             discount, theta)
+
+    def run(self, max_iter=100000):
+
+        for i in range(int(max_iter)):
+
+            start = time.time()
+            delta = 0
+
+            # compute value of state with lookahead
+            best_value = np.amax(self._look_ahead(), axis=1)
+
+            # get value of all states
+            values = self.value_function[tuple(self.states.T)]
+
+            delta = np.maximum(delta, np.abs(best_value - values))
+
+            # update value function with new best value
+            self.value_function = best_value.reshape(self.value_function.shape)
+
+            print("Value iteration step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
+                  "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
+
+            if np.all(delta < self.theta):
+                print('Value iteration finished in {} iterations.'.format(i + 1))
+                break
+
+        # Create policy in order to use optimal value function
+        self.policy = np.argmax(self._look_ahead(), axis=1).reshape(self.policy.shape)
+
+        np.save('./policy_VI', self.policy)
