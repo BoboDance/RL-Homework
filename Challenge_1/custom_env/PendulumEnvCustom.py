@@ -56,7 +56,7 @@ class PendulumEnvCustom(gym.Env):
     def _get_obs(self):
         theta, thetadot = self.state
         # return np.array([np.cos(theta), np.sin(theta), thetadot])
-        return np.array([theta, thetadot])
+        return np.array([angle_normalize(theta), thetadot])
 
     def render(self, mode='human'):
 
@@ -72,7 +72,7 @@ class PendulumEnvCustom(gym.Env):
             axle = rendering.make_circle(.05)
             axle.set_color(0, 0, 0)
             self.viewer.add_geom(axle)
-            fname = path.join(path.dirname(__file__), "assets/clockwise.png")
+            fname = path.join(path.dirname(__file__), "clockwise.png")
             self.img = rendering.Image(fname, 1., 1.)
             self.imgtrans = rendering.Transform()
             self.img.add_attr(self.imgtrans)

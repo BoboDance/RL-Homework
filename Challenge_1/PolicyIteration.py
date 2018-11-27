@@ -44,8 +44,10 @@ class PolicyIteration(object):
         self.value_function = np.zeros(state_space)
 
         self.high_state = self.env.observation_space.high
-        self.low_state = self.env.observation_space.low
         self.high_action = self.env.action_space.high
+
+        self.low_state = self.env.observation_space.low
+        self.low_action = self.env.action_space.low
 
     def run(self, max_iter=100000):
 
@@ -66,9 +68,8 @@ class PolicyIteration(object):
 
     def _policy_evaluation(self, max_iter=100000):
 
-        # TODO: time returns a weird value
-        start = time.time()
         for i in range(max_iter):
+            start = time.time()
             delta = 0
 
             # choose best action for each state
@@ -76,13 +77,15 @@ class PolicyIteration(object):
             actions = self.policy
 
             # scale actions to stay within action space
-            actions = actions - (self.n_actions - 1) / 2
-            actions = actions / ((self.n_actions - 1) / (2 * self.high_action))
+            # actions = actions - (self.n_actions - 1) / 2
+            # actions = actions / ((self.n_actions - 1) / (2 * self.high_action))
+            actions = self.discretizer_action.scale_values(actions)
 
             # scale states to stay within action space
-            total_range = (self.high_state - self.low_state)
-            state_01 = self.states / (self.n_states-1)
-            states = (state_01 * total_range) + self.low_state
+            # total_range = (self.high_state - self.low_state)
+            # state_01 = self.states / (self.n_states-1)
+            # states = (state_01 * total_range) + self.low_state
+            states = self.discretizer_state.scale_values(self.states)
 
             # create state-action pairs and use models
             s_a = np.concatenate([states, actions.T.reshape(-1, self.env.action_space.shape[0])], axis=1)
@@ -90,7 +93,7 @@ class PolicyIteration(object):
             reward = self.reward_model.predict(s_a)
 
             # clip to avoid being outside of allowed state space
-            state_prime = np.clip(state_prime, -self.high_state, self.high_state)
+            state_prime = np.clip(state_prime, self.low_state, self.high_state)
             state_prime_dis = self.discretizer_state.discretize(state_prime)
 
             # Calculate the expected values of next state
@@ -102,14 +105,8 @@ class PolicyIteration(object):
             delta = np.maximum(delta, np.abs(values - values_new))
             self.value_function = values_new.reshape(self.value_function.shape)
 
-            start = time.time() - start
-            # print("Policy eval step: {:d} -- delta: {:4.4f} -- time taken: {:d}:{:2d}".format(i, delta[0],
-            #                                                                                   int(start) // 60,
-            #                                                                                   int(start) % 60))
-
             print("Policy evaluation step: {:6d} -- mean delta: {:4.4f} -- max delta {:4.4f} -- min delta {:4.4f} "
-                  "-- time taken: {:d}:{:2d}".format(i, delta.mean(), delta.max(), delta.min(), int(start) // 60,
-                                                     int(start) % 60))
+                  "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
 
             # Terminate if change is below threshold
             if np.all(delta < self.theta):
@@ -123,17 +120,16 @@ class PolicyIteration(object):
         start = time.time()
 
         # Choose action with current policy
-        # policy_action = np.argmax(self.policy, axis=self.custom_envs.observation_space.shape[0])
         policy_action = self.policy
 
         # scale policy_action to stay within action space
         # policy_action = policy_action - (self.n_actions - 1) / 2
         # policy_action = policy_action / ((self.n_actions - 1) / (2 * self.high_action))
-        policy_action = policy_action.T.reshape(-1, self.env.action_space.shape[0])
+        policy_action = policy_action.reshape(-1, self.env.action_space.shape[0])
 
-        # Check if current policy_action is actually best
-        # TODO: Implement the negative shift into the mountain car problem to see if it's working then
-        best_action = np.argmax(self._look_ahead(), axis=1).reshape(-1, self.env.action_space.shape[0])
+        # Check if current policy_action is actually best by checking all actions
+        best_action = np.argmax(self._look_ahead(), axis=1)
+        best_action = best_action.reshape(-1, self.env.action_space.shape[0])
 
         # scale best_action to stay within action space
         # best_action = best_action - (self.n_actions - 1) / 2
@@ -148,17 +144,16 @@ class PolicyIteration(object):
             if np.count_nonzero(policy_action != best_action) < 5:
                 stable = True
 
-        start = time.time() - start
         print(
-            "Policy improvement finished -- stable: {} -- time taken: {}:{:2d}".format(stable, int(start) // 60,
-                                                                                       int(start) % 60))
+            "Policy improvement finished -- stable: {} -- time taken: {:2.4f}".format(stable, time.time() - start))
         return stable
 
     def _look_ahead(self):
         # scale states to stay within action space
-        total_range = (self.high_state - self.low_state)
-        state_01 = self.states / (self.n_states - 1)
-        states = (state_01 * total_range) + self.low_state
+        # total_range = (self.high_state - self.low_state)
+        # state_01 = self.states / (self.n_states - 1)
+        # states = (state_01 * total_range) + self.low_state
+        states = self.discretizer_state.scale_values(self.states)
 
         states = np.repeat(states, self.n_actions, axis=0)
 
@@ -171,7 +166,7 @@ class PolicyIteration(object):
         reward = self.reward_model.predict(s_a)
 
         # clip to avoid being outside of allowed state space
-        state_prime = np.clip(state_prime, -self.high_state, self.high_state)
+        state_prime = np.clip(state_prime, self.low_state, self.high_state)
         state_prime_dis = self.discretizer_state.discretize(state_prime)
 
         # Calculate the expected values of next state

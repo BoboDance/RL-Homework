@@ -12,7 +12,7 @@ class DataGenerator(object):
         self.env.seed(self.seed)
         np.random.seed(self.seed)
 
-        if env_name == "Pendulum-v0":
+        if env_name == "Pendulum-v2":
             self.n_samples = 10000
         elif env_name == "Qube-v0":
             self.n_samples = 25000

@@ -9,7 +9,7 @@ from Challenge_1.Discretizer import Discretizer
 class ValueIteration(object):
 
     def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
-                 discretizer_action: Discretizer, discount=1., theta=1e-3):
+                 discretizer_action: Discretizer, discount=.99, theta=1e-3):
 
         self.env = env
         self.discretizer_state = discretizer_state
@@ -34,13 +34,13 @@ class ValueIteration(object):
         self.high_state = self.env.observation_space.high
         self.high_action = self.env.action_space.high
 
+        self.low_state = self.env.observation_space.low
+        self.low_action = self.env.action_space.low
+
     def run(self, max_iter=100000):
 
-        # TODO: time returns a weird value
-        start = time.time()
-
         for i in range(int(max_iter)):
-
+            start = time.time()
             delta = 0
 
             # compute value of state with lookahead
@@ -49,14 +49,13 @@ class ValueIteration(object):
             # get value of all states
             values = self.value_function[tuple(self.states.T)]
 
+            delta = np.maximum(delta, np.abs(best_value - values))
+
             # update value function with new best value
-            delta = np.maximum(delta, np.abs(values - best_value))
             self.value_function = best_value.reshape(self.value_function.shape)
 
-            start = time.time() - start
             print("Value iteration step: {:6d} -- mean delta: {:4.4f} -- max delta {:4.4f} -- min delta {:4.4f} "
-                  "-- time taken: {:d}:{:2d}".format(i, delta.mean(), delta.max(), delta.min(), int(start) // 60,
-                                                     int(start) % 60))
+                  "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
 
             if np.all(delta < self.theta):
                 print('Value iteration finished in {} iterations.'.format(i + 1))
@@ -70,11 +69,11 @@ class ValueIteration(object):
     def _look_ahead(self):
 
         # scale states to stay within action space
-        states = self.states - (self.n_states - 1) / 2
-        states = states / ((self.n_states - 1) / (2 * self.high_state))
+        # states = self.states - (self.n_states - 1) / 2
+        # states = states / ((self.n_states - 1) / (2 * self.high_state))
+        states = self.discretizer_state.scale_values(self.states)
         states = np.repeat(states, self.n_actions, axis=0)
 
-        # actions = self.policy[tuple(self.states.T)]
         actions = np.tile(self.actions, self.n_states ** self.env.observation_space.shape[0])
 
         # create state-action pairs and use models
@@ -83,7 +82,7 @@ class ValueIteration(object):
         reward = self.reward_model.predict(s_a)
 
         # clip to avoid being outside of allowed state space
-        state_prime = np.clip(state_prime, -self.high_state, self.high_state)
+        state_prime = np.clip(state_prime, self.low_state, self.high_state)
         state_prime_dis = self.discretizer_state.discretize(state_prime)
 
         # Calculate the expected values of next state

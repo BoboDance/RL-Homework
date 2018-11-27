@@ -23,3 +23,9 @@ class Discretizer(object):
         for i in range(state.shape[1]):
             s_dis[:, i] = np.searchsorted(self.bins[i], state[:, i])
         return s_dis - 1
+
+    def scale_values(self, value):
+        # scale states to stay within action space
+        total_range = (self.high - self.low)
+        state_01 = value / (self.n_bins - 1)
+        return (state_01 * total_range) + self.low

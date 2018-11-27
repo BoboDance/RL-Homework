@@ -5,7 +5,7 @@ from sklearn.gaussian_process.kernels import WhiteKernel, RBF, ConstantKernel
 class GPModel(object):
 
     def __init__(self):
-        kernel = ConstantKernel() + RBF() + WhiteKernel()
+        kernel = ConstantKernel() * RBF() + WhiteKernel()
         self.gp = GaussianProcessRegressor(kernel=kernel, optimizer="fmin_l_bfgs_b")
 
     def fit(self, X, y):
