@@ -28,8 +28,8 @@ env_name = "Pendulum-v2"
 
 
 # TODO: only use equal bins numbers
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=100, bins_action=100, seed=1,
-                           theta=1e-6, path="./NN-state_dict"):
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=20, bins_action=20, seed=1,
+                           theta=1e-3, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -42,14 +42,13 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
     s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
 
     # solve regression problem s_prime = f(s,a)
-    dynamics_model = SklearnModel()
+    dynamics_model = SklearnModel(type="rf")
     dynamics_model.fit(s_a_pairs, state_prime)
 
     # solve regression problem r = g(s,a)
-    reward_model = SklearnModel()
+    reward_model = SklearnModel(type="rf")
     reward_model.fit(s_a_pairs, reward)
 
-    # TODO: Not integraded in the DP algos
     # But performance should not change much
     # model = NNModel(env)
     # model.load_model(path)
