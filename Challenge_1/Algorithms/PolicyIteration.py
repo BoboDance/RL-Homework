@@ -117,7 +117,7 @@ class PolicyIteration(DynamicProgramming):
             "Policy improvement finished -- stable: {} -- time taken: {:2.4f}s".format(stable, time.time() - start))
 
         if len(self.policy.shape) == 2:
-            p = discretizer_action.scale_values(self.policy.reshape(-1, self.action_dim))
+            p = self.discretizer_action.scale_values(self.policy.reshape(-1, self.action_dim))
             plt.matshow(p.reshape(self.policy.shape))
             plt.colorbar()
             plt.title("Policy")
