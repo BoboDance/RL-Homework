@@ -13,7 +13,7 @@ from Challenge_1.util.ColorLogger import enable_color_logging
 from Challenge_1.util.DataGenerator import DataGenerator
 from Challenge_1.util.Discretizer import Discretizer
 
-enable_color_logging(debug_lvl=logging.DEBUG)
+enable_color_logging(debug_lvl=logging.INFO)
 
 seed = 1234
 # avoid auto removal of import with pycharm
@@ -27,8 +27,9 @@ env_name = "Pendulum-v2"
 # env_name = "Qube-v0"
 
 
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10, bins_state=2, bins_action=4, seed=1,
-                           theta=1e-3, path="./NN-state_dict"):
+# TODO: only use equal bins numbers
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=100, bins_action=100, seed=1,
+                           theta=1e-6, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -125,8 +126,8 @@ def train_and_eval_nn(train=True, n_samples=10000):
         reward = reward.reshape(-1, 1)
         state_prime = state_prime.reshape(-1, env.observation_space.shape[0])
 
-        dynamics_model.train_network(s_a_pairs, state_prime, 10000, path + "_dynamics")
-        reward.train_network(s_a_pairs, reward, 10000, path + "_reward")
+        dynamics_model.train_network(s_a_pairs, state_prime, 2000, path + "_dynamics")
+        reward_model.train_network(s_a_pairs, reward, 2000, path + "_reward")
     else:
         dynamics_model.load_model(path + "_dynamics")
         reward_model.load_model(path + "_reward")

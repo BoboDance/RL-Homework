@@ -112,9 +112,15 @@ class PolicyIteration(DynamicProgramming):
             # Greedy policy update
             self.policy = best_action.reshape(self.policy.shape)
             print("# of incorrectly selected actions: {}".format(np.count_nonzero(policy_action != best_action)))
-            # if np.count_nonzero(policy_action != best_action) < 5:
-            #     stable = True
 
         print(
             "Policy improvement finished -- stable: {} -- time taken: {:2.4f}s".format(stable, time.time() - start))
+
+        if len(self.policy.shape) == 2:
+            p = discretizer_action.scale_values(self.policy.reshape(-1, self.action_dim))
+            plt.matshow(p.reshape(self.policy.shape))
+            plt.colorbar()
+            plt.title("Policy")
+            plt.show()
+
         return stable

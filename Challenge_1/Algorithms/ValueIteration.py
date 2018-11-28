@@ -1,6 +1,7 @@
 import time
 
 import gym
+import matplotlib.pyplot as plt
 import numpy as np
 
 from Challenge_1.Algorithms.DynamicProgramming import DynamicProgramming
@@ -39,6 +40,12 @@ class ValueIteration(DynamicProgramming):
             if np.all(delta <= self.theta):
                 print('Value iteration finished in {} iterations.'.format(i + 1))
                 break
+
+            if i % 15 == 0 and len(self.value_function.shape) == 2:
+                plt.matshow(self.value_function)
+                plt.colorbar()
+                plt.title("Value function")
+                plt.show()
 
         # Create policy in order to use optimal value function
         self.policy = np.argmax(self._look_ahead(), axis=1).reshape(self.policy.shape)

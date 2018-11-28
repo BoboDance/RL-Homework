@@ -13,7 +13,7 @@ class Discretizer(object):
         self.bin_scaling = 1.025
 
         # TODO
-        dense_locations = ["edge", "center"]
+        dense_locations = ["center", "center"]
         self.bins = np.array([self.increasing_bins(i, dense_locations[i]) for i in range(self.space.shape[0])])
 
         # self.bins = np.array([np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins + 1) for i in
