@@ -28,7 +28,7 @@ env_name = "Pendulum-v2"
 
 
 def start_policy_iteration(env_name, algorithm="pi", n_samples=10, bins_state=2, bins_action=4, seed=1,
-                           theta=10, path="./NN-state_dict"):
+                           theta=1e-3, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -104,7 +104,13 @@ def train_and_eval_nn(train=True, n_samples=10000):
     env = gym.make(env_name)
     path = "./NN-state_dict"
 
-    model = NNModel(env)
+    dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                             n_outputs=env.observation_space.shape[0],
+                             scaling=env.observation_space.high)
+
+    reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                           n_outputs=1,
+                           scaling=None)
 
     if train:
 
@@ -114,19 +120,28 @@ def train_and_eval_nn(train=True, n_samples=10000):
         state_prime, state, action, reward = dg_train.get_samples(n_samples)
 
         # create training input pairs
-        s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
+        s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1).reshape(-1, env.observation_space.shape[0] +
+                                                                                   env.action_space.shape[0])
+        reward = reward.reshape(-1, 1)
+        state_prime = state_prime.reshape(-1, env.observation_space.shape[0])
 
-        model.train_network(s_a_pairs, state_prime, reward, steps=10000)
+        dynamics_model.train_network(s_a_pairs, state_prime, 10000, path + "_dynamics")
+        reward.train_network(s_a_pairs, reward, 10000, path + "_reward")
     else:
-        model.load_model(path)
+        dynamics_model.load_model(path + "_dynamics")
+        reward_model.load_model(path + "_reward")
 
     dg_test = DataGenerator(env_name=env_name, seed=seed + 1)
     s_prime, s, a, r = dg_test.get_samples(n_samples)
 
     # create test input pairs
-    s_a = np.concatenate([s, a[:, np.newaxis]], axis=1)
+    s_a = np.concatenate([s, a[:, np.newaxis]], axis=1).reshape(-1, env.observation_space.shape[0] +
+                                                                env.action_space.shape[0])
+    r = r.reshape(-1, 1)
+    s_prime = s_prime.reshape(-1, env.observation_space.shape[0])
 
-    model.validate_model(s_a, s_prime, r)
+    dynamics_model.validate_model(s_a, s_prime)
+    reward_model.validate_model(s_a, r)
 
 
 def find_good_sample_size(env_name, seed, steps=250, max=10000, n_samples_test=1000):
@@ -222,6 +237,6 @@ def find_good_sample_size(env_name, seed, steps=250, max=10000, n_samples_test=1
 
 
 # find_good_sample_size(env_name, seed)
-# train_and_eval_nn(train=False)
+# train_and_eval_nn(train=True)
 policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
 test_run(env_name, policy, discretizer_action, discretizer_state)

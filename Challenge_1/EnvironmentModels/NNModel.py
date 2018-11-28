@@ -12,35 +12,32 @@ def init_weights(m):
 
 class NNModel(torch.nn.Module):
 
-    def __init__(self, env, lr=1e-3):
+    def __init__(self, n_inputs, n_outputs, scaling=None, lr=1e-3):
         super(NNModel, self).__init__()
 
-        self.env = env
+        self.scaling = scaling
+        self.n_outputs = n_outputs
+        self.n_inputs = n_inputs
 
-        self.state_dim = self.env.observation_space.shape[0]
-        self.action_dim = self.env.action_space.shape[0]
+        # self.state_dim = self.env.observation_space.shape[0]
+        # self.action_dim = self.env.action_space.shape[0]
+        #
+        # self.high_state = self.env.observation_space.high
+        # self.high_action = self.env.action_space.high
+        #
+        # self.low_state = self.env.observation_space.low
+        # self.low_action = self.env.action_space.low
 
-        self.high_state = self.env.observation_space.high
-        self.high_action = self.env.action_space.high
-
-        self.low_state = self.env.observation_space.low
-        self.low_action = self.env.action_space.low
-
-        self.n_inputs = self.state_dim + self.action_dim
-        self.n_outputs = self.state_dim
+        # self.n_inputs = self.state_dim + self.action_dim
+        # self.n_outputs = self.state_dim
 
         # network architecture specification
-        fc1_out = 200
+        fc1_out = 100
         fc2_out = 100
 
         self.fc1 = nn.Linear(self.n_inputs, fc1_out)
-        self.fc2 = nn.Linear(self.n_inputs, fc2_out)
-
-        # * reward head
-        self.reward = nn.Linear(fc2_out, 1)
-
-        # * dynamics head
-        self.s_prime = nn.Linear(fc1_out, self.n_outputs)
+        self.fc2 = nn.Linear(fc1_out, fc2_out)
+        self.out = nn.Linear(fc2_out, self.n_outputs)
 
         # initialize the weights
         self.apply(init_weights)
@@ -57,68 +54,57 @@ class NNModel(torch.nn.Module):
         """
         inputs = inputs.float()
 
-        x1 = self.fc2(inputs)
-        x1 = F.relu(x1)
-        reward = self.reward(x1)
+        x = self.fc1(inputs)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = F.relu(x)
 
-        x2 = self.fc1(inputs)
-        x2 = F.relu(x2)
-        s_prime = torch.from_numpy(self.high_state) * torch.tanh(self.s_prime(x2))
+        if self.scaling is not None:
+            out = torch.from_numpy(self.scaling) * torch.tanh(self.out(x))
+        else:
+            out = self.out(x)
 
-        return reward, s_prime
+        return out
 
-    def train_network(self, s_a, s_prime, reward, steps):
-        s_prime = torch.from_numpy(s_prime).float()
-        s_prime = s_prime.view(-1, self.n_outputs)
+    def train_network(self, X, y, steps, path):
 
-        reward = torch.from_numpy(reward).float()
-        reward = reward.view(-1, 1)
-
-        s_a = torch.from_numpy(s_a).float()
-        s_a = s_a.view(-1, self.n_inputs)
+        y = torch.from_numpy(y).float()
+        X = torch.from_numpy(X).float()
 
         criterion = nn.MSELoss()
 
         for i in range(steps):
             self.optimizer.zero_grad()
 
-            reward_out, s_prime_out = self(s_a)
+            out = self(X)
 
-            state_loss = criterion(s_prime_out, s_prime)
-            reward_loss = criterion(reward_out, reward)
-            loss = state_loss + reward_loss
+            loss = criterion(out, y)
 
-            print("Step: {:d} -- state loss: {:3.8f} -- reward loss: {:3.8f} "
-                  "-- total loss: {:3.8f}".format(i, state_loss.item(), reward_loss.item(), loss.item()))
+            print("Step: {:d} -- total loss: {:3.8f}".format(i, loss.item()))
 
             loss.backward()
 
             self.optimizer.step()
 
-        torch.save(self.state_dict(), "./NN-state_dict")
+        torch.save(self.state_dict(), path)
 
-    def validate_model(self, s_a, s_prime, reward):
+    def validate_model(self, X, y):
 
         self.eval()
 
         with torch.no_grad():
-            s_prime = torch.from_numpy(s_prime).float()
-            s_prime = s_prime.view(-1, self.n_outputs)
+            # y = torch.from_numpy(y).float()
+            X = torch.from_numpy(X).float()
 
-            reward = torch.from_numpy(reward).float()
-            reward = reward.view(-1, 1)
+            out = self(X)
 
-            s_a = torch.from_numpy(s_a).float()
-            s_a = s_a.view(-1, self.n_inputs)
+            mse_test = ((out.detach().numpy() - y) ** 2).mean(axis=0)
 
-            reward_out, s_prime_out = self(s_a)
-
-            mse_dynamics_test = ((s_prime.detach().numpy() - s_prime_out.detach().numpy()) ** 2).mean(axis=0)
-            mse_reward_test = ((reward.detach().numpy() - reward_out.detach().numpy()) ** 2).mean()
-
-            print("Test MSE for dynamics: {}".format(mse_dynamics_test))
-            print("Test MSE for reward: {}".format(mse_reward_test))
+            print("Test MSE: {}".format(mse_test))
 
     def load_model(self, path):
         self.load_state_dict(torch.load(path))
         self.eval()
+
+    def predict(self, X):
+        return self(X)
