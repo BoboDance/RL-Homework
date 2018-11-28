@@ -28,15 +28,15 @@ class ValueIteration(DynamicProgramming):
             # get value of all states
             values = self.value_function[tuple(self.states.T)]
 
-            delta = np.maximum(delta, np.abs(best_value - values))
-
             # update value function with new best value
             self.value_function = best_value.reshape(self.value_function.shape)
+
+            delta = np.maximum(delta, np.abs(best_value - values))
 
             print("Value iteration step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
                   "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
 
-            if np.all(delta < self.theta):
+            if np.all(delta <= self.theta):
                 print('Value iteration finished in {} iterations.'.format(i + 1))
                 break
 

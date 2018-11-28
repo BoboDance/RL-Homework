@@ -27,8 +27,8 @@ env_name = "Pendulum-v2"
 # env_name = "Qube-v0"
 
 
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=50, bins_action=50, seed=1,
-                           theta=1e-3, path="./NN-state_dict"):
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10, bins_state=2, bins_action=4, seed=1,
+                           theta=10, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 

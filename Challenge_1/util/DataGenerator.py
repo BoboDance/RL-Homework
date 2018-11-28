@@ -44,24 +44,41 @@ class DataGenerator(object):
         actions = np.zeros((self.n_samples,))
         rewards = np.zeros((self.n_samples,))
 
-        i = 0
-        while i < self.n_samples:
-            state = self.env.reset()
-            done = False
+        # i = 0
+        # while i < self.n_samples:
+        #     state = self.env.reset()
+        #     done = False
+        #
+        #     while not done and i < self.n_samples:
+        #         # sample and apply action
+        #         action = self.env.action_space.sample()
+        #         state_prime, reward, done, _ = self.env.step(action)
+        #
+        #         # save outcomes
+        #         states_prime[i] = np.array(state_prime)
+        #         states[i] = np.array(state)
+        #         actions[i] = action
+        #         rewards[i] = reward
+        #
+        #         # increment counter
+        #         state = state_prime
+        #         i += 1
+        #
+        # return states_prime, states, actions, rewards
+        state = self.env.reset()
+        for i in range(self.n_samples):
+            # sample and apply action
+            action = self.env.action_space.sample()
+            state_prime, reward, done, _ = self.env.step(action)
 
-            while not done and i < self.n_samples:
-                # sample and apply action
-                action = self.env.action_space.sample()
-                state_prime, reward, done, _ = self.env.step(action)
+            # save outcomes
+            states_prime[i] = np.array(state_prime)
+            states[i] = np.array(state)
+            actions[i] = action
+            rewards[i] = reward
 
-                # save outcomes
-                states_prime[i] = np.array(state_prime)
-                states[i] = np.array(state)
-                actions[i] = action
-                rewards[i] = reward
-
-                # increment counter
-                state = state_prime
-                i += 1
+            # increment counter
+            state = state_prime
+            i += 1
 
         return states_prime, states, actions, rewards

@@ -1,6 +1,7 @@
 import time
 
 import gym
+import matplotlib.pyplot as plt
 import numpy as np
 
 from Challenge_1.Algorithms.DynamicProgramming import DynamicProgramming
@@ -50,7 +51,7 @@ class PolicyIteration(DynamicProgramming):
             # choose best action for each state
             # scale actions to stay within action space
             actions = self.policy
-            actions = actions.reshape(-1, self.env.action_space.shape[0])
+            actions = actions.reshape(-1, self.action_dim)
             actions = self.discretizer_action.scale_values(actions)
 
             # scale states to stay within action space
@@ -69,17 +70,26 @@ class PolicyIteration(DynamicProgramming):
             values_prime = self.value_function[tuple(state_prime_dis.T)]
             values_new = reward + self.discount * values_prime
 
-            # adjust value function, based on results from action
+            # calculate convergence criterion
             values = self.value_function[tuple(self.states.T)]
             delta = np.maximum(delta, np.abs(values - values_new))
+
+            # adjust value function, based on results from action
             self.value_function = values_new.reshape(self.value_function.shape)
 
             print("Policy evaluation step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
                   "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
 
             # Terminate if change is below threshold
-            if np.all(delta < self.theta):
+            if np.all(delta <= self.theta):
                 print('Policy evaluation finished in {} iterations.'.format(i + 1))
+
+                if len(self.value_function.shape) == 2:
+                    plt.matshow(self.value_function)
+                    plt.colorbar()
+                    plt.title("Value function")
+                    plt.show()
+
                 break
 
     def _policy_improvement(self):
@@ -90,11 +100,11 @@ class PolicyIteration(DynamicProgramming):
 
         # Choose action with current policy
         policy_action = self.policy
-        policy_action = policy_action.reshape(-1, self.env.action_space.shape[0])
+        policy_action = policy_action.reshape(-1, self.action_dim)
 
         # Check if current policy_action is actually best by checking all actions
         best_action = np.argmax(self._look_ahead(), axis=1)
-        best_action = best_action.reshape(-1, self.env.action_space.shape[0])
+        best_action = best_action.reshape(-1, self.action_dim)
 
         # If better action was found
         if np.any(policy_action != best_action):
