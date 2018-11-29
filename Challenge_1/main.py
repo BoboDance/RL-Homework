@@ -63,7 +63,7 @@ def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state
     else:
         raise NotImplementedError()
 
-    algo.run()
+    algo.run(max_iter=100)
 
     return algo.policy, discretizer_action, discretizer_state
 
