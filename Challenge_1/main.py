@@ -28,7 +28,7 @@ env_name = "Pendulum-v2"
 
 
 # TODO: only use equal bins numbers
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=20, bins_action=20, seed=1,
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=100, bins_action=2, seed=1,
                            theta=1e-3, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
@@ -65,7 +65,7 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
     else:
         raise NotImplementedError()
 
-    algo.run()
+    algo.run(max_iter=100)
 
     return algo.policy, discretizer_action, discretizer_state
 
@@ -88,7 +88,7 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
         state = env.reset()
 
         while not done:
-            # env.render()
+            env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
             action = discretizer_action.scale_values(np.atleast_2d(action)).flatten()
@@ -238,5 +238,5 @@ def find_good_sample_size(env_name, seed, steps=250, max=10000, n_samples_test=1
 
 # find_good_sample_size(env_name, seed)
 # train_and_eval_nn(train=True)
-policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
+policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed, algorithm="vi")
 test_run(env_name, policy, discretizer_action, discretizer_state)
