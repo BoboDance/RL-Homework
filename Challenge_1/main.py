@@ -20,15 +20,13 @@ seed = 1234
 quanser_robots
 
 env_name = "Pendulum-v2"
-
-
 # env_name = "PendulumCustom-v0"
 # env_name = "MountainCarContinuous-v0"
 # env_name = "Qube-v0"
 
 
 # TODO: only use equal bins numbers
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=20, bins_action=20, seed=1,
+def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=40, bins_action=4, seed=1,
                            theta=1e-3, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
@@ -100,7 +98,7 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
     print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
 
 
-def train_and_eval_nn(train=True, n_samples=10000):
+def train_and_eval_nn(train=True, n_samples=10000, n_steps=10000):
     env = gym.make(env_name)
     path = "./NN-state_dict"
 
@@ -125,8 +123,8 @@ def train_and_eval_nn(train=True, n_samples=10000):
         reward = reward.reshape(-1, 1)
         state_prime = state_prime.reshape(-1, env.observation_space.shape[0])
 
-        dynamics_model.train_network(s_a_pairs, state_prime, 2000, path + "_dynamics")
-        reward_model.train_network(s_a_pairs, reward, 2000, path + "_reward")
+        dynamics_model.train_network(s_a_pairs, state_prime, n_steps, path + "_dynamics")
+        reward_model.train_network(s_a_pairs, reward, n_steps, path + "_reward")
     else:
         dynamics_model.load_model(path + "_dynamics")
         reward_model.load_model(path + "_reward")

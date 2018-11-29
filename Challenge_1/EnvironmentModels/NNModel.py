@@ -32,12 +32,13 @@ class NNModel(torch.nn.Module):
         # self.n_outputs = self.state_dim
 
         # network architecture specification
-        fc1_out = 100
-        fc2_out = 100
+        hidden = 100
 
-        self.fc1 = nn.Linear(self.n_inputs, fc1_out)
-        self.fc2 = nn.Linear(fc1_out, fc2_out)
-        self.out = nn.Linear(fc2_out, self.n_outputs)
+        self.fc1 = nn.Linear(self.n_inputs, hidden)
+        self.fc2 = nn.Linear(hidden, hidden)
+        self.fc3 = nn.Linear(hidden, hidden)
+        self.fc4 = nn.Linear(hidden, hidden)
+        self.out = nn.Linear(hidden, self.n_outputs)
 
         # initialize the weights
         self.apply(init_weights)
@@ -54,10 +55,10 @@ class NNModel(torch.nn.Module):
         """
         inputs = inputs.float()
 
-        x = self.fc1(inputs)
-        x = F.relu(x)
-        x = self.fc2(x)
-        x = F.relu(x)
+        x = F.relu(self.fc1(inputs))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
 
         if self.scaling is not None:
             out = torch.from_numpy(self.scaling) * torch.tanh(self.out(x))
