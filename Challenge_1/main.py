@@ -20,13 +20,15 @@ seed = 1234
 quanser_robots
 
 env_name = "Pendulum-v2"
+
+
 # env_name = "PendulumCustom-v0"
 # env_name = "MountainCarContinuous-v0"
 # env_name = "Qube-v0"
 
 
 # TODO: only use equal bins numbers
-def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=40, bins_action=2, seed=1,
+def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=100, bins_action=2, seed=1,
                            theta=1e-3, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
@@ -51,7 +53,8 @@ def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state
     # model = NNModel(env)
     # model.load_model(path)
 
-    discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space)
+    # center, edge for pendulum is best
+    discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space, dense_locations=["center", "edge"])
     discretizer_action = Discretizer(n_bins=bins_action, space=env.action_space)
 
     if algorithm == "pi":
@@ -72,8 +75,9 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
     env = gym.make(env_name)
 
     if len(policy.shape) == 2:
-        p = discretizer_action.scale_values(policy.reshape(-1, env.action_space.shape[0]))
-        plt.matshow(p.reshape(policy.shape))
+        # p = discretizer_action.scale_values(policy.reshape(-1, env.action_space.shape[0]))
+        # plt.matshow(p.reshape(policy.shape))
+        plt.matshow(policy)
         plt.colorbar()
         plt.title("Policy for {}".format(env_name))
         plt.show()

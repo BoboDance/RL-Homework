@@ -3,7 +3,7 @@ import numpy as np
 
 class Discretizer(object):
 
-    def __init__(self, n_bins, space):
+    def __init__(self, n_bins, space, dense_locations=None):
         self.space = space
         self.n_bins = n_bins
 
@@ -12,12 +12,12 @@ class Discretizer(object):
 
         self.bin_scaling = 1.025
 
-        # TODO
-        dense_locations = ["edge", "center", "center"]
-        self.bins = np.array([self.increasing_bins(i, dense_locations[i]) for i in range(self.space.shape[0])])
-
-        # self.bins = np.array([np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins + 1) for i in
-        #                       range(self.space.shape[0])])
+        if dense_locations is not None:
+            # TODO
+            self.bins = np.array([self.increasing_bins(i, dense_locations[i]) for i in range(self.space.shape[0])])
+        else:
+            self.bins = np.array([np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins + 1) for i in
+                                  range(self.space.shape[0])])
 
     def discretize(self, value):
         """
@@ -36,6 +36,14 @@ class Discretizer(object):
         return (state_01 * total_range) + self.low
 
     def scale_values(self, value):
+        # compute mean of lower and upper bound of bin
+        scaled = np.zeros(value.shape, dtype=np.float32)
+        for i in range(value.shape[1]):
+            v = np.atleast_2d(value[:, i].T)
+            scaled[:, i] = (self.bins[i][tuple(v)] + self.bins[i][tuple(v + 1)]) / 2
+        return scaled
+
+    def scale_values_stochastic(self, value, n_samples):
         # compute mean of lower and upper bound of bin
         scaled = np.zeros(value.shape, dtype=np.float32)
         for i in range(value.shape[1]):
@@ -70,10 +78,10 @@ class Discretizer(object):
 
         elif dense_location in ["end", "start"]:
 
-            bin_sizes = np.zeros(self.n_bins - 1)
+            bin_sizes = np.zeros(self.n_bins)
             bin_sizes[0] = 1
 
-            for i in range(self.n_bins - 1):
+            for i in range(1, self.n_bins):
                 bin_sizes[i] = bin_sizes[i - 1] * self.bin_scaling
 
             # normalize and scale to range

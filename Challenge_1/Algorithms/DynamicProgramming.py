@@ -59,16 +59,16 @@ class DynamicProgramming(object):
         states = np.repeat(states, self.n_actions, axis=0)
 
         # scale actions to stay within action space
-        actions = self.actions.reshape(-1, self.action_dim)
+        # actions = self.actions.reshape(-1, self.action_dim)
         # actions = self.discretizer_action.scale_values(actions).flatten()
-        actions = np.tile(actions, self.n_states ** self.state_dim)
+        actions = np.tile(self.actions, self.n_states ** self.state_dim)
 
         # create state-action pairs and use models
         s_a = np.concatenate([states, actions.reshape(-1, self.action_dim)], axis=1)
-        state_prime = self.dynamics_model.predict(s_a)
+        # state_prime = self.dynamics_model.predict(s_a)
         reward = self.reward_model.predict(s_a)
 
-        # state_prime = np.zeros_like(states)
+        state_prime = np.zeros_like(states)
         # reward = np.zeros_like(actions)
 
         # self.env.reset()
