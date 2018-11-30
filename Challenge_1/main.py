@@ -26,7 +26,7 @@ env_name = "Pendulum-v2"
 
 
 # TODO: only use equal bins numbers
-def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=40, bins_action=4, seed=1,
+def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=40, bins_action=2, seed=1,
                            theta=1e-3, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
@@ -89,7 +89,7 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
             # env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
-            action = discretizer_action.scale_values(np.atleast_2d(action)).flatten()
+            # action = discretizer_action.scale_values(np.atleast_2d(action)).flatten()
             state, reward, done, _ = env.step(action)
             rewards[i] += reward
 

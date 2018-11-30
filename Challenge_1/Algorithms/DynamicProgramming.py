@@ -39,8 +39,9 @@ class DynamicProgramming(object):
 
         # np indices returns all possible permutations
         self.states = np.indices(state_space).reshape(self.state_dim, -1).T
-        self.actions = np.arange(self.n_actions)
-        self.policy = np.random.choice(self.n_actions, size=state_space)
+        # self.actions = np.arange(self.n_actions)
+        self.actions = np.array([-2, 2])
+        self.policy = np.random.choice(self.actions, size=state_space)
         self.value_function = np.zeros(state_space)
 
         self.high_state = self.env.observation_space.high
@@ -59,22 +60,22 @@ class DynamicProgramming(object):
 
         # scale actions to stay within action space
         actions = self.actions.reshape(-1, self.action_dim)
-        actions = self.discretizer_action.scale_values(actions).flatten()
+        # actions = self.discretizer_action.scale_values(actions).flatten()
         actions = np.tile(actions, self.n_states ** self.state_dim)
 
         # create state-action pairs and use models
         s_a = np.concatenate([states, actions.reshape(-1, self.action_dim)], axis=1)
-        # state_prime = self.dynamics_model.predict(s_a)
+        state_prime = self.dynamics_model.predict(s_a)
         reward = self.reward_model.predict(s_a)
 
-        state_prime = np.zeros_like(states)
+        # state_prime = np.zeros_like(states)
         # reward = np.zeros_like(actions)
 
-        self.env.reset()
-        for j, s in enumerate(s_a):
-            self.env.env.state = s[:-1]
-            # state_prime[j], reward[j], _, _ = self.env.step(np.array([s[-1]]))
-            state_prime[j], _, _, _ = self.env.step(np.array([s[-1]]))
+        # self.env.reset()
+        # for j, s in enumerate(s_a):
+        #     self.env.env.state = s[:-1]
+        #     # state_prime[j], reward[j], _, _ = self.env.step(np.array([s[-1]]))
+        #     state_prime[j], _, _, _ = self.env.step(np.array([s[-1]]))
 
         # clip to avoid being outside of allowed state space
         state_prime = np.clip(state_prime, self.low_state, self.high_state)

@@ -48,6 +48,6 @@ class ValueIteration(DynamicProgramming):
                 plt.show()
 
         # Create policy in order to use optimal value function
-        self.policy = np.argmax(self._look_ahead(), axis=1).reshape(self.policy.shape)
+        self.policy = self.actions[tuple(np.argmax(self._look_ahead(), axis=1).T)].reshape(self.policy.shape)
 
         np.save('./policy_VI', self.policy)
