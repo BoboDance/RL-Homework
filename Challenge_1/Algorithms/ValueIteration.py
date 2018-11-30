@@ -11,10 +11,10 @@ from Challenge_1.util.Discretizer import Discretizer
 class ValueIteration(DynamicProgramming):
 
     def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
-                 discretizer_action: Discretizer, discount=.99, theta=1e-3, use_MC=False):
+                 discretizer_action: Discretizer, discount=.99, theta=1e-3, use_MC=False, MC_samples=1):
 
         super(ValueIteration, self).__init__(env, dynamics_model, reward_model, discretizer_state, discretizer_action,
-                                             discount, theta, use_MC)
+                                             discount, theta, use_MC, MC_samples)
 
     def run(self, max_iter=100000):
 

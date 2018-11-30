@@ -7,7 +7,7 @@ from Challenge_1.util import Discretizer
 class DynamicProgramming(object):
 
     def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
-                 discretizer_action: Discretizer, discount=.99, theta=1e-9, use_MC=False):
+                 discretizer_action: Discretizer, discount=.99, theta=1e-9, use_MC=False, MC_samples=1):
         """
         :param env:
         :param dynamics_model:
@@ -54,7 +54,7 @@ class DynamicProgramming(object):
 
         if use_MC:
             print()
-            self.state_prime, self.reward = self.compute_transition_and_reward(n_samples=100)
+            self.state_prime, self.reward = self.compute_transition_and_reward(n_samples=MC_samples)
 
     def run(self, max_iter=100000):
         raise NotImplementedError
@@ -116,7 +116,7 @@ class DynamicProgramming(object):
             s = np.repeat(s, self.n_actions, axis=0)
             s_a = np.concatenate([s, actions.reshape(-1, self.action_dim)], axis=1)
             state_prime[:, i, :] = self.dynamics_model.predict(s_a)
-            reward[i] = self.reward_model.predict(s_a)
+            reward[i] = self.reward_model.predict(s_a).flatten()
 
         state_prime = np.mean(state_prime, axis=1)
         state_prime = self.discretizer_state.discretize(state_prime)

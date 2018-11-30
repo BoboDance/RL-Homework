@@ -28,8 +28,8 @@ env_name = "Pendulum-v2"
 
 
 # TODO: only use equal bins numbers
-def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=100, bins_action=2, seed=1,
-                           theta=1e-3, path="./NN-state_dict", use_MC=True):
+def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=150, bins_action=2, seed=1,
+                           theta=1e-3, path="./NN-state_dict", use_MC=True, MC_samples=1000):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -42,19 +42,29 @@ def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state
     s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
 
     # solve regression problem s_prime = f(s,a)
-    dynamics_model = SklearnModel(type="rf")
-    dynamics_model.fit(s_a_pairs, state_prime)
-
-    # solve regression problem r = g(s,a)
-    reward_model = SklearnModel(type="rf")
-    reward_model.fit(s_a_pairs, reward)
+    # dynamics_model = SklearnModel(type="rf")
+    # dynamics_model.fit(s_a_pairs, state_prime)
+    #
+    # # solve regression problem r = g(s,a)
+    # reward_model = SklearnModel(type="rf")
+    # reward_model.fit(s_a_pairs, reward)
 
     # But performance should not change much
-    # model = NNModel(env)
-    # model.load_model(path)
+    dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                             n_outputs=env.observation_space.shape[0],
+                             scaling=env.observation_space.high)
+
+    reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                           n_outputs=1,
+                           scaling=None)
+
+    dynamics_model.load_model("./NN-state_dict_dynamics_10000_large")
+    reward_model.load_model("./NN-state_dict_reward_10000_large")
+
 
     # center, edge for pendulum is best
-    discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space, dense_locations=["center", "edge"])
+    discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space,
+                                    dense_locations=["center", "edge", "edge"])
     discretizer_action = Discretizer(n_bins=bins_action, space=env.action_space)
 
     if algorithm == "pi":
@@ -63,7 +73,7 @@ def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state
     elif algorithm == "vi":
         algo = ValueIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                               discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
-                              use_MC=use_MC)
+                              use_MC=use_MC, MC_samples=MC_samples)
     else:
         raise NotImplementedError()
 
