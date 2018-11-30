@@ -45,10 +45,19 @@ class Discretizer(object):
 
     def scale_values_stochastic(self, value, n_samples):
         # compute mean of lower and upper bound of bin
-        scaled = np.zeros(value.shape, dtype=np.float32)
+        scaled = np.zeros((value.shape[0], n_samples, value.shape[1]), dtype=np.float32)
         for i in range(value.shape[1]):
+
             v = np.atleast_2d(value[:, i].T)
-            scaled[:, i] = (self.bins[i][tuple(v)] + self.bins[i][tuple(v + 1)]) / 2
+            left = self.bins[i][tuple(v)]
+            right = self.bins[i][tuple(v + 1)]
+
+            # sample from gaussian within the bin
+            sigma = (right - left) / 3
+            mu = (left + right) / 2
+            # 99.7% of samples are in 1/3 sigma range, clip others
+            scaled[:, :, i] = np.clip(np.random.normal(mu, sigma, size=(n_samples, len(mu))), left, right).T
+
         return scaled
 
     def increasing_bins(self, dim, dense_location="center"):

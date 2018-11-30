@@ -29,7 +29,7 @@ env_name = "Pendulum-v2"
 
 # TODO: only use equal bins numbers
 def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=100, bins_action=2, seed=1,
-                           theta=1e-3, path="./NN-state_dict"):
+                           theta=1e-3, path="./NN-state_dict", use_MC=True):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -62,7 +62,8 @@ def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state
                                discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta)
     elif algorithm == "vi":
         algo = ValueIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
-                              discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta)
+                              discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
+                              use_MC=use_MC)
     else:
         raise NotImplementedError()
 
