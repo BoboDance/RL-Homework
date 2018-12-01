@@ -28,7 +28,7 @@ env_name = "Pendulum-v2"
 
 
 # TODO: only use equal bins numbers
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=100, bins_action=100, seed=1,
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=2, bins_action=4, seed=1,
                            theta=1e-6, path="./NN-state_dict"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
@@ -42,17 +42,24 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
     s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
 
     # solve regression problem s_prime = f(s,a)
-    dynamics_model = SklearnModel()
-    dynamics_model.fit(s_a_pairs, state_prime)
+    #dynamics_model = SklearnModel()
+    #dynamics_model.fit(s_a_pairs, state_prime)
 
     # solve regression problem r = g(s,a)
-    reward_model = SklearnModel()
-    reward_model.fit(s_a_pairs, reward)
+    #reward_model = SklearnModel()
+    #reward_model.fit(s_a_pairs, reward)
 
     # TODO: Not integraded in the DP algos
     # But performance should not change much
-    # model = NNModel(env)
-    # model.load_model(path)
+    dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                             n_outputs=env.observation_space.shape[0],
+                             scaling=env.observation_space.high)
+    dynamics_model.load_model(path + '_dynamics')
+
+    reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                           n_outputs=1,
+                           scaling=None)
+    reward_model.load_model(path + '_reward')
 
     discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space)
     discretizer_action = Discretizer(n_bins=bins_action, space=env.action_space)
@@ -126,8 +133,8 @@ def train_and_eval_nn(train=True, n_samples=10000):
         reward = reward.reshape(-1, 1)
         state_prime = state_prime.reshape(-1, env.observation_space.shape[0])
 
-        dynamics_model.train_network(s_a_pairs, state_prime, 2000, path + "_dynamics")
-        reward_model.train_network(s_a_pairs, reward, 2000, path + "_reward")
+        dynamics_model.train_network(s_a_pairs, state_prime, 5000, path + "_dynamics")
+        reward_model.train_network(s_a_pairs, reward, 5000, path + "_reward")
     else:
         dynamics_model.load_model(path + "_dynamics")
         reward_model.load_model(path + "_reward")
@@ -238,6 +245,6 @@ def find_good_sample_size(env_name, seed, steps=250, max=10000, n_samples_test=1
 
 
 # find_good_sample_size(env_name, seed)
-# train_and_eval_nn(train=True)
+#train_and_eval_nn(train=True)
 policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
 test_run(env_name, policy, discretizer_action, discretizer_state)
