@@ -12,6 +12,7 @@ from Challenge_1.EnvironmentModels.SklearnModel import SklearnModel
 from Challenge_1.util.ColorLogger import enable_color_logging
 from Challenge_1.util.DataGenerator import DataGenerator
 from Challenge_1.util.Discretizer import Discretizer
+import itertools
 
 enable_color_logging(debug_lvl=logging.INFO)
 
@@ -26,10 +27,26 @@ env_name = "Pendulum-v2"
 # env_name = "MountainCarContinuous-v0"
 # env_name = "Qube-v0"
 
+def grid_search(env_name, seed, dim=2):
+    for dense_loc in list(itertools.product(["center", "edge", "start", "end"], repeat=dim)) + [None]:
+        for MC_samples in [1, 10, 25, 50, 100, 250, 500, 1000]:
+            for state_bins in [2, 10, 26, 50, 76, 100, 150]:
+                policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, algorithm="vi",
+                                                                                       n_samples=10000,
+                                                                                       bins_state=state_bins,
+                                                                                       bins_action=2,
+                                                                                       seed=seed, theta=1e-9,
+                                                                                       use_MC=True,
+                                                                                       MC_samples=MC_samples,
+                                                                                       dense_location=dense_loc)
+                print("Score dense_loc: {} -- MC samples: {} -- state bins: {} ".format(dense_loc, MC_samples,
+                                                                                        state_bins))
+                test_run(env_name, policy, discretizer_action, discretizer_state)
 
+# best for pendulum: 500 MC samples, 50 bins, [center, edge]
 # TODO: only use equal bins numbers
-def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=150, bins_action=2, seed=1,
-                           theta=1e-3, path="./NN-state_dict", use_MC=True, MC_samples=1000):
+def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state=50, bins_action=2, seed=1,
+                           theta=1e-9, use_MC=True, MC_samples=500, dense_location=["center", "edge"]):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -58,13 +75,13 @@ def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state
                            n_outputs=1,
                            scaling=None)
 
-    dynamics_model.load_model("./NN-state_dict_dynamics_10000_large")
-    reward_model.load_model("./NN-state_dict_reward_10000_large")
+    dynamics_model.load_model("./NN-state_dict_dynamics_10000_200hidden")
+    reward_model.load_model("./NN-state_dict_reward_10000_200hidden")
 
-
-    # center, edge for pendulum is best
+    # center, edge for pendulum is best for RF
+    # edge, center is best for NN
     discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space,
-                                    dense_locations=["center", "edge", "edge"])
+                                    dense_locations=dense_location)
     discretizer_action = Discretizer(n_bins=bins_action, space=env.action_space)
 
     if algorithm == "pi":
@@ -85,13 +102,13 @@ def start_policy_iteration(env_name, algorithm="vi", n_samples=10000, bins_state
 def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=100):
     env = gym.make(env_name)
 
-    if len(policy.shape) == 2:
-        # p = discretizer_action.scale_values(policy.reshape(-1, env.action_space.shape[0]))
-        # plt.matshow(p.reshape(policy.shape))
-        plt.matshow(policy)
-        plt.colorbar()
-        plt.title("Policy for {}".format(env_name))
-        plt.show()
+    # if len(policy.shape) == 2:
+    #     # p = discretizer_action.scale_values(policy.reshape(-1, env.action_space.shape[0]))
+    #     # plt.matshow(p.reshape(policy.shape))
+    #     plt.matshow(policy)
+    #     plt.colorbar()
+    #     plt.title("Policy for {}".format(env_name))
+    #     plt.show()
 
     rewards = np.zeros(n_episodes)
 
@@ -101,14 +118,14 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
         state = env.reset()
 
         while not done:
-            # env.render()
+            env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
             # action = discretizer_action.scale_values(np.atleast_2d(action)).flatten()
             state, reward, done, _ = env.step(action)
             rewards[i] += reward
 
-        print("Intermediate reward: {}".format(rewards[i]))
+        # print("Intermediate reward: {}".format(rewards[i]))
 
     print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
 
@@ -157,7 +174,7 @@ def train_and_eval_nn(train=True, n_samples=10000, n_steps=10000):
     reward_model.validate_model(s_a, r)
 
 
-def find_good_sample_size(env_name, seed, steps=250, max=10000, n_samples_test=1000):
+def find_good_sample_size(env_name, seed, steps=250, max=10000, n_samples_test=10000):
     dyn_history_test = []
     rwd_history_test = []
     rwd_history_train = []
@@ -249,6 +266,7 @@ def find_good_sample_size(env_name, seed, steps=250, max=10000, n_samples_test=1
     plt.show()
 
 
+# grid_search(env_name, seed, 2)
 # find_good_sample_size(env_name, seed)
 # train_and_eval_nn(train=True)
 policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)

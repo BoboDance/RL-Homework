@@ -32,7 +32,7 @@ class NNModel(torch.nn.Module):
         # self.n_outputs = self.state_dim
 
         # network architecture specification
-        hidden = 100
+        hidden = 200
 
         self.fc1 = nn.Linear(self.n_inputs, hidden)
         self.fc2 = nn.Linear(hidden, hidden)
