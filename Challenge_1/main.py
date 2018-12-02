@@ -28,7 +28,7 @@ env_name = "Pendulum-v2"
 # env_name = "Qube-v0"
 
 
-def grid_search(env_name, seed, dim=2, algo="vi"):
+def grid_search(env_name, seed, dim=2, algo="pi"):
     for dense_loc in list(itertools.product(["center", "edge", "start", "end"], repeat=dim)) + [None]:
         for MC_samples in [1, 10, 25, 50, 100, 250, 500, 1000]:
             for state_bins in [2, 10, 26, 50, 76, 100, 150]:
@@ -48,8 +48,8 @@ def grid_search(env_name, seed, dim=2, algo="vi"):
 # best for pendulum: 500 MC samples, 50 bins, [center, edge]
 # TODO: only use equal bins numbers
 # ["center", "center", "center", "center"]
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10, bins_state=10, bins_action=2, seed=1,
-                           theta=1e-3, use_MC=True, MC_samples=1, dense_location=None):
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=150, bins_action=2, seed=1,
+                           theta=1e-3, use_MC=True, MC_samples=1, dense_location=["center", "edge"]):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -61,25 +61,25 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10, bins_state=10
     # create training input pairs
     s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
 
-    # solve regression problem s_prime = f(s,a)
-    dynamics_model = SklearnModel(type="rf")
-    dynamics_model.fit(s_a_pairs, state_prime)
-
-    # solve regression problem r = g(s,a)
-    reward_model = SklearnModel(type="rf")
-    reward_model.fit(s_a_pairs, reward)
+    # # solve regression problem s_prime = f(s,a)
+    # dynamics_model = SklearnModel(type="rf")
+    # dynamics_model.fit(s_a_pairs, state_prime)
+    #
+    # # solve regression problem r = g(s,a)
+    # reward_model = SklearnModel(type="rf")
+    # reward_model.fit(s_a_pairs, reward)
 
     # But performance should not change much
-    # dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-    #                          n_outputs=env.observation_space.shape[0],
-    #                          scaling=env.observation_space.high)
-    #
-    # reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-    #                        n_outputs=1,
-    #                        scaling=None)
-    #
-    # dynamics_model.load_model("./NN-state_dict_dynamics_10000_200hidden")
-    # reward_model.load_model("./NN-state_dict_reward_10000_200hidden")
+    dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                             n_outputs=env.observation_space.shape[0],
+                             scaling=env.observation_space.high)
+
+    reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                           n_outputs=1,
+                           scaling=None)
+
+    dynamics_model.load_model("./NN-state_dict_dynamics_10000_200hidden")
+    reward_model.load_model("./NN-state_dict_reward_10000_200hidden")
 
     # center, edge for pendulum is best for RF
     # edge, center is best for NN
@@ -122,7 +122,7 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
         state = env.reset()
 
         while not done:
-            env.render()
+            # env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
             # action = discretizer_action.scale_values(np.atleast_2d(action)).flatten()
