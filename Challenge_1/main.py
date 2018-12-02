@@ -43,7 +43,8 @@ def grid_search(env_name, seed, dim=2, algo="pi"):
                 test_run(env_name, policy, discretizer_action, discretizer_state)
 
 
-# best for pendulum: 500 MC samples, 50 bins, [center, edge]
+# best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
+# best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
 # TODO: only use equal bins numbers
 # ["center", "center", "center", "center"]
 def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=150, bins_action=2, seed=1,
