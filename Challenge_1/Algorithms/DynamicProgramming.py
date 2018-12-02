@@ -19,6 +19,11 @@ class DynamicProgramming(object):
         """
 
         self.env = env
+        self.high_state = self.env.observation_space.high
+        self.high_action = self.env.action_space.high
+        self.low_state = self.env.observation_space.low
+        self.low_action = self.env.action_space.low
+
         self.discretizer_state = discretizer_state
         self.discretizer_action = discretizer_action
 
@@ -39,16 +44,9 @@ class DynamicProgramming(object):
 
         # np indices returns all possible permutations
         self.states = np.indices(state_space).reshape(self.state_dim, -1).T
-        # self.actions = np.arange(self.n_actions)
-        self.actions = np.array([-2, 2])
+        self.actions = np.linspace(self.low_action, self.high_action, self.n_actions)
         self.policy = np.random.choice(self.actions, size=state_space)
         self.value_function = np.zeros(state_space)
-
-        self.high_state = self.env.observation_space.high
-        self.high_action = self.env.action_space.high
-
-        self.low_state = self.env.observation_space.low
-        self.low_action = self.env.action_space.low
 
         self.use_MC = use_MC
 
