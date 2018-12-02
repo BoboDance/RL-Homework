@@ -21,8 +21,6 @@ seed = 1234
 quanser_robots
 
 env_name = "Pendulum-v2"
-
-
 # env_name = "PendulumCustom-v0"
 # env_name = "MountainCarContinuous-v0"
 # env_name = "Qube-v0"
@@ -106,13 +104,11 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
 def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=100):
     env = gym.make(env_name)
 
-    if len(policy.shape) == 2:
-        # p = discretizer_action.scale_values(policy.reshape(-1, env.action_space.shape[0]))
-        # plt.matshow(p.reshape(policy.shape))
-        plt.matshow(policy)
-        plt.colorbar()
-        plt.title("Policy for {}".format(env_name))
-        plt.show()
+    # if len(policy.shape) == 2:
+    #     plt.matshow(policy)
+    #     plt.colorbar()
+    #     plt.title("Policy for {}".format(env_name))
+    #     plt.show()
 
     rewards = np.zeros(n_episodes)
 
@@ -125,11 +121,10 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
             # env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
-            # action = discretizer_action.scale_values(np.atleast_2d(action)).flatten()
             state, reward, done, _ = env.step(action)
             rewards[i] += reward
 
-        print("Intermediate reward: {}".format(rewards[i]))
+        # print("Intermediate reward: {}".format(rewards[i]))
 
     print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
 
@@ -270,9 +265,9 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
     plt.show()
 
 
-# grid_search(env_name, seed, 2)
+grid_search(env_name, seed, 2, "pi")
 # find_good_sample_size(env_name, seed)
 # train_and_eval_nn(train=True)
-policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
-test_run(env_name, policy, discretizer_action, discretizer_state)
+# policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
+# test_run(env_name, policy, discretizer_action, discretizer_state)
 #

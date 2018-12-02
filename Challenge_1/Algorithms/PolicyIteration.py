@@ -31,7 +31,7 @@ class PolicyIteration(DynamicProgramming):
         i = 0
 
         while not stable:
-            print("Policy iteration step: {}".format(i))
+            # print("Policy iteration step: {}".format(i))
 
             self._policy_evaluation(max_iter=max_iter)
             stable = self._policy_improvement()
@@ -40,13 +40,13 @@ class PolicyIteration(DynamicProgramming):
             # policy iteration converged
             if stable:
                 print('Evaluated {} policies and found stable policy'.format(i + 1))
-                np.save('./policy_PI', self.policy)
+                # np.save('./policy_PI', self.policy)
 
-                if len(self.value_function.shape) == 2:
-                    plt.matshow(self.value_function)
-                    plt.colorbar()
-                    plt.title("Value function")
-                    plt.show()
+                # if len(self.value_function.shape) == 2:
+                #     plt.matshow(self.value_function)
+                #     plt.colorbar()
+                #     plt.title("Value function")
+                #     plt.show()
 
     def _policy_evaluation(self, max_iter=100000):
 
@@ -76,12 +76,12 @@ class PolicyIteration(DynamicProgramming):
             # adjust value function, based on results from action
             self.value_function = values_new.reshape(self.value_function.shape)
 
-            print("Policy evaluation step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
-                  "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
+            # print("Policy evaluation step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
+            #       "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
 
             # Terminate if change is below threshold
             if np.all(delta <= self.theta):
-                print('Policy evaluation finished in {} iterations.'.format(i + 1))
+                # print('Policy evaluation finished in {} iterations.'.format(i + 1))
                 break
 
     def _policy_improvement(self):
@@ -101,10 +101,10 @@ class PolicyIteration(DynamicProgramming):
             stable = False
             # Greedy policy update
             self.policy = best_action.reshape(self.policy.shape)
-            print("# of incorrectly selected actions: {}".format(np.count_nonzero(policy_action != best_action)))
+            # print("# of incorrectly selected actions: {}".format(np.count_nonzero(policy_action != best_action)))
 
-        print(
-            "Policy improvement finished -- stable: {} -- time taken: {:2.4f}s".format(stable, time.time() - start))
+        # print(
+        #     "Policy improvement finished -- stable: {} -- time taken: {:2.4f}s".format(stable, time.time() - start))
 
         # if len(self.policy.shape) == 2:
         #     plt.matshow(self.value_function)
