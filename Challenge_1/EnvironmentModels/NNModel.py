@@ -108,5 +108,6 @@ class NNModel(torch.nn.Module):
         self.eval()
 
     def predict(self, X):
+        self.eval()
         X = torch.from_numpy(X)
         return self(X).detach().numpy()

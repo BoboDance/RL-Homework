@@ -11,7 +11,7 @@ class SklearnModel(object):
             kernel = ConstantKernel() * RBF() + WhiteKernel()
             self.model = GaussianProcessRegressor(kernel=kernel, optimizer="fmin_l_bfgs_b")
         elif type == "rf":
-            self.model = RandomForestRegressor(n_estimators=150)
+            self.model = RandomForestRegressor(n_estimators=80)
         else:
             raise NotImplementedError("Model not known.")
 

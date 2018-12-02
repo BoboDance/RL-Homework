@@ -52,7 +52,7 @@ class DynamicProgramming(object):
 
         if use_MC:
             print()
-            self.state_prime, self.reward = self.compute_transition_and_reward(n_samples=MC_samples)
+            self.state_prime, self.reward = self.compute_transition_and_reward_matrices(n_samples=MC_samples)
 
     def run(self, max_iter=100000):
         raise NotImplementedError
@@ -100,7 +100,7 @@ class DynamicProgramming(object):
 
         return values_new.reshape(-1, self.n_actions)
 
-    def compute_transition_and_reward(self, n_samples):
+    def compute_transition_and_reward_matrices(self, n_samples):
         # create n samples within the bins an average in order to get better representation
         states = self.discretizer_state.scale_values_stochastic(self.states, n_samples=n_samples)
         actions = np.tile(self.actions, states.shape[0])
@@ -109,13 +109,19 @@ class DynamicProgramming(object):
         state_prime = np.zeros((states.shape[0] * self.n_actions, states.shape[1], states.shape[2]))
         reward = np.zeros((states.shape[1], actions.shape[0]))
 
+        # predict for each sampled action
         for i in range(states.shape[1]):
+            # get all samples for all states and one action
             s = states[:, i, :]
             s = np.repeat(s, self.n_actions, axis=0)
             s_a = np.concatenate([s, actions.reshape(-1, self.action_dim)], axis=1)
             state_prime[:, i, :] = self.dynamics_model.predict(s_a)
             reward[i] = self.reward_model.predict(s_a).flatten()
 
+        # Deterministic case:
+        # compute average state transition and reward.
+        # TODO stochastic case: return dist over actions and reward
+        # Maybe compute reward based on transition probability
         state_prime = np.mean(state_prime, axis=1)
         state_prime = self.discretizer_state.discretize(state_prime)
         value = np.mean(reward, axis=0)

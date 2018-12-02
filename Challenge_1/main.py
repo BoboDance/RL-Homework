@@ -1,3 +1,4 @@
+import itertools
 import logging
 
 import gym
@@ -12,7 +13,6 @@ from Challenge_1.EnvironmentModels.SklearnModel import SklearnModel
 from Challenge_1.util.ColorLogger import enable_color_logging
 from Challenge_1.util.DataGenerator import DataGenerator
 from Challenge_1.util.Discretizer import Discretizer
-import itertools
 
 enable_color_logging(debug_lvl=logging.INFO)
 
@@ -20,19 +20,19 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-# env_name = "Pendulum-v2"
+env_name = "Pendulum-v2"
 
 
 # env_name = "PendulumCustom-v0"
 # env_name = "MountainCarContinuous-v0"
-env_name = "Qube-v0"
+# env_name = "Qube-v0"
 
 
-def grid_search(env_name, seed, dim=2):
+def grid_search(env_name, seed, dim=2, algo="vi"):
     for dense_loc in list(itertools.product(["center", "edge", "start", "end"], repeat=dim)) + [None]:
         for MC_samples in [1, 10, 25, 50, 100, 250, 500, 1000]:
             for state_bins in [2, 10, 26, 50, 76, 100, 150]:
-                policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, algorithm="vi",
+                policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, algorithm=algo,
                                                                                        n_samples=10000,
                                                                                        bins_state=state_bins,
                                                                                        bins_action=2,
@@ -48,9 +48,8 @@ def grid_search(env_name, seed, dim=2):
 # best for pendulum: 500 MC samples, 50 bins, [center, edge]
 # TODO: only use equal bins numbers
 # ["center", "center", "center", "center"]
-def start_policy_iteration(env_name, algorithm="vi", n_samples=25000, bins_state=50, bins_action=2, seed=1,
-                           theta=1e-3, use_MC=True, MC_samples=1,
-                           dense_location=None):
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10, bins_state=10, bins_action=2, seed=1,
+                           theta=1e-3, use_MC=True, MC_samples=1, dense_location=None):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -90,7 +89,8 @@ def start_policy_iteration(env_name, algorithm="vi", n_samples=25000, bins_state
 
     if algorithm == "pi":
         algo = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
-                               discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta)
+                               discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
+                               use_MC=use_MC, MC_samples=MC_samples)
     elif algorithm == "vi":
         algo = ValueIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                               discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
@@ -272,7 +272,7 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
 
 # grid_search(env_name, seed, 2)
 # find_good_sample_size(env_name, seed)
-train_and_eval_nn(train=True)
-# policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
-# test_run(env_name, policy, discretizer_action, discretizer_state)
+# train_and_eval_nn(train=True)
+policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
+test_run(env_name, policy, discretizer_action, discretizer_state)
 #
