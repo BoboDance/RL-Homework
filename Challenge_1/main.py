@@ -52,7 +52,6 @@ def grid_search(env_name, seed, dim=2, algo="pi"):
 def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=100, bins_action=3, seed=1,
                            theta=1e-3, use_MC=True, MC_samples=500, dense_location=["edge", "center"]):
     env = gym.make(env_name)
-    env.env.dt
     print("Training with {} samples.".format(n_samples))
 
     dg_train = DataGenerator(env_name=env_name, seed=seed)
@@ -80,8 +79,11 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
                            n_outputs=1,
                            scaling=None)
 
-    dynamics_model.load_model("./NN-state_dict_dynamics_10000_200hidden")
-    reward_model.load_model("./NN-state_dict_reward_10000_200hidden")
+    dynamics_model.load_model("./NN-state_dict_dynamics") #_10000_200hidden")
+    reward_model.load_model("./NN-state_dict_reward") #_10000_200hidden")
+
+    #dynamics_model.load_model("./NN-state_dict_dynamics_10000_large")
+    #reward_model.load_model("./NN-state_dict_reward_10000_large")
 
     # center, edge for pendulum is best for RF
     # edge, center is best for NN
@@ -161,8 +163,12 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
         reward = reward.reshape(-1, 1)
         state_prime = state_prime.reshape(-1, env.observation_space.shape[0])
 
-        dynamics_model.train_network(s_a_pairs, state_prime, n_steps, path + "_dynamics")
-        reward_model.train_network(s_a_pairs, reward, n_steps, path + "_reward")
+        #dynamics_model.train_network(s_a_pairs, state_prime, n_steps, path + "_dynamics")
+        #reward_model.train_network(s_a_pairs, reward, n_steps, path + "_reward")
+
+        dynamics_model.train_net(s_a_pairs, state_prime, path + "_dynamics")
+        reward_model.train_net(s_a_pairs, reward, path + "_reward")
+
     else:
         dynamics_model.load_model("NN-state_dict_dynamics_10000_200hidden")
         reward_model.load_model("NN-state_dict_reward_10000_200hidden")
@@ -277,4 +283,3 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
 train_and_eval_nn(train=True)
 # policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
 # test_run(env_name, policy, discretizer_action, discretizer_state)
-#
