@@ -16,7 +16,7 @@ class DataGenerator(object):
             self.n_samples = 10000
         elif env_name == "Qube-v0":
             self.n_samples = 25000
-        elif env_name == "PendulumCustom-v0":
+        elif env_name == "Pendulum-v0":
             self.n_samples = 10000
         else:
             raise NotImplementedError("Unsupported Environment")

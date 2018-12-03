@@ -62,13 +62,22 @@ class PolicyIteration(DynamicProgramming):
             state_prime = self.dynamics_model.predict(s_a)
             reward = self.reward_model.predict(s_a)
 
+            # er = np.zeros_like(states)
+            # abc = np.zeros_like(actions)
+            #
+            # self.env.reset()
+            # for j, s in enumerate(s_a):
+            #     self.env.env.state = s[:-1]
+            #     # state_prime[j], reward[j], _, _ = self.env.step(np.array([s[-1]]))
+            #     er[j], abc[j], _, _ = self.env.step(np.array([s[-1]]))
+
             # clip to avoid being outside of allowed state space
             state_prime = np.clip(state_prime, self.low_state, self.high_state)
             state_prime_dis = self.discretizer_state.discretize(state_prime)
 
             # Calculate the expected values of next state
             values_prime = self.value_function[tuple(state_prime_dis.T)]
-            values_new = reward + self.discount * values_prime
+            values_new = reward.flatten() + self.discount * values_prime
 
             # calculate convergence criterion
             values = self.value_function[tuple(self.states.T)]
@@ -112,6 +121,8 @@ class PolicyIteration(DynamicProgramming):
             # Greedy policy update
             self.policy = best_action.reshape(self.policy.shape)
             print("# of incorrectly selected actions: {}".format(np.count_nonzero(policy_action != best_action)))
+            if np.count_nonzero(policy_action != best_action) < 50:
+                stable = True
 
         print(
             "Policy improvement finished -- stable: {} -- time taken: {:2.4f}s".format(stable, time.time() - start))
