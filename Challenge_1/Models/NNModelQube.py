@@ -12,10 +12,10 @@ def init_weights(m):
 act = nn.ReLU()
 
 
-class NNModel(torch.nn.Module):
+class NNModelQube(torch.nn.Module):
 
     def __init__(self, n_inputs, n_outputs, scaling=None, lr=1e-3, optimizer='adam'):
-        super(NNModel, self).__init__()
+        super(NNModelQube, self).__init__()
 
         self.scaling = scaling
         self.n_outputs = n_outputs
@@ -41,10 +41,12 @@ class NNModel(torch.nn.Module):
             act,
             nn.Linear(hidden, hidden),
             act,
+            nn.Dropout(.3),
             nn.Linear(hidden, hidden),
             act,
-            nn.Linear(hidden, hidden),
-            act,
+            nn.Dropout(.3),
+            # nn.Linear(hidden, hidden),
+            # act,
             nn.Linear(hidden, self.n_outputs),
         )
 

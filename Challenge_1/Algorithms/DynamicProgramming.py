@@ -51,7 +51,6 @@ class DynamicProgramming(object):
         self.use_MC = use_MC
 
         if use_MC:
-            print()
             self.state_prime, self.reward = self.compute_transition_and_reward_matrices(n_samples=MC_samples)
 
     def run(self, max_iter=100000):
