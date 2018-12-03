@@ -55,7 +55,7 @@ class Discretizer(object):
             # sample from gaussian within the bin
             sigma = (right - left) / 3
             mu = (left + right) / 2
-            # 99.7% of samples are in 1/3 sigma range, clip others
+            # 99.7% of samples are in 3*sigma range, clip others
             scaled[:, :, i] = np.clip(np.random.normal(mu, sigma, size=(n_samples, len(mu))), left, right).T
 
         return scaled
