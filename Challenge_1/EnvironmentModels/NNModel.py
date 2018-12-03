@@ -164,7 +164,7 @@ class NNModel(torch.nn.Module):
 
             mse_test = ((out.detach().numpy() - y) ** 2).mean(axis=0)
 
-            print("Test MSE: {}".format(mse_test.mean()))
+            print("Test MSE: {}".format(mse_test))
 
     def load_model(self, path):
         self.load_state_dict(torch.load(path))
