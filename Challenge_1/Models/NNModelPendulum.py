@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import optim
 
+
 def init_weights(m):
     if isinstance(m, nn.Linear):
         nn.init.kaiming_normal_(m.weight.data)
@@ -12,10 +13,10 @@ def init_weights(m):
 act = nn.ReLU()
 
 
-class NNModel(torch.nn.Module):
+class NNModelPendulum(torch.nn.Module):
 
     def __init__(self, n_inputs, n_outputs, scaling=None, lr=1e-3, optimizer='adam'):
-        super(NNModel, self).__init__()
+        super(NNModelPendulum, self).__init__()
 
         self.scaling = scaling
         self.n_outputs = n_outputs
@@ -48,7 +49,6 @@ class NNModel(torch.nn.Module):
             nn.Linear(hidden, self.n_outputs),
         )
 
-
         # initialize the weights
         self.apply(init_weights)
         self.train()
@@ -78,8 +78,8 @@ class NNModel(torch.nn.Module):
         out = self.model(inputs)
 
         if self.scaling is not None:
-            out = torch.from_numpy(self.scaling) * torch.tanh(out) #self.out(x))
-        #else:
+            out = torch.from_numpy(self.scaling) * torch.tanh(out)  # self.out(x))
+        # else:
         #    out = self.out(x)
 
         return out
@@ -109,6 +109,7 @@ class NNModel(torch.nn.Module):
             self.optimizer.step()
 
         torch.save(self.state_dict(), path)
+        torch.save(self, path + "_model")
 
         return history
 
@@ -116,7 +117,7 @@ class NNModel(torch.nn.Module):
         # https://stackoverflow.com/questions/45113245/how-to-get-mini-batches-in-pytorch-in-a-clean-and-efficient-way
 
         train_loss = []
-        #val_loss = []
+        # val_loss = []
 
         y = torch.from_numpy(y).float()
         X = torch.from_numpy(X).float()
@@ -147,10 +148,9 @@ class NNModel(torch.nn.Module):
             #        g['lr'] /= 10
 
             print("Step: {:d} -- total loss: {:3.8f}".format(epoch, loss.item()))
-            #val_loss.append(self.validate_model(X_val, Y_val))
+            # val_loss.append(self.validate_model(X_val, Y_val))
 
         torch.save(self.state_dict(), path)
-
 
     def validate_model(self, X, y):
 

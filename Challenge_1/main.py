@@ -9,8 +9,8 @@ import scipy
 
 from Challenge_1.Algorithms.PolicyIteration import PolicyIteration
 from Challenge_1.Algorithms.ValueIteration import ValueIteration
-from Challenge_1.EnvironmentModels.NNModel import NNModel
-from Challenge_1.EnvironmentModels.SklearnModel import SklearnModel
+from Challenge_1.Models.NNModelPendulum import NNModelPendulum
+from Challenge_1.Models.SklearnModel import SklearnModel
 from Challenge_1.util.ColorLogger import enable_color_logging
 from Challenge_1.util.DataGenerator import DataGenerator
 from Challenge_1.util.Discretizer import Discretizer
@@ -71,16 +71,16 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
     # reward_model.fit(s_a_pairs, reward)
 
     # But performance should not change much
-    dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                             n_outputs=env.observation_space.shape[0],
-                             scaling=env.observation_space.high)
+    dynamics_model = NNModelPendulum(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                                     n_outputs=env.observation_space.shape[0],
+                                     scaling=env.observation_space.high)
 
-    reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                           n_outputs=1,
-                           scaling=None)
+    reward_model = NNModelPendulum(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                                   n_outputs=1,
+                                   scaling=None)
 
-    dynamics_model.load_model("./NN-state_dict_dynamics") #_10000_200hidden")
-    reward_model.load_model("./NN-state_dict_reward") #_10000_200hidden")
+    dynamics_model.load_model("./NN-state_dict_dynamics_10000_200hidden") #_10000_200hidden")
+    reward_model.load_model("./NN-state_dict_reward_10000_200hidden") #_10000_200hidden")
 
     #dynamics_model.load_model("./NN-state_dict_dynamics_10000_large")
     #reward_model.load_model("./NN-state_dict_reward_10000_large")
@@ -142,13 +142,13 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
     env = gym.make(env_name)
     path = "./NN-state_dict"
 
-    dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                             n_outputs=env.observation_space.shape[0],
-                             scaling=env.observation_space.high)
+    dynamics_model = NNModelPendulum(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                                     n_outputs=env.observation_space.shape[0],
+                                     scaling=env.observation_space.high)
 
-    reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                           n_outputs=1,
-                           scaling=None)
+    reward_model = NNModelPendulum(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                                   n_outputs=1,
+                                   scaling=None)
 
     if train:
 
@@ -280,6 +280,6 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
 
 # grid_search(env_name, seed, 2, "pi")
 # find_good_sample_size(env_name, seed)
-train_and_eval_nn(train=True)
-# policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
-# test_run(env_name, policy, discretizer_action, discretizer_state)
+# train_and_eval_nn(train=True)
+policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
+test_run(env_name, policy, discretizer_action, discretizer_state)
