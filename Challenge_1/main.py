@@ -5,6 +5,7 @@ import gym
 import matplotlib.pyplot as plt
 import numpy as np
 import quanser_robots
+import scipy
 
 from Challenge_1.Algorithms.PolicyIteration import PolicyIteration
 from Challenge_1.Algorithms.ValueIteration import ValueIteration
@@ -14,16 +15,17 @@ from Challenge_1.util.ColorLogger import enable_color_logging
 from Challenge_1.util.DataGenerator import DataGenerator
 from Challenge_1.util.Discretizer import Discretizer
 
+
 enable_color_logging(debug_lvl=logging.INFO)
 
 seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-env_name = "Pendulum-v2"
+# env_name = "Pendulum-v2"
 # env_name = "PendulumCustom-v0"
 # env_name = "MountainCarContinuous-v0"
-# env_name = "Qube-v0"
+env_name = "Qube-v0"
 
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
@@ -47,9 +49,10 @@ def grid_search(env_name, seed, dim=2, algo="pi"):
 # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
 # TODO: only use equal bins numbers
 # ["center", "center", "center", "center"]
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=150, bins_action=2, seed=1,
-                           theta=1e-3, use_MC=True, MC_samples=1, dense_location=["center", "edge"]):
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=100, bins_action=3, seed=1,
+                           theta=1e-3, use_MC=True, MC_samples=500, dense_location=["edge", "center"]):
     env = gym.make(env_name)
+    env.env.dt
     print("Training with {} samples.".format(n_samples))
 
     dg_train = DataGenerator(env_name=env_name, seed=seed)
@@ -105,11 +108,14 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
 def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=100):
     env = gym.make(env_name)
 
-    # if len(policy.shape) == 2:
-    #     plt.matshow(policy)
-    #     plt.colorbar()
-    #     plt.title("Policy for {}".format(env_name))
-    #     plt.show()
+    # policy = scipy.ndimage.filters.gaussian_filter(policy, 1)
+    # policy = scipy.signal.medfilt(policy)
+
+    if len(policy.shape) == 2:
+        plt.matshow(policy)
+        plt.colorbar()
+        plt.title("Policy for {}".format(env_name))
+        plt.show()
 
     rewards = np.zeros(n_episodes)
 
@@ -158,8 +164,8 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
         dynamics_model.train_network(s_a_pairs, state_prime, n_steps, path + "_dynamics")
         reward_model.train_network(s_a_pairs, reward, n_steps, path + "_reward")
     else:
-        dynamics_model.load_model(path + "_dynamics")
-        reward_model.load_model(path + "_reward")
+        dynamics_model.load_model("NN-state_dict_dynamics_10000_200hidden")
+        reward_model.load_model("NN-state_dict_reward_10000_200hidden")
 
     dg_test = DataGenerator(env_name=env_name, seed=seed + 1)
     s_prime, s, a, r = dg_test.get_samples(n_samples)
@@ -266,9 +272,9 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
     plt.show()
 
 
-grid_search(env_name, seed, 2, "pi")
+# grid_search(env_name, seed, 2, "pi")
 # find_good_sample_size(env_name, seed)
-# train_and_eval_nn(train=True)
+train_and_eval_nn(train=True)
 # policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
 # test_run(env_name, policy, discretizer_action, discretizer_state)
 #
