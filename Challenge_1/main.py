@@ -20,16 +20,10 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-<<<<<<< HEAD
-#env_name = "Pendulum-v2"
-
-
-=======
 env_name = "Pendulum-v2"
->>>>>>> 539d09e6fdb4031e8092637e92dd1b5791a4cc27
 # env_name = "PendulumCustom-v0"
 # env_name = "MountainCarContinuous-v0"
-env_name = "Qube-v0"
+# env_name = "Qube-v0"
 
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
