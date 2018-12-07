@@ -3,21 +3,46 @@ import numpy as np
 
 class Discretizer(object):
 
-    def __init__(self, n_bins, space, dense_locations=None):
+    def __init__(self, n_bins_per_feature: [int], space, dense_locations=None):
+        """
+
+        :param n_bins_per_feature: Describes the number of bins per feature
+        :param space: Feature space with .high and .low attribut (e.g. state_space or action_space)
+        :param dense_locations: Possible options: [string] or None
+                                - None: Equal sized bins across the full space
+                                - "center": Higher density of bins at the center
+                                - "edge": More bins at both edges
+                                - "start": More bins at the start
+                                - "end": More bins at the end regions
+        """
+
         self.space = space
-        self.n_bins = n_bins
+        self.n_bins_per_feature = n_bins_per_feature
+
+        if len(n_bins_per_feature) != space.shape[0]:
+            raise Exception("The given number of bins %d configuration doesn't fit to your requested ")
 
         self.high = self.space.high
         self.low = self.space.low
 
         self.bin_scaling = 1.025
 
+        self.bins = []
+
         if dense_locations is not None:
             # TODO
-            self.bins = np.array([self.increasing_bins(i, dense_locations[i]) for i in range(self.space.shape[0])])
+            # self.bins = np.array([self.increasing_bins(i, dense_locations[i]) for i in range(self.space.shape[0])])
+            for i in range(self.space.shape[0]):
+                #bins = np.array([self.increasing_bins(i, dense_locations[i]))
+                bins = self.increasing_bins(i, dense_locations[i])
+                self.bins.append(bins)
         else:
-            self.bins = np.array([np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins + 1) for i in
-                                  range(self.space.shape[0])])
+            # self.bins = np.array([np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins + 1) for i in
+            #                      range(self.space.shape[0])])
+            for i in range(self.space.shape[0]):
+                # we add +1 because stop is excluded in np.linspace
+                bins = np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins_per_feature[i] + 1)
+                self.bins.append(bins)
 
     def discretize(self, value):
         """
@@ -32,7 +57,7 @@ class Discretizer(object):
     def scale_values_v2(self, value):
         # scale states to stay within action space
         total_range = self.high - self.low
-        state_01 = value / (self.n_bins - 1)
+        state_01 = value / (self.n_bins_per_feature - 1)
         return (state_01 * total_range) + self.low
 
     def scale_values(self, value):
@@ -49,6 +74,8 @@ class Discretizer(object):
         for i in range(value.shape[1]):
 
             v = np.atleast_2d(value[:, i].T)
+            idx = tuple(v)
+            bins = self.bins[i]
             left = self.bins[i][tuple(v)]
             right = self.bins[i][tuple(v + 1)]
 
@@ -69,11 +96,11 @@ class Discretizer(object):
 
         if dense_location in ["center", "edge"]:
 
-            bin_sizes = np.zeros(self.n_bins // 2)
+            bin_sizes = np.zeros(self.n_bins_per_feature[dim] // 2)
             bin_sizes[0] = 1
 
             # scale bin based on previous one
-            for i in range(1, self.n_bins // 2):
+            for i in range(1, self.n_bins_per_feature[dim] // 2):
                 bin_sizes[i] = bin_sizes[i - 1] * self.bin_scaling
 
             # normalize and scale to range
@@ -87,10 +114,10 @@ class Discretizer(object):
 
         elif dense_location in ["end", "start"]:
 
-            bin_sizes = np.zeros(self.n_bins)
+            bin_sizes = np.zeros(self.n_bins_per_feature)
             bin_sizes[0] = 1
 
-            for i in range(1, self.n_bins):
+            for i in range(1, self.n_bins_per_feature):
                 bin_sizes[i] = bin_sizes[i - 1] * self.bin_scaling
 
             # normalize and scale to range
@@ -109,5 +136,8 @@ class Discretizer(object):
         # avoid having the exact min value --> bin would be -1 with self.discretize
         bins[0] -= 1e-10
         bins = np.append(bins, np.array([self.high[dim]]))
+
+        # convert the bins to a numpy array
+        bins = np.array(bins)
 
         return bins

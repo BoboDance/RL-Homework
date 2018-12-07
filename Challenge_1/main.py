@@ -22,10 +22,10 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-# env_name = "Pendulum-v2"
+env_name = "Pendulum-v2"
 # env_name = "PendulumCustom-v0"
 # env_name = "MountainCarContinuous-v0"
-env_name = "Qube-v0"
+# env_name = "Qube-v0"
 
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
@@ -49,7 +49,7 @@ def grid_search(env_name, seed, dim=2, algo="pi"):
 # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
 # TODO: only use equal bins numbers
 # ["center", "center", "center", "center"]
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=100, bins_action=3, seed=1,
+def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=[100, 100], bins_action=[3], seed=1,
                            theta=1e-3, use_MC=True, MC_samples=500, dense_location=["edge", "center"]):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
@@ -79,17 +79,17 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
                                    n_outputs=1,
                                    scaling=None)
 
-    dynamics_model.load_model("./NN-state_dict_dynamics_10000_200hidden") #_10000_200hidden")
-    reward_model.load_model("./NN-state_dict_reward_10000_200hidden") #_10000_200hidden")
+    dynamics_model.load_model("./NN-state_dict_dynamics")#_10000_200hidden")
+    reward_model.load_model("./NN-state_dict_reward") #_10000_200hidden")
 
     #dynamics_model.load_model("./NN-state_dict_dynamics_10000_large")
     #reward_model.load_model("./NN-state_dict_reward_10000_large")
 
     # center, edge for pendulum is best for RF
     # edge, center is best for NN
-    discretizer_state = Discretizer(n_bins=bins_state, space=env.observation_space,
+    discretizer_state = Discretizer(n_bins_per_feature=bins_state, space=env.observation_space,
                                     dense_locations=dense_location)
-    discretizer_action = Discretizer(n_bins=bins_action, space=env.action_space)
+    discretizer_action = Discretizer(n_bins_per_feature=bins_action, space=env.action_space)
 
     if algorithm == "pi":
         algo = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
@@ -170,8 +170,8 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
         reward_model.train_net(s_a_pairs, reward, path + "_reward")
 
     else:
-        dynamics_model.load_model("NN-state_dict_dynamics_10000_200hidden")
-        reward_model.load_model("NN-state_dict_reward_10000_200hidden")
+        dynamics_model.load_model("NN-state_dict_dynamics") #_10000_200hidden")
+        reward_model.load_model("NN-state_dict_reward") #_10000_200hidden")
 
     dg_test = DataGenerator(env_name=env_name, seed=seed + 1)
     s_prime, s, a, r = dg_test.get_samples(n_samples)
@@ -280,6 +280,7 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
 
 # grid_search(env_name, seed, 2, "pi")
 # find_good_sample_size(env_name, seed)
-# train_and_eval_nn(train=True)
-policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed)
+train_and_eval_nn(train=False)
+policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed, bins_state=[50, 100],
+                                                                       bins_action=[2])
 test_run(env_name, policy, discretizer_action, discretizer_state)

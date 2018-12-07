@@ -27,8 +27,8 @@ class DynamicProgramming(object):
         self.discretizer_state = discretizer_state
         self.discretizer_action = discretizer_action
 
-        self.n_states = self.discretizer_state.n_bins
-        self.n_actions = self.discretizer_action.n_bins
+        self.n_states = self.discretizer_state.n_bins_per_feature
+        self.n_actions = self.discretizer_action.n_bins_per_feature[0]
 
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = self.env.action_space.shape[0]
@@ -40,7 +40,8 @@ class DynamicProgramming(object):
         self.theta = theta
 
         # helper to represent the shape of the state
-        state_space = [self.n_states] * self.state_dim
+        # state_space = [self.n_states] * self.state_dim
+        state_space = self.n_states
 
         # np indices returns all possible permutations
         self.states = np.indices(state_space).reshape(self.state_dim, -1).T
