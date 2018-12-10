@@ -45,8 +45,6 @@ class NNModelQube(torch.nn.Module):
             nn.Linear(hidden, hidden),
             act,
             nn.Dropout(.3),
-            # nn.Linear(hidden, hidden),
-            # act,
             nn.Linear(hidden, self.n_outputs),
         )
 
@@ -80,7 +78,7 @@ class NNModelQube(torch.nn.Module):
         out = self.model(inputs)
 
         if self.scaling is not None:
-            out = torch.from_numpy(self.scaling) * torch.tanh(out) #self.out(x))
+            out = torch.from_numpy(self.scaling).float() * torch.tanh(out) #self.out(x))
         #else:
         #    out = self.out(x)
 

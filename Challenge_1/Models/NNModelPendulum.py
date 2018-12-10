@@ -42,12 +42,26 @@ class NNModelPendulum(torch.nn.Module):
             act,
             nn.Linear(hidden, hidden),
             act,
+            nn.Dropout(.3),
+            nn.Linear(hidden, hidden),
+            act,
+            nn.Dropout(.3),
+            nn.Linear(hidden, self.n_outputs),
+        )
+
+        """
+        self.model = nn.Sequential(
+            nn.Linear(self.n_inputs, hidden),
+            act,
+            nn.Linear(hidden, hidden),
+            act,
             nn.Linear(hidden, hidden),
             act,
             nn.Linear(hidden, hidden),
             act,
             nn.Linear(hidden, self.n_outputs),
         )
+        """
 
         # initialize the weights
         self.apply(init_weights)
@@ -78,7 +92,7 @@ class NNModelPendulum(torch.nn.Module):
         out = self.model(inputs)
 
         if self.scaling is not None:
-            out = torch.from_numpy(self.scaling) * torch.tanh(out)  # self.out(x))
+            out = torch.from_numpy(self.scaling).float() * torch.tanh(out)  # self.out(x))
         # else:
         #    out = self.out(x)
 

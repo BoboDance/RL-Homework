@@ -65,6 +65,7 @@ class Discretizer(object):
         scaled = np.zeros(value.shape, dtype=np.float32)
         for i in range(value.shape[1]):
             v = np.atleast_2d(value[:, i].T)
+            # calculate the mean from the left and right current bins
             scaled[:, i] = (self.bins[i][tuple(v)] + self.bins[i][tuple(v + 1)]) / 2
         return scaled
 

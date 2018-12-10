@@ -14,7 +14,7 @@ from Challenge_1.Models.SklearnModel import SklearnModel
 from Challenge_1.util.ColorLogger import enable_color_logging
 from Challenge_1.util.DataGenerator import DataGenerator
 from Challenge_1.util.Discretizer import Discretizer
-
+from Challenge_1.util.state_preprocessing import get_feature_space_boundaries
 
 enable_color_logging(debug_lvl=logging.INFO)
 
@@ -27,19 +27,42 @@ env_name = "Pendulum-v2"
 # env_name = "MountainCarContinuous-v0"
 # env_name = "Qube-v0"
 
+# index list of angle features
+if env_name == 'Pendulum-v2':
+    angle_features = [0] # Pendulum-v2
+    dynamics_model_params = "./Weights/model_dynamics_Pendulum-v2_mse_0.00002354.params"
+    reward_model_params = "./Weights/model_reward_Pendulum-v2_mse_0.00581975.params"
+elif env_name == "Qube-v0":
+    angle_features = [0, 1] # Qube-v0
+
+
+def main():
+    # grid_search(env_name, seed, 2, "pi")
+    # find_good_sample_size(env_name, seed)
+    # train_and_eval_nn(train=False)
+    # best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
+    # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
+    policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=[100, 100],
+                                                        bins_action=[2], angle_features=angle_features,
+                                                        MC_samples=500, dense_location=['center', 'edge'],
+                                                        dynamics_model_params=dynamics_model_params,
+                                                        reward_model_params=reward_model_params)
+
+    test_run(env_name, policy, discretizer_action, discretizer_state)
+
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
     for dense_loc in list(itertools.product(["center", "edge", "start", "end"], repeat=dim)) + [None]:
         for MC_samples in [1, 10, 25, 50, 100, 250, 500, 1000]:
             for state_bins in [2, 10, 26, 50, 76, 100, 150]:
-                policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, algorithm=algo,
-                                                                                       n_samples=10000,
-                                                                                       bins_state=state_bins,
-                                                                                       bins_action=2,
-                                                                                       seed=seed, theta=1e-9,
-                                                                                       use_MC=True,
-                                                                                       MC_samples=MC_samples,
-                                                                                       dense_location=dense_loc)
+                policy, discretizer_action, discretizer_state = run(env_name, algorithm=algo,
+                                                                    n_samples=10000,
+                                                                    bins_state=state_bins,
+                                                                    bins_action=2,
+                                                                    seed=seed, theta=1e-9,
+                                                                    use_MC=True,
+                                                                    MC_samples=MC_samples,
+                                                                    dense_location=dense_loc)
                 print("Score dense_loc: {} -- MC samples: {} -- state bins: {} ".format(dense_loc, MC_samples,
                                                                                         state_bins))
                 test_run(env_name, policy, discretizer_action, discretizer_state)
@@ -49,8 +72,10 @@ def grid_search(env_name, seed, dim=2, algo="pi"):
 # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
 # TODO: only use equal bins numbers
 # ["center", "center", "center", "center"]
-def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state=[100, 100], bins_action=[3], seed=1,
-                           theta=1e-3, use_MC=True, MC_samples=500, dense_location=["edge", "center"]):
+def run(env_name, algorithm="pi", n_samples=10000, bins_state=[100, 100], bins_action=[3], seed=1,
+        theta=1e-3, use_MC=True, MC_samples=500, dense_location=["edge", "center"], angle_features=[0],
+        dynamics_model_params="model_dynamics_Pendulum-v2_mse_0.00001913.params",
+        reward_model_params="model_reward_mse_0.00606984.params"):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -71,16 +96,27 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
     # reward_model.fit(s_a_pairs, reward)
 
     # But performance should not change much
-    dynamics_model = NNModelPendulum(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                                     n_outputs=env.observation_space.shape[0],
-                                     scaling=env.observation_space.high)
+    n_inputs = env.observation_space.shape[0] + env.action_space.shape[0] + len(angle_features)
+    n_outputs = env.observation_space.shape[0] + len(angle_features)
 
-    reward_model = NNModelPendulum(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+    # create both boundaries of the feature space
+    x_low, x_high = get_feature_space_boundaries(env, angle_features)
+    # scaling defines how our outputs will be scaled after the tanh function
+    # for this we use all state features ergo all of X_high excluding the last action feature
+    scaling = x_high[:-1]
+
+    dynamics_model = NNModelPendulum(n_inputs=n_inputs,
+                                     n_outputs=n_outputs,
+                                     scaling=scaling)
+
+    reward_model = NNModelPendulum(n_inputs=n_inputs,
                                    n_outputs=1,
                                    scaling=None)
+    print('dynamics mdoel')
+    print(dynamics_model)
 
-    dynamics_model.load_model("./NN-state_dict_dynamics")#_10000_200hidden")
-    reward_model.load_model("./NN-state_dict_reward") #_10000_200hidden")
+    dynamics_model.load_model(dynamics_model_params)
+    reward_model.load_model(reward_model_params)
 
     #dynamics_model.load_model("./NN-state_dict_dynamics_10000_large")
     #reward_model.load_model("./NN-state_dict_reward_10000_large")
@@ -94,11 +130,11 @@ def start_policy_iteration(env_name, algorithm="pi", n_samples=10000, bins_state
     if algorithm == "pi":
         algo = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                                discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
-                               use_MC=use_MC, MC_samples=MC_samples)
+                               use_MC=use_MC, MC_samples=MC_samples, angle_features=angle_features)
     elif algorithm == "vi":
         algo = ValueIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                               discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
-                              use_MC=use_MC, MC_samples=MC_samples)
+                              use_MC=use_MC, MC_samples=MC_samples, angle_features=angle_features)
     else:
         raise NotImplementedError()
 
@@ -278,9 +314,5 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
     plt.show()
 
 
-# grid_search(env_name, seed, 2, "pi")
-# find_good_sample_size(env_name, seed)
-train_and_eval_nn(train=False)
-policy, discretizer_action, discretizer_state = start_policy_iteration(env_name, seed=seed, bins_state=[50, 100],
-                                                                       bins_action=[2])
-test_run(env_name, policy, discretizer_action, discretizer_state)
+if __name__ == "__main__":
+    main()
