@@ -2,7 +2,7 @@ import gym
 import numpy as np
 
 from Challenge_1.util import Discretizer
-from Challenge_1.util.state_preprocessing import convert_state_to_sin_cos, normalize_input,\
+from Challenge_1.util.state_preprocessing import convert_state_to_sin_cos, normalize_input, \
     unnormalize_input, reconvert_state_to_angle, get_feature_space_boundaries
 import sys
 
@@ -10,7 +10,8 @@ import sys
 class DynamicProgramming(object):
 
     def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
-                 discretizer_action: Discretizer, discount=.99, theta=1e-9, use_MC=False, MC_samples=1, angle_features=[0]):
+                 discretizer_action: Discretizer, discount=.99, theta=1e-9, use_MC=False, MC_samples=1,
+                 angle_features=[0]):
         """
         :param env:
         :param dynamics_model:
@@ -59,7 +60,6 @@ class DynamicProgramming(object):
         if use_MC:
             self.state_prime, self.reward = self.compute_transition_and_reward_matrices(n_samples=MC_samples)
 
-
     def run(self, max_iter=100000):
         raise NotImplementedError
 
@@ -72,7 +72,8 @@ class DynamicProgramming(object):
     def compute_transition_and_reward_matrices(self, n_samples):
         # create n samples within the bins an average in order to get better representation
         if n_samples == 1:
-            states = self.discretizer_state.scale_values(self.states, n_samples=n_samples)
+            states = self.discretizer_state.scale_values(self.states).reshape(self.states.shape[0], 1,
+                                                                              self.states.shape[1])
         else:
             states = self.discretizer_state.scale_values_stochastic(self.states, n_samples=n_samples)
 
@@ -82,20 +83,20 @@ class DynamicProgramming(object):
         state_prime = np.zeros((states.shape[0] * self.n_actions, states.shape[1], states.shape[2]))
         reward = np.zeros((states.shape[1], actions.shape[0]))
 
-        print('states.shape[1]', states.shape[1])
+        # print('states.shape[1]', states.shape[1])
 
         # this variable is used to show the current progress after 10% blocks
-        step_counter = states.shape[1] // 10
+        # step_counter = states.shape[1] // 10
 
-        print('Progress ', end="")
+        # print('Progress ', end="")
 
         # https://stackoverflow.com/questions/3160699/python-progress-bar
-        toolbar_width = 10
+        # toolbar_width = 10
 
         # setup toolbar
-        sys.stdout.write("[%s]" % (" " * toolbar_width))
-        sys.stdout.flush()
-        sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
+        # sys.stdout.write("[%s]" % (" " * toolbar_width))
+        # sys.stdout.flush()
+        # sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
 
         # predict for each sampled action
         for i in range(states.shape[1]):
@@ -129,13 +130,13 @@ class DynamicProgramming(object):
             # request the reward prediction of the corresponding reward from our model
             reward[i] = self.reward_model.predict(s_a).flatten()
 
-            if i % step_counter == 0:
-                sys.stdout.write("=")
-                sys.stdout.flush()
+            # if i % step_counter == 0:
+            #     sys.stdout.write("=")
+            #     sys.stdout.flush()
 
-        sys.stdout.write("]\n")
+        # sys.stdout.write("]\n")
 
-        #print(']')
+        # print(']')
 
         # Deterministic case:
         # compute average state transition and reward.
