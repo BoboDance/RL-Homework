@@ -109,7 +109,7 @@ class DynamicProgramming(object):
         for i in range(states.shape[1]):
 
             actions_full = actions.reshape(-1, self.action_dim)
-            for z in range(0, states.shape[0], mini_batch_size):
+            for z in range(0, states.shape[0] * self.n_actions, mini_batch_size):
 
                 # get all samples for all states and one action
                 s = np.repeat(states, self.n_actions, axis=0)

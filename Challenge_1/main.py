@@ -23,8 +23,8 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-# env_name = "Pendulum-v2"
-env_name = "Qube-v0"
+env_name = "Pendulum-v2"
+# env_name = "Qube-v0"
 
 # index list of angle features
 if env_name == 'Pendulum-v2':
@@ -43,7 +43,7 @@ def main():
     # train_and_eval_nn(train=False)
     # best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
     # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
-    bins_sate = [20] * 7
+    bins_sate = [200] * 2
     #policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_sate,
     #                                                     bins_action=[2], angle_features=angle_features,
     #                                                     MC_samples=1, dense_location=None,
@@ -52,7 +52,7 @@ def main():
 
     policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
                                                         n_samples=10000,
-                                                        bins_state=[80, 80, 20, 20],
+                                                        bins_state=bins_sate, #[26, 26, 70, 70],
                                                         bins_action=[2],
                                                         seed=seed, theta=1e-9,
                                                         use_MC=True,
@@ -174,7 +174,7 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
     policy = scipy.signal.medfilt(policy)
 
     if len(policy.shape) == 2:
-        plt.matshow(policy)
+        plt.imshow(policy)
         plt.colorbar()
         plt.title("Policy for {}".format(env_name))
         plt.show()
@@ -196,7 +196,7 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
         # print("Intermediate reward: {}".format(rewards[i]))
 
     print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
-    print("Mean reward over first 100 epochs: {}".format(n_episodes, rewards[:-100].mean()))
+    print("Mean reward over first 100 epochs: {}".format(rewards[:100].mean()))
 
 
 def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
