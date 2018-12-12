@@ -12,7 +12,7 @@ class PolicyIteration(DynamicProgramming):
 
     def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
                  discretizer_action: Discretizer, discount=.99, theta=1e-9, use_MC=True, MC_samples=1,
-                 angle_features=[0]):
+                 angle_features=[0], verbose=False):
         """
 
         :param env:
@@ -24,7 +24,7 @@ class PolicyIteration(DynamicProgramming):
         :param theta:
         """
         super(PolicyIteration, self).__init__(env, dynamics_model, reward_model, discretizer_state, discretizer_action,
-                                              discount, theta, use_MC, MC_samples, angle_features)
+                                              discount, theta, use_MC, MC_samples, angle_features, verbose)
 
     def run(self, max_iter=100000):
 

@@ -12,10 +12,10 @@ class ValueIteration(DynamicProgramming):
 
     def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
                  discretizer_action: Discretizer, discount=.99, theta=1e-3, use_MC=False, MC_samples=1,
-                 angle_features=[0]):
+                 angle_features=[0], verbose=False):
 
         super(ValueIteration, self).__init__(env, dynamics_model, reward_model, discretizer_state, discretizer_action,
-                                             discount, theta, use_MC, MC_samples, angle_features)
+                                             discount, theta, use_MC, MC_samples, angle_features, verbose)
 
     def run(self, max_iter=100000):
 

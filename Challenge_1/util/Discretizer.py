@@ -7,7 +7,7 @@ class Discretizer(object):
         """
 
         :param n_bins_per_feature: Describes the number of bins per feature
-        :param space: Feature space with .high and .low attribut (e.g. state_space or action_space)
+        :param space: Feature space with .high and .low attribute (e.g. state_space or action_space)
         :param dense_locations: Possible options: [string] or None
                                 - None: Equal sized bins across the full space
                                 - "center": Higher density of bins at the center
@@ -20,7 +20,8 @@ class Discretizer(object):
         self.n_bins_per_feature = n_bins_per_feature
 
         if len(n_bins_per_feature) != space.shape[0]:
-            raise Exception("The given number of bins %d configuration doesn't fit to your requested ")
+            raise Exception("The given number of bins %d configuration doesn't fit to your requested environment "
+                            "number of features %d" % (len(n_bins_per_feature), space.shape[0]))
 
         self.high = self.space.high
         self.low = self.space.low

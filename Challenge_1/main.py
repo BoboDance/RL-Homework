@@ -38,18 +38,31 @@ elif env_name == "Qube-v0":
 
 
 def main():
-    grid_search(env_name, seed, 4, "vi")
+    #grid_search(env_name, seed, 4, "vi")
     # find_good_sample_size(env_name, seed)
     # train_and_eval_nn(train=False)
     # best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
     # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
-    # policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=[200, 200],
+    bins_sate = [20] * 7
+    #policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_sate,
     #                                                     bins_action=[2], angle_features=angle_features,
     #                                                     MC_samples=1, dense_location=None,
     #                                                     dynamics_model_params=dynamics_model_params,
     #                                                     reward_model_params=reward_model_params)
-    #
-    # test_run(env_name, policy, discretizer_action, discretizer_state,n_episodes=100)
+
+    policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
+                                                        n_samples=10000,
+                                                        bins_state=[80, 80, 20, 20],
+                                                        bins_action=[2],
+                                                        seed=seed, theta=1e-9,
+                                                        use_MC=True,
+                                                        MC_samples=1,
+                                                        dense_location=None,
+                                                        dynamics_model_params=dynamics_model_params,
+                                                        reward_model_params=reward_model_params,
+                                                        angle_features=angle_features)
+
+    test_run(env_name, policy, discretizer_action, discretizer_state,n_episodes=100)
 
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
@@ -141,11 +154,11 @@ def run(env_name, dense_location, angle_features, dynamics_model_params, reward_
     if algorithm == "pi":
         algo = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                                discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
-                               use_MC=use_MC, MC_samples=MC_samples, angle_features=angle_features)
+                               use_MC=use_MC, MC_samples=MC_samples, angle_features=angle_features, verbose=False)
     elif algorithm == "vi":
         algo = ValueIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                               discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
-                              use_MC=use_MC, MC_samples=MC_samples, angle_features=angle_features)
+                              use_MC=use_MC, MC_samples=MC_samples, angle_features=angle_features, verbose=False)
     else:
         raise NotImplementedError()
 
