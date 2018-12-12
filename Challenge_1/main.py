@@ -196,6 +196,7 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
         # print("Intermediate reward: {}".format(rewards[i]))
 
     print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
+    print("Mean reward over first 100 epochs: {}".format(n_episodes, rewards[:-100].mean()))
 
 
 def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
