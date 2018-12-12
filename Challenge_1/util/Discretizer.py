@@ -115,10 +115,10 @@ class Discretizer(object):
 
         elif dense_location in ["end", "start"]:
 
-            bin_sizes = np.zeros(self.n_bins_per_feature)
+            bin_sizes = np.zeros(self.n_bins_per_feature[dim])
             bin_sizes[0] = 1
 
-            for i in range(1, self.n_bins_per_feature):
+            for i in range(1, self.n_bins_per_feature[dim]):
                 bin_sizes[i] = bin_sizes[i - 1] * self.bin_scaling
 
             # normalize and scale to range

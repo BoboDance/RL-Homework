@@ -5,10 +5,12 @@ import gym
 import matplotlib.pyplot as plt
 import numpy as np
 import quanser_robots
+import scipy
 
 from Challenge_1.Algorithms.PolicyIteration import PolicyIteration
 from Challenge_1.Algorithms.ValueIteration import ValueIteration
 from Challenge_1.Models.NNModelPendulum import NNModelPendulum
+from Challenge_1.Models.NNModelQube import NNModelQube
 from Challenge_1.Models.SklearnModel import SklearnModel
 from Challenge_1.util.ColorLogger import enable_color_logging
 from Challenge_1.util.DataGenerator import DataGenerator
@@ -21,10 +23,8 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-env_name = "Pendulum-v2"
-# env_name = "PendulumCustom-v0"
-# env_name = "MountainCarContinuous-v0"
-# env_name = "Qube-v0"
+# env_name = "Pendulum-v2"
+env_name = "Qube-v0"
 
 # index list of angle features
 if env_name == 'Pendulum-v2':
@@ -33,27 +33,29 @@ if env_name == 'Pendulum-v2':
     reward_model_params = "./Weights/model_reward_Pendulum-v2_mse_0.00581975.params"
 elif env_name == "Qube-v0":
     angle_features = [0, 1]  # Qube-v0
+    dynamics_model_params = "./Weights/model_dynamics_Qube-v0_mse_0.00026449.params"
+    reward_model_params = "./Weights/model_reward_Qube-v0_mse_0.00001899.params"
 
 
 def main():
-    grid_search(env_name, seed, 2, "vi")
+    grid_search(env_name, seed, 4, "vi")
     # find_good_sample_size(env_name, seed)
     # train_and_eval_nn(train=False)
     # best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
     # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
-    # policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=[100, 100],
+    # policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=[200, 200],
     #                                                     bins_action=[2], angle_features=angle_features,
-    #                                                     MC_samples=500, dense_location=['center', 'edge'],
+    #                                                     MC_samples=1, dense_location=None,
     #                                                     dynamics_model_params=dynamics_model_params,
     #                                                     reward_model_params=reward_model_params)
     #
-    # test_run(env_name, policy, discretizer_action, discretizer_state)
+    # test_run(env_name, policy, discretizer_action, discretizer_state,n_episodes=100)
 
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
-    for dense_loc in list(itertools.product(["center", "edge", "start", "end"], repeat=dim)) + [None]:
-        for MC_samples in [1, 10, 25, 50, 100, 250, 500, 1000]:
-            for state_bins in [2, 10, 26, 50, 76, 100, 150]:
+    for dense_loc in [None] + list(itertools.product(["center", "edge", "start", "end"], repeat=dim)):
+        for MC_samples in [1, 10, 25, 50, 100, 500]:
+            for state_bins in [2, 10, 26, 50, 76, 100, 150, 200]:
                 policy, discretizer_action, discretizer_state = run(env_name, algorithm=algo,
                                                                     n_samples=10000,
                                                                     bins_state=[state_bins] * dim,
@@ -63,7 +65,8 @@ def grid_search(env_name, seed, dim=2, algo="pi"):
                                                                     MC_samples=MC_samples,
                                                                     dense_location=dense_loc,
                                                                     dynamics_model_params=dynamics_model_params,
-                                                                    reward_model_params=reward_model_params)
+                                                                    reward_model_params=reward_model_params,
+                                                                    angle_features=angle_features)
                 print("Score dense_loc: {} -- MC samples: {} -- state bins: {} ".format(dense_loc, MC_samples,
                                                                                         state_bins))
                 test_run(env_name, policy, discretizer_action, discretizer_state)
@@ -73,10 +76,8 @@ def grid_search(env_name, seed, dim=2, algo="pi"):
 # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
 # TODO: only use equal bins numbers
 # ["center", "center", "center", "center"]
-def run(env_name, algorithm="pi", n_samples=10000, bins_state=[100, 100], bins_action=[3], seed=1,
-        theta=1e-3, use_MC=True, MC_samples=500, dense_location=["edge", "center"], angle_features=[0],
-        dynamics_model_params="model_dynamics_Pendulum-v2_mse_0.00001913.params",
-        reward_model_params="model_reward_mse_0.00606984.params"):
+def run(env_name, dense_location, angle_features, dynamics_model_params, reward_model_params, algorithm="pi",
+        n_samples=10000, bins_state=[100, 100], bins_action=[3], seed=1, theta=1e-9, use_MC=True, MC_samples=1, ):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -106,15 +107,24 @@ def run(env_name, algorithm="pi", n_samples=10000, bins_state=[100, 100], bins_a
     # for this we use all state features ergo all of X_high excluding the last action feature
     scaling = x_high[:-1]
 
-    dynamics_model = NNModelPendulum(n_inputs=n_inputs,
+    if env_name == 'Pendulum-v2':
+        dynamics_model = NNModelPendulum(n_inputs=n_inputs,
+                                         n_outputs=n_outputs,
+                                         scaling=scaling)
+
+        reward_model = NNModelPendulum(n_inputs=n_inputs,
+                                       n_outputs=1,
+                                       scaling=None)
+    elif env_name == 'Qube-v0':
+        dynamics_model = NNModelQube(n_inputs=n_inputs,
                                      n_outputs=n_outputs,
                                      scaling=scaling)
 
-    reward_model = NNModelPendulum(n_inputs=n_inputs,
+        reward_model = NNModelQube(n_inputs=n_inputs,
                                    n_outputs=1,
                                    scaling=None)
-    print('dynamics mdoel')
-    print(dynamics_model)
+    # print('dynamics mdoel')
+    # print(dynamics_model)
 
     dynamics_model.load_model(dynamics_model_params)
     reward_model.load_model(reward_model_params)
@@ -144,11 +154,11 @@ def run(env_name, algorithm="pi", n_samples=10000, bins_state=[100, 100], bins_a
     return algo.policy, discretizer_action, discretizer_state
 
 
-def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=100):
+def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=1000):
     env = gym.make(env_name)
 
-    # policy = scipy.ndimage.filters.gaussian_filter(policy, 1)
-    # policy = scipy.signal.medfilt(policy)
+    # policy = scipy.ndimage.filters.gaussian_filter(policy, 3)
+    policy = scipy.signal.medfilt(policy)
 
     if len(policy.shape) == 2:
         plt.matshow(policy)

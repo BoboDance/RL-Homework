@@ -36,18 +36,18 @@ class ValueIteration(DynamicProgramming):
 
             delta = np.maximum(delta, np.abs(best_value - values))
 
-            print("Value iteration step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
-                  "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
+            # print("Value iteration step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
+            #       "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
 
             if np.all(delta <= self.theta):
-                print('Value iteration finished in {} iterations.'.format(i + 1))
+                # print('Value iteration finished in {} iterations.'.format(i + 1))
                 break
 
-            if i % 15 == 0 and len(self.value_function.shape) == 2:
-                plt.matshow(self.value_function)
-                plt.colorbar()
-                plt.title("Value function")
-                plt.show()
+            # if i % 15 == 0 and len(self.value_function.shape) == 2:
+            #     plt.matshow(self.value_function)
+            #     plt.colorbar()
+            #     plt.title("Value function")
+            #     plt.show()
 
         # Create policy in order to use optimal value function
         self.policy = self.actions[
