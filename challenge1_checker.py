@@ -24,7 +24,7 @@ print(f'truth = {nobs, rwd}\nmodel = {nobs_pred, rwd_pred}')
 
 # 2. Perform dynamic programming using the learned model
 # TODO: Delete force=True for final submission
-env = Monitor(gym.make('Pendulum-v0'), 'evaluation', force=True)
+env = Monitor(gym.make('Pendulum-v0'), 'evaluation') #, force=True)
 env.seed(31186490)
 policy = get_policy(model, env.observation_space, env.action_space)
 

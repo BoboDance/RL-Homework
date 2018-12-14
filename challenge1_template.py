@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import torch
 import logging
 import numpy as np
+import os
 
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
@@ -23,13 +24,14 @@ info = dict(
                 "policy and value iteration.")
 
 # Global variables
-# (used in order to be compatible with the template an provide a cleaner inference method
+# (used in order to be compatible with the template an provide an inference method
 x_low = None
 x_high = None
 dynamics_model = None
 reward_model = None
 convert_to_sincos = None
 angle_features = None
+load_model = False
 
 
 def get_model(env, max_num_samples):
@@ -48,15 +50,16 @@ def get_model(env, max_num_samples):
     global reward_model
     global convert_to_sincos
     global angle_features
+    global load_model
 
-    logging.info('Start Training Models which emulate the Environment')
+    logging.info('Start Training of Dynamic & Reward Models')
 
     # Settings
     env_name = 'Pendulum-v0'
     lr = 1e-3
     optimizer_name = 'rmsprop'
     export_plots = False
-    export_models = False
+    export_models = True
     seed = 1234
     batch_size_dynamics = 64
     batch_size_reward = 256
@@ -94,7 +97,6 @@ def get_model(env, max_num_samples):
     reward_model = NNModelPendulum(n_inputs=n_inputs,
                                    n_outputs=1,
                                    scaling=None, optimizer='adam')
-
     lossfunction = nn.MSELoss()
 
     if optimizer_name == 'rmsprop':
@@ -125,41 +127,65 @@ def get_model(env, max_num_samples):
     # Start the training process
     # --------------------------
     # Train the Dynamics Model
-    for model_type, model, optimizer, X, Y, X_val, Y_val, batch_size in zip(['dynamics', 'reward'],
-                                                                [dynamics_model, reward_model],
-                                                                [optimizer_dynamics, optimizer_reward],
-                                                                [s_a_pairs_train, s_a_pairs_train],
-                                                                [state_prime_train, reward_train],
-                                                                [s_a_pairs_test, s_a_pairs_test],
-                                                                [state_prime_test, reward_test],
-                                                                [batch_size_dynamics, batch_size_reward]):
 
-        train_loss, val_loss = train(model, optimizer=optimizer, X=X, Y=Y, X_val=X_val, Y_val=Y_val,
-                                     batch_size=batch_size_dynamics, n_epochs=n_epochs, lossfunction=lossfunction)
+    if load_model is False:
+        for model_type, model, optimizer, X, Y, X_val, Y_val, batch_size in zip(['dynamics', 'reward'],
+                                                                    [dynamics_model, reward_model],
+                                                                    [optimizer_dynamics, optimizer_reward],
+                                                                    [s_a_pairs_train, s_a_pairs_train],
+                                                                    [state_prime_train, reward_train],
+                                                                    [s_a_pairs_test, s_a_pairs_test],
+                                                                    [state_prime_test, reward_test],
+                                                                    [batch_size_dynamics, batch_size_reward]):
 
-        # Visualize the training process
-        plt.title('%s: Learning Rewards\n Batch-Size=%d, lr=%f, optimizer=%s' %
-                  (env_name, batch_size, lr, optimizer_name))
-        plt.plot(train_loss, label='train-loss')
-        plt.plot(val_loss, label='val-loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('MSE')
-        plt.legend()
-        plt.show()
+            train_loss, val_loss = train(model, optimizer=optimizer, X=X, Y=Y, X_val=X_val, Y_val=Y_val,
+                                         batch_size=batch_size_dynamics, n_epochs=n_epochs, lossfunction=lossfunction)
 
-        if export_plots is True:
-            plt.savefig('Plots/%s_Reward.png' % env_name)
+            # Visualize the training process
+            plt.title('%s: Learning Rewards\n Batch-Size=%d, lr=%f, optimizer=%s' %
+                      (env_name, batch_size, lr, optimizer_name))
+            plt.plot(train_loss, label='train-loss')
+            plt.plot(val_loss, label='val-loss')
+            plt.xlabel('Epoch')
+            plt.ylabel('MSE')
+            plt.legend()
+            plt.show()
 
-        print()
-        logging.info('Learning %s:' % model_type.upper())
-        logging.info('Final Train MSE after %d epochs: %.5f (on normalized targets)' % (n_epochs, train_loss[-1]))
-        logging.info('Final Validation MSE after %d epochs: %.5f (on normalized targets)' % (n_epochs, val_loss[-1]))
+            if export_plots is True:
+                plt.savefig('Plots/%s_Reward.png' % env_name)
 
-        if export_models is True:
-            # Save the weights of the trained model
-            export_name = "./Challenge_1/Weights/model_%s_%s_mse_%.8f.params" % (model_type, env_name, val_loss[-1])
-            torch.save(reward_model.state_dict(), export_name)
-            logging.info('Your weights have been saved to %s successfully!' % export_name)
+            print()
+            logging.info('Learning %s:' % model_type.upper())
+            logging.info('Final Train MSE after %d epochs: %.8f' % (n_epochs, train_loss[-1]))
+            logging.info('Final Validation MSE after %d epochs: %.8f' % (n_epochs, val_loss[-1]))
+
+            if export_models is True:
+                # Save the weights of the trained model
+                export_name = "./Challenge_1/Weights/model_%s_%s_mse_%.8f.params" % (model_type, env_name, val_loss[-1])
+                torch.save(model.state_dict(), export_name)
+                logging.info('Your weights have been saved to %s successfully!' % export_name)
+    else:
+        # load the saved NN parameters
+        path_prefix = './Challenge_1/Weights/'
+        weight_dir = os.listdir(path_prefix)
+        dynamics_model_params = None
+        reward_model_params = None
+
+        # iterate over the files in the directory and chose the appropriate weight files
+        for file_name in weight_dir:
+            if env_name in file_name:
+                if 'dynamics' in file_name:
+                    dynamics_model_params = file_name
+                elif 'reward' in file_name:
+                    reward_model_params = file_name
+
+        if dynamics_model_params is None or dynamics_model_params is None:
+            raise Exception('The saved model parameters were not found in %s' % path_prefix)
+        else:
+            print(dynamics_model_params)
+            print(reward_model_params)
+            dynamics_model.load_model(path_prefix + dynamics_model_params)
+            reward_model.load_model(path_prefix + reward_model_params)
 
     # return the the inference interface to the dynamics and reward model
     return provide_inference
