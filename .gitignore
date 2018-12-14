@@ -107,3 +107,7 @@ venv.bak/
 
 # Pycharm
 .idea
+
+# avoid pushing the manifest json logging files from the env
+*.json
+
