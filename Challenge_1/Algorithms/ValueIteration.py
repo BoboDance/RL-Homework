@@ -20,12 +20,10 @@ class ValueIteration(DynamicProgramming):
     def run(self, max_iter=100000):
 
         for i in range(int(max_iter)):
-
-            start = time.time()
             delta = 0
 
             # compute value of state with lookahead
-            value_map = self._look_ahead_MC() if self.use_MC else self._look_ahead()
+            value_map = self._look_ahead_MC()
             best_value = np.amax(value_map, axis=1)
 
             # get value of all states

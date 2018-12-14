@@ -23,8 +23,8 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-env_name = "Pendulum-v2"
-# env_name = "Qube-v0"
+#env_name = "Pendulum-v2"
+env_name = "Qube-v0"
 
 # index list of angle features
 if env_name == 'Pendulum-v2':
@@ -50,14 +50,20 @@ def main():
     #                                                     dynamics_model_params=dynamics_model_params,
     #                                                     reward_model_params=reward_model_params)
 
+    # Mean reward over first 100 epochs: -30.968596786647105 - [22, 77, 44, 33]
+
+# Mean reward over first 100 epochs: -49.30522089086473 - [88, 88, 21, 21]
+# Mean reward [11, 88, 33, 44] - -23.71103979620617 - -23.71103979620617
+    #80 20 44 66
+# try out different permutation: with center edge
     policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
                                                         n_samples=10000,
-                                                        bins_state=bins_sate, #[26, 26, 70, 70],
+                                                        bins_state=[12, 88, 34, 44],
                                                         bins_action=[2],
                                                         seed=seed, theta=1e-9,
                                                         use_MC=True,
                                                         MC_samples=1,
-                                                        dense_location=None,
+                                                        dense_location=["center", "center", "edge", "center"],
                                                         dynamics_model_params=dynamics_model_params,
                                                         reward_model_params=reward_model_params,
                                                         angle_features=angle_features)
@@ -183,15 +189,15 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
 
     for i in range(n_episodes):
         done = False
-        env.seed(i)
+        env.seed(i*seed)
         state = env.reset()
 
         while not done:
             # env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
-            state, reward, done, _ = env.step(action)
             rewards[i] += reward
+            state, reward, done, _ = env.step(action)
 
         # print("Intermediate reward: {}".format(rewards[i]))
 
@@ -218,7 +224,7 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
         # s_prime - future state after you taken the action from state s
         state_prime, state, action, reward = dg_train.get_samples(n_samples)
 
-        # create training input pairs
+        # create training input pairs # needed for output for challenge
         s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1).reshape(-1, env.observation_space.shape[0] +
                                                                                    env.action_space.shape[0])
         reward = reward.reshape(-1, 1)
