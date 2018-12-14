@@ -106,7 +106,7 @@ def train(model, optimizer, X, Y, X_val, Y_val, n_epochs=150, batch_size=32, los
 
             # in case you wanted a semi-full example
             outputs = model.forward(batch_x)
-            loss = lossfunction(outputs,batch_y)
+            loss = lossfunction(outputs, batch_y)
 
             loss.backward()
             optimizer.step()
