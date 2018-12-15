@@ -32,7 +32,7 @@ def create_dataset(env, seed, n_samples, angle_features, convert_to_sincos=False
     Creates the dataset for training the NN
     """
 
-    dg_train = DataGenerator(env=env, seed=seed)
+    dg_train = DataGenerator(env=env)
 
     # s_prime - future state after you taken the action from state s
     state_prime, state, action, reward = dg_train.get_samples(n_samples)

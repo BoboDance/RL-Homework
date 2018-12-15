@@ -22,7 +22,7 @@ def convert_state_to_sin_cos(state, angle_features):
     if not angle_features:
         return state
 
-    state = np.array(state)
+    state = np.atleast_2d(state)
 
     angles = state[:, angle_features]
     # replace the angle feature with the sin of the angle
@@ -55,9 +55,7 @@ def reconvert_state_to_angle(state, angle_features):
 
     angle = np.arctan2(state[:, sin], state[:, cos])
     state[:, sin] = angle
-    state = np.delete(state, cos, axis=1)
-
-    return state
+    return np.delete(state, cos, axis=1)
 
 
 def normalize_input(x, x_low, x_high):

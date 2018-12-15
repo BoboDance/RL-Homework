@@ -1,7 +1,8 @@
 """
 Submission template for Programming Challenge 1: Dynamic Programming.
 """
-import scipy
+from scipy.signal import medfilt
+from scipy.ndimage.filters import gaussian_filter
 
 from Challenge_1.Algorithms.PolicyIteration import PolicyIteration
 from Challenge_1.Algorithms.ValueIteration import ValueIteration
@@ -32,8 +33,6 @@ info = dict(
 # (used in order to be compatible with the template and provide an inference method
 x_low = None
 x_high = None
-# dynamics_model = None
-# reward_model = None
 convert_to_sincos = None
 angle_features = None
 load_model = True
@@ -248,7 +247,8 @@ def get_policy(model, observation_space, action_space):
     :return: function pi: s -> a
     """
 
-    global angle_features
+    global x_low
+    global x_low
 
     algorithm = "vi"
 
@@ -269,12 +269,10 @@ def get_policy(model, observation_space, action_space):
 
     if algorithm == "pi":
         algo = PolicyIteration(action_space=action_space, model=model, discretizer_state=discretizer_state,
-                               n_actions=n_actions, theta=theta, MC_samples=MC_samples, angle_features=angle_features,
-                               verbose=False)
+                               n_actions=n_actions, theta=theta, MC_samples=MC_samples, verbose=False)
     elif algorithm == "vi":
         algo = ValueIteration(action_space=action_space, model=model, discretizer_state=discretizer_state,
-                              n_actions=n_actions, theta=theta, MC_samples=MC_samples, angle_features=angle_features,
-                              verbose=False)
+                              n_actions=n_actions, theta=theta, MC_samples=MC_samples, verbose=False)
     else:
         raise NotImplementedError()
 
@@ -282,9 +280,9 @@ def get_policy(model, observation_space, action_space):
     policy = algo.policy
 
     if use_gaussian_filter:
-        policy = scipy.ndimage.filters.gaussian_filter(policy, 3)
+        policy = gaussian_filter(policy, 3)
 
     if use_med_filter:
-        policy = scipy.signal.medfilt(policy)
+        policy = medfilt(policy)
 
-    return lambda obs: policy[tuple(discretizer_state.discretize(np.atleast_2d(obs)).T)]
+    return lambda obs: policy[tuple(discretizer_state.discretize(reconvert_state_to_angle(obs, [0])).T)]

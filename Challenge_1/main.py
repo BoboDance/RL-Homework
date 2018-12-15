@@ -100,7 +100,7 @@ def run(env_name, dense_location, angle_features, dynamics_model_params, reward_
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
-    dg_train = DataGenerator(env_name=env_name, seed=seed)
+    dg_train = DataGenerator(env_name=env_name)
 
     # s_prime - future state after you taken the action from state s
     state_prime, state, action, reward = dg_train.get_samples(n_samples)
@@ -221,7 +221,7 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
 
     if train:
 
-        dg_train = DataGenerator(env_name=env_name, seed=seed)
+        dg_train = DataGenerator(env_name=env_name)
 
         # s_prime - future state after you taken the action from state s
         state_prime, state, action, reward = dg_train.get_samples(n_samples)
@@ -242,7 +242,7 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
         dynamics_model.load_model("NN-state_dict_dynamics")  # _10000_200hidden")
         reward_model.load_model("NN-state_dict_reward")  # _10000_200hidden")
 
-    dg_test = DataGenerator(env_name=env_name, seed=seed + 1)
+    dg_test = DataGenerator(env_name=env_name)
     s_prime, s, a, r = dg_test.get_samples(n_samples)
 
     # create test input pairs
