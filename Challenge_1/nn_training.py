@@ -27,7 +27,7 @@ import torch
 import logging
 
 
-def create_dataset(env, seed, n_samples, angle_features, convert_to_sincos=False):
+def create_dataset(env, n_samples, angle_features, convert_to_sincos=False):
     """
     Creates the dataset for training the NN
     """

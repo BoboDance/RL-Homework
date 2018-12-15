@@ -102,6 +102,10 @@ def get_feature_space_boundaries(observation_space, action_space, angle_features
     x_low = np.concatenate([observation_space.low, action_space.low])
     x_high = np.concatenate([observation_space.high, action_space.high])
 
+    # set sin to -1 if angle
+    x_low[angle_features] = -1
+    x_high[angle_features] = 1
+
     cos_low = [-1] * len(angle_features)
     cos_high = [1] * len(angle_features)
 
