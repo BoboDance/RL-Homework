@@ -23,8 +23,8 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-#env_name = "Pendulum-v2"
-env_name = "Qube-v0"
+env_name = "Pendulum-v2"
+#env_name = "Qube-v0"
 
 # index list of angle features
 if env_name == 'Pendulum-v2':
@@ -39,16 +39,16 @@ elif env_name == "Qube-v0":
 
 def main():
     #grid_search(env_name, seed, 4, "vi")
-    # find_good_sample_size(env_name, seed)
+    #find_good_sample_size(env_name, seed, steps=100, max=2000, n_samples_test=2000, type='gp')
     # train_and_eval_nn(train=False)
     # best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
     # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
     bins_sate = [200] * 2
-    #policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_sate,
-    #                                                     bins_action=[2], angle_features=angle_features,
-    #                                                     MC_samples=1, dense_location=None,
-    #                                                     dynamics_model_params=dynamics_model_params,
-    #                                                     reward_model_params=reward_model_params)
+    policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_sate,
+                                                         bins_action=[2], angle_features=angle_features,
+                                                         MC_samples=1, dense_location=None,
+                                                         dynamics_model_params=dynamics_model_params,
+                                                         reward_model_params=reward_model_params)
 
     # Mean reward over first 100 epochs: -30.968596786647105 - [22, 77, 44, 33]
 
@@ -56,6 +56,7 @@ def main():
 # Mean reward [11, 88, 33, 44] - -23.71103979620617 - -23.71103979620617
     #80 20 44 66
 # try out different permutation: with center edge
+    """
     policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
                                                         n_samples=10000,
                                                         bins_state=[12, 88, 34, 44],
@@ -69,7 +70,7 @@ def main():
                                                         angle_features=angle_features)
 
     test_run(env_name, policy, discretizer_action, discretizer_state,n_episodes=100)
-
+    """
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
     for dense_loc in [None] + list(itertools.product(["center", "edge", "start", "end"], repeat=dim)):
@@ -253,7 +254,7 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
     reward_model.validate_model(s_a, r)
 
 
-def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=25000):
+def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=25000, type='rf'):
     dyn_history_test = []
     rwd_history_test = []
     rwd_history_train = []
@@ -266,6 +267,13 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
 
     # create test input pairs
     s_a_pairs_test = np.concatenate([s_test, a_test[:, np.newaxis]], axis=1)
+
+    if type == 'rf':
+        model_name = 'Random Forest'
+    elif type == 'gp':
+        model_name = 'Gaussian Process'
+    else:
+        raise Exception('Unsupported model type given')
 
     for i in data_point_range:
         print("Training with {} samples.".format(i))
@@ -280,11 +288,11 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
         s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
 
         # solve regression problem s_prime = f(s,a)
-        dynamics_model = SklearnModel()
+        dynamics_model = SklearnModel(type)
         dynamics_model.fit(s_a_pairs, state_prime)
 
         # solve regression problem r = g(s,a)
-        reward_model = SklearnModel()
+        reward_model = SklearnModel(type)
         reward_model.fit(s_a_pairs, reward)
 
         # --------------------------------------------------------------
@@ -325,13 +333,16 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
     rwd_history_test = np.array(rwd_history_test)
     rwd_history_train = np.array(rwd_history_train)
 
+    title_prefix = "Model: {} - {}\n".format(model_name, env_name)
+
     for i in range(dyn_history_test.shape[1]):
         plt.figure(i)
         plt.plot(data_point_range, dyn_history_test[:, i], label="Test")
         plt.plot(data_point_range, dyn_history_train[:, i], label="Train")
         plt.xlabel("# Samples")
         plt.ylabel("MSE")
-        plt.title("Dynamics Performance (State_{}) for different Sample Sizes".format(i))
+
+        plt.title(title_prefix + "Dynamics Performance (State_{}) for different Sample Sizes".format(i))
         plt.legend()
 
     plt.figure(dyn_history_test.shape[1] + 1)
@@ -339,7 +350,7 @@ def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=
     plt.plot(data_point_range, rwd_history_train, label="Train")
     plt.xlabel("# Samples")
     plt.ylabel("MSE")
-    plt.title("Reward Performance for different Sample Sizes")
+    plt.title(title_prefix + "Reward Performance for different Sample Sizes")
     plt.legend()
 
     plt.show()
