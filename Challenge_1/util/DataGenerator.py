@@ -25,21 +25,18 @@ class DataGenerator(object):
         :return: s', s, a, r
         """
 
-        if n_samples is not None:
-            self.n_samples = n_samples
-
         # sample dataset with random actions
-        states = np.zeros((self.n_samples, self.state_dim))
-        states_prime = np.zeros((self.n_samples, self.state_dim))
-        actions = np.zeros((self.n_samples,))
-        rewards = np.zeros((self.n_samples,))
+        states = np.zeros((n_samples, self.state_dim))
+        states_prime = np.zeros((n_samples, self.state_dim))
+        actions = np.zeros((n_samples,))
+        rewards = np.zeros((n_samples,))
 
         i = 0
-        while i < self.n_samples:
+        while i < n_samples:
             state = self.env.reset()
             done = False
 
-            while not done and i < self.n_samples:
+            while not done and i < n_samples:
                 # sample and apply action
                 action = self.env.action_space.sample()
                 state_prime, reward, done, _ = self.env.step(action)
@@ -55,20 +52,3 @@ class DataGenerator(object):
                 i += 1
 
         return states_prime, states, actions, rewards
-        # state = self.env.reset()
-        # for i in range(self.n_samples):
-        #     # sample and apply action
-        #     action = self.env.action_space.sample()
-        #     state_prime, reward, done, _ = self.env.step(action)
-        #
-        #     # save outcomes
-        #     states_prime[i] = np.array(state_prime)
-        #     states[i] = np.array(state)
-        #     actions[i] = action
-        #     rewards[i] = reward
-        #
-        #     # increment counter
-        #     state = state_prime
-        #     i += 1
-        #
-        # return states_prime, states, actions, rewards

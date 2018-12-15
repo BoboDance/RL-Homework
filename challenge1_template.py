@@ -205,10 +205,12 @@ def get_model(env, max_num_samples):
         obs = np.atleast_2d(obs)
         act = np.atleast_2d(act)
 
-        obs = convert_state_to_sin_cos(obs, angle_features)
+        if obs.shape[0] == 1:
+            obs = convert_state_to_sin_cos(obs, angle_features)
+        else:
+            obs = convert_state_to_sin_cos(obs, [0])
 
         s_a = np.concatenate([obs, act], axis=1)
-        # s_a = np.concatenate([obs, act], axis=0)
 
         # normalize the state action pair to the range [0,1]
         s_a = normalize_input(s_a, x_low, x_high)
@@ -222,8 +224,11 @@ def get_model(env, max_num_samples):
         # unnormalize the state back to it's original state ranges
         state_prime_pred = unnormalize_input(state_prime_pred, x_low[:-1], x_high[:-1])
         # reconvert the angle feature back to a single angle to have a more compact representation
-        state_prime_pred = reconvert_state_to_angle(state_prime_pred, angle_features)
 
+        if obs.shape[0] == 1:
+            state_prime_pred = reconvert_state_to_angle(state_prime_pred, angle_features)
+        else:
+            state_prime_pred = reconvert_state_to_angle(state_prime_pred, [0])
         # request the reward prediction of the corresponding reward from our model
         reward = reward_model.predict(s_a)
 
