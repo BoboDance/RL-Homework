@@ -3,7 +3,7 @@ import numpy as np
 
 class Discretizer(object):
 
-    def __init__(self, n_bins_per_feature: [int], space, dense_locations=None):
+    def __init__(self, high: [int], low: [int], n_bins_per_feature: [int], dense_locations=None, bin_scaling=1.025):
         """
 
         :param n_bins_per_feature: Describes the number of bins per feature
@@ -16,34 +16,27 @@ class Discretizer(object):
                                 - "end": More bins at the end regions
         """
 
-        self.space = space
         self.n_bins_per_feature = n_bins_per_feature
 
-        if len(n_bins_per_feature) != space.shape[0]:
-            raise Exception("The given number of bins %d configuration doesn't fit to your requested environment "
-                            "number of features %d" % (len(n_bins_per_feature), space.shape[0]))
+        # if len(n_bins_per_feature) != space.shape[0]:
+        #     raise Exception("The given number of bins %d configuration doesn't fit to your requested environment "
+        #                     "number of features %d" % (len(n_bins_per_feature), space.shape[0]))
 
-        self.high = self.space.high
-        self.low = self.space.low
+        self.high = high
+        self.low = low
 
-        self.bin_scaling = 1.025
+        self.bin_scaling = bin_scaling
 
         self.bins = []
 
-        if dense_locations is not None:
-            # TODO
-            # self.bins = np.array([self.increasing_bins(i, dense_locations[i]) for i in range(self.space.shape[0])])
-            for i in range(self.space.shape[0]):
-                #bins = np.array([self.increasing_bins(i, dense_locations[i]))
-                bins = self.increasing_bins(i, dense_locations[i])
-                self.bins.append(bins)
-        else:
-            # self.bins = np.array([np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins + 1) for i in
-            #                      range(self.space.shape[0])])
-            for i in range(self.space.shape[0]):
-                # we add +1 because stop is excluded in np.linspace
-                bins = np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins_per_feature[i] + 1)
-                self.bins.append(bins)
+        for i in range(len(n_bins_per_feature)):
+
+            if dense_locations[i] == "equal":
+                # we add +1 for the upper boundary.
+                b = np.linspace(self.low[i] - 1e-10, self.high[i], self.n_bins_per_feature[i] + 1)
+            else:
+                b = self.increasing_bins(i, dense_locations[i])
+            self.bins.append(b)
 
     def discretize(self, value):
         """
@@ -54,12 +47,6 @@ class Discretizer(object):
         for i in range(value.shape[1]):
             s_dis[:, i] = np.searchsorted(self.bins[i][:-1], value[:, i])
         return s_dis - 1
-
-    def scale_values_v2(self, value):
-        # scale states to stay within action space
-        total_range = self.high - self.low
-        state_01 = value / (self.n_bins_per_feature - 1)
-        return (state_01 * total_range) + self.low
 
     def scale_values(self, value):
         # compute mean of lower and upper bound of bin
@@ -74,25 +61,26 @@ class Discretizer(object):
         # compute mean of lower and upper bound of bin
         scaled = np.zeros((value.shape[0], n_samples, value.shape[1]), dtype=np.float32)
         for i in range(value.shape[1]):
-
             v = np.atleast_2d(value[:, i].T)
-            idx = tuple(v)
+            # idx = tuple(v)
             bins = self.bins[i]
-            left = self.bins[i][tuple(v)]
-            right = self.bins[i][tuple(v + 1)]
+            low = bins[tuple(v)]
+            high = bins[tuple(v + 1)]
 
-            # sample from gaussian within the bin
-            sigma = (right - left) / 3
-            mu = (left + right) / 2
-            # 99.7% of samples are in 3*sigma range, clip others
-            scaled[:, :, i] = np.clip(np.random.normal(mu, sigma, size=(n_samples, len(mu))), left, right).T
+            # Gaussian MC sampling within the bin
+            # sigma = (high - low) / 3
+            # mu = (low + high) / 2
+            # # 99.7% of samples are in 3*sigma range, clip others
+            # scaled[:, :, i] = np.clip(np.random.normal(mu, sigma, size=(n_samples, len(mu))), low, high).T
+
+            scaled[:, :, i] = np.random.uniform(low, high, size=(n_samples, len(low))).T
 
         return scaled
 
     def increasing_bins(self, dim, dense_location="center"):
 
         if dense_location not in ["center", "edge", "end", "start"]:
-            raise ValueError("Invalid location of density found.")
+            raise ValueError("Invalid location of density.")
 
         total_range = self.high[dim] - self.low[dim]
 

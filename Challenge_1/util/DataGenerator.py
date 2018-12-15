@@ -4,22 +4,12 @@ import numpy as np
 
 class DataGenerator(object):
 
-    def __init__(self, env_name, seed):
-        self.env_name = env_name
+    def __init__(self, env, seed):
         self.seed = seed
 
-        self.env = gym.make(self.env_name)
+        self.env = env
         self.env.seed(self.seed)
         np.random.seed(self.seed)
-
-        if env_name == "Pendulum-v2":
-            self.n_samples = 10000
-        elif env_name == "Qube-v0":
-            self.n_samples = 25000
-        elif env_name == "Pendulum-v0":
-            self.n_samples = 10000
-        else:
-            raise NotImplementedError("Unsupported Environment")
 
         # get the number of available action from the environment
         self.state_dim = self.env.observation_space.shape[0]
@@ -44,41 +34,41 @@ class DataGenerator(object):
         actions = np.zeros((self.n_samples,))
         rewards = np.zeros((self.n_samples,))
 
-        # i = 0
-        # while i < self.n_samples:
-        #     state = self.env.reset()
-        #     done = False
-        #
-        #     while not done and i < self.n_samples:
-        #         # sample and apply action
-        #         action = self.env.action_space.sample()
-        #         state_prime, reward, done, _ = self.env.step(action)
-        #
-        #         # save outcomes
-        #         states_prime[i] = np.array(state_prime)
-        #         states[i] = np.array(state)
-        #         actions[i] = action
-        #         rewards[i] = reward
-        #
-        #         # increment counter
-        #         state = state_prime
-        #         i += 1
-        #
-        # return states_prime, states, actions, rewards
-        state = self.env.reset()
-        for i in range(self.n_samples):
-            # sample and apply action
-            action = self.env.action_space.sample()
-            state_prime, reward, done, _ = self.env.step(action)
+        i = 0
+        while i < self.n_samples:
+            state = self.env.reset()
+            done = False
 
-            # save outcomes
-            states_prime[i] = np.array(state_prime)
-            states[i] = np.array(state)
-            actions[i] = action
-            rewards[i] = reward
+            while not done and i < self.n_samples:
+                # sample and apply action
+                action = self.env.action_space.sample()
+                state_prime, reward, done, _ = self.env.step(action)
 
-            # increment counter
-            state = state_prime
-            i += 1
+                # save outcomes
+                states_prime[i] = np.array(state_prime)
+                states[i] = np.array(state)
+                actions[i] = action
+                rewards[i] = reward
+
+                # increment counter
+                state = state_prime
+                i += 1
 
         return states_prime, states, actions, rewards
+        # state = self.env.reset()
+        # for i in range(self.n_samples):
+        #     # sample and apply action
+        #     action = self.env.action_space.sample()
+        #     state_prime, reward, done, _ = self.env.step(action)
+        #
+        #     # save outcomes
+        #     states_prime[i] = np.array(state_prime)
+        #     states[i] = np.array(state)
+        #     actions[i] = action
+        #     rewards[i] = reward
+        #
+        #     # increment counter
+        #     state = state_prime
+        #     i += 1
+        #
+        # return states_prime, states, actions, rewards

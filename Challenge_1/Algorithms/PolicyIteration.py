@@ -10,9 +10,9 @@ from Challenge_1.util import Discretizer
 
 class PolicyIteration(DynamicProgramming):
 
-    def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
-                 discretizer_action: Discretizer, discount=.99, theta=1e-9, use_MC=True, MC_samples=1,
-                 angle_features=[0], verbose=False):
+    def __init__(self, action_space, model: callable, discretizer_state: Discretizer,
+                 n_actions: int, discount=.99, theta=1e-9, MC_samples=1, angle_features=[0],
+                 verbose=False):
         """
 
         :param env:
@@ -23,8 +23,8 @@ class PolicyIteration(DynamicProgramming):
         :param discount:
         :param theta:
         """
-        super(PolicyIteration, self).__init__(env, dynamics_model, reward_model, discretizer_state, discretizer_action,
-                                              discount, theta, use_MC, MC_samples, angle_features, verbose)
+        super(PolicyIteration, self).__init__(action_space, model, discretizer_state,
+                                              n_actions, discount, theta, MC_samples, angle_features, verbose)
 
     def run(self, max_iter=100000):
 
@@ -41,13 +41,13 @@ class PolicyIteration(DynamicProgramming):
             # policy iteration converged
             if stable:
                 print('Evaluated {} policies and found stable policy'.format(i + 1))
-                # np.save('./policy_PI', self.policy)
+                np.save('./policy_PI', self.policy)
 
-                # if len(self.value_function.shape) == 2:
-                #     plt.matshow(self.value_function)
-                #     plt.colorbar()
-                #     plt.title("Value function")
-                #     plt.show()
+                if len(self.value_function.shape) == 2:
+                    plt.matshow(self.value_function)
+                    plt.colorbar()
+                    plt.title("Value function policy iteration")
+                    plt.show()
 
     def _policy_evaluation(self, max_iter=100000):
 
@@ -58,8 +58,8 @@ class PolicyIteration(DynamicProgramming):
             # get index of best action from policy
             action_idx = np.searchsorted(self.actions, self.policy).flatten()
 
-            # select only state primes from transition matrix which are reached based on the policy actions
-            state_prime = self.state_prime.reshape(self.policy.shape + (self.n_actions,) + (self.state_dim,))
+            # select only successor states from transition matrix which are reached based on the policy actions
+            state_prime = self.transitions.reshape(self.policy.shape + (self.n_actions,) + (self.state_dim,))
             state_prime = state_prime[tuple(self.states.T)][np.arange(0, len(action_idx)), action_idx, :]
 
             # select only rewards from reward matrix which are reached based on the policy actions
@@ -77,12 +77,12 @@ class PolicyIteration(DynamicProgramming):
             # adjust value function, based on results from action
             self.value_function = values_new.reshape(self.value_function.shape)
 
-            # print("Policy evaluation step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
-            #       "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
+            print("Policy evaluation step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
+                  "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
 
             # Terminate if change is below threshold
             if np.all(delta <= self.theta):
-                # print('Policy evaluation finished in {} iterations.'.format(i + 1))
+                print('Policy evaluation finished in {} iterations.'.format(i + 1))
                 break
 
     def _policy_improvement(self):
@@ -94,23 +94,17 @@ class PolicyIteration(DynamicProgramming):
         policy_action = self.policy.flatten()
 
         # Check if current policy_action is actually best by checking all actions
-        value_map = self._look_ahead_MC() if self.use_MC else self._look_ahead()
-        best_action = self.actions[np.argmax(value_map, axis=1)]
+        Q = self._look_ahead()
+        best_action = self.actions[np.argmax(Q, axis=1)]
 
         # If better action was found
         if np.any(policy_action != best_action):
             stable = False
             # Greedy policy update
             self.policy = best_action.reshape(self.policy.shape)
-            # print("# of incorrectly selected actions: {}".format(np.count_nonzero(policy_action != best_action)))
+            print("# of incorrectly selected actions: {}".format(np.count_nonzero(policy_action != best_action)))
 
-        # print(
-        #     "Policy improvement finished -- stable: {} -- time taken: {:2.4f}s".format(stable, time.time() - start))
-
-        # if len(self.policy.shape) == 2:
-        #     plt.matshow(self.value_function)
-        #     plt.colorbar()
-        #     plt.title("Policy")
-        #     plt.show()
+        print(
+            "Policy improvement finished -- stable: {} -- time taken: {:2.4f}s".format(stable, time.time() - start))
 
         return stable

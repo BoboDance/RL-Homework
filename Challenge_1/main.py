@@ -23,52 +23,52 @@ seed = 1234
 # avoid auto removal of import with pycharm
 quanser_robots
 
-#env_name = "Pendulum-v2"
-env_name = "Qube-v0"
+env_name = "Pendulum-v2"
+# env_name = "Qube-v0"
 
 # index list of angle features
 if env_name == 'Pendulum-v2':
-    angle_features = [0]  # Pendulum-v2
+    angle_features = [0]
     dynamics_model_params = "./Weights/model_dynamics_Pendulum-v2_mse_0.00002354.params"
     reward_model_params = "./Weights/model_reward_Pendulum-v2_mse_0.00581975.params"
 elif env_name == "Qube-v0":
-    angle_features = [0, 1]  # Qube-v0
+    angle_features = [0, 1]
     dynamics_model_params = "./Weights/model_dynamics_Qube-v0_mse_0.00026449.params"
     reward_model_params = "./Weights/model_reward_Qube-v0_mse_0.00001899.params"
 
 
 def main():
-    #grid_search(env_name, seed, 4, "vi")
+    # grid_search(env_name, seed, 4, "vi")
     # find_good_sample_size(env_name, seed)
     # train_and_eval_nn(train=False)
     # best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
     # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
     bins_sate = [200] * 2
-    #policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_sate,
-    #                                                     bins_action=[2], angle_features=angle_features,
-    #                                                     MC_samples=1, dense_location=None,
-    #                                                     dynamics_model_params=dynamics_model_params,
-    #                                                     reward_model_params=reward_model_params)
+    policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_sate,
+                                                        bins_action=[2], angle_features=angle_features,
+                                                        MC_samples=1, dense_location=None,
+                                                        dynamics_model_params=dynamics_model_params,
+                                                        reward_model_params=reward_model_params, algorithm="pi")
 
     # Mean reward over first 100 epochs: -30.968596786647105 - [22, 77, 44, 33]
 
-# Mean reward over first 100 epochs: -49.30522089086473 - [88, 88, 21, 21]
-# Mean reward [11, 88, 33, 44] - -23.71103979620617 - -23.71103979620617
-    #80 20 44 66
-# try out different permutation: with center edge
-    policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
-                                                        n_samples=10000,
-                                                        bins_state=[12, 88, 34, 44],
-                                                        bins_action=[2],
-                                                        seed=seed, theta=1e-9,
-                                                        use_MC=True,
-                                                        MC_samples=1,
-                                                        dense_location=["center", "center", "edge", "center"],
-                                                        dynamics_model_params=dynamics_model_params,
-                                                        reward_model_params=reward_model_params,
-                                                        angle_features=angle_features)
+    # Mean reward over first 100 epochs: -49.30522089086473 - [88, 88, 21, 21]
+    # Mean reward [11, 88, 33, 44] - -23.71103979620617 - -23.71103979620617
+    # 80 20 44 66
+    # try out different permutation: with center edge
+    #     policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
+    #                                                         n_samples=10000,
+    #                                                         bins_state=[12, 88, 34, 44],
+    #                                                         bins_action=[2],
+    #                                                         seed=seed, theta=1e-9,
+    #                                                         use_MC=True,
+    #                                                         MC_samples=1,
+    #                                                         dense_location=["center", "center", "edge", "center"],
+    #                                                         dynamics_model_params=dynamics_model_params,
+    #                                                         reward_model_params=reward_model_params,
+    #                                                         angle_features=angle_features)
 
-    test_run(env_name, policy, discretizer_action, discretizer_state,n_episodes=100)
+    test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=100)
 
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
@@ -96,7 +96,7 @@ def grid_search(env_name, seed, dim=2, algo="pi"):
 # TODO: only use equal bins numbers
 # ["center", "center", "center", "center"]
 def run(env_name, dense_location, angle_features, dynamics_model_params, reward_model_params, algorithm="pi",
-        n_samples=10000, bins_state=[100, 100], bins_action=[3], seed=1, theta=1e-9, use_MC=True, MC_samples=1, ):
+        n_samples=10000, bins_state=[100, 100], bins_action=[3], seed=1, theta=1e-9, MC_samples=1):
     env = gym.make(env_name)
     print("Training with {} samples.".format(n_samples))
 
@@ -106,7 +106,7 @@ def run(env_name, dense_location, angle_features, dynamics_model_params, reward_
     state_prime, state, action, reward = dg_train.get_samples(n_samples)
 
     # create training input pairs
-    s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
+    # s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1)
 
     # # solve regression problem s_prime = f(s,a)
     # dynamics_model = SklearnModel(type="rf")
@@ -160,11 +160,11 @@ def run(env_name, dense_location, angle_features, dynamics_model_params, reward_
     if algorithm == "pi":
         algo = PolicyIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                                discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
-                               use_MC=use_MC, MC_samples=MC_samples, angle_features=angle_features, verbose=False)
+                               MC_samples=MC_samples, angle_features=angle_features, verbose=False)
     elif algorithm == "vi":
         algo = ValueIteration(env=env, dynamics_model=dynamics_model, reward_model=reward_model,
                               discretizer_state=discretizer_state, discretizer_action=discretizer_action, theta=theta,
-                              use_MC=use_MC, MC_samples=MC_samples, angle_features=angle_features, verbose=False)
+                              MC_samples=MC_samples, angle_features=angle_features, verbose=False)
     else:
         raise NotImplementedError()
 
@@ -189,20 +189,22 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
 
     for i in range(n_episodes):
         done = False
-        env.seed(i*seed)
+        env.seed(i)
         state = env.reset()
 
         while not done:
             # env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
-            rewards[i] += reward
             state, reward, done, _ = env.step(action)
+            rewards[i] += reward
 
         # print("Intermediate reward: {}".format(rewards[i]))
 
-    print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
-    print("Mean reward over first 100 epochs: {}".format(rewards[:100].mean()))
+    print("{} epochs: Mean reward: {} -- standard deviation of rewards: {}".format(n_episodes, rewards.mean(),
+                                                                                   rewards.std()))
+    if n_episodes > 100:
+        print("Mean reward over first 100 epochs: {}".format(rewards[:100].mean()))
 
 
 def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):

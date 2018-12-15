@@ -9,36 +9,22 @@ import sys
 
 class DynamicProgramming(object):
 
-    def __init__(self, env: gym.Env, dynamics_model, reward_model, discretizer_state: Discretizer,
-                 discretizer_action: Discretizer, discount=.99, theta=1e-9, use_MC=False, MC_samples=1,
-                 angle_features=[0], verbose=False):
-        """
-        :param env:
-        :param dynamics_model:
-        :param reward_model:
-        :param discretizer_state:
-        :param discretizer_action:
-        :param discount:
-        :param theta:
-        """
+    def __init__(self, action_space, model: callable, discretizer_state: Discretizer,
+                 n_actions: int, discount=.99, theta=1e-9, MC_samples=1, angle_features=[0], verbose=False):
 
-        self.env = env
-        self.high_state = self.env.observation_space.high
-        self.high_action = self.env.action_space.high
-        self.low_state = self.env.observation_space.low
-        self.low_action = self.env.action_space.low
+        self.action_space = action_space
+        self.high_action = self.action_space.high
+        self.low_action = self.action_space.low
 
         self.discretizer_state = discretizer_state
-        self.discretizer_action = discretizer_action
-
         self.n_states = self.discretizer_state.n_bins_per_feature
-        self.n_actions = self.discretizer_action.n_bins_per_feature[0]
 
-        self.state_dim = self.env.observation_space.shape[0]
-        self.action_dim = self.env.action_space.shape[0]
+        self.n_actions = n_actions
 
-        self.dynamics_model = dynamics_model
-        self.reward_model = reward_model
+        self.state_dim = len(self.n_states)
+        self.action_dim = self.action_space.shape[0]
+
+        self.model = model
 
         self.discount = discount
         self.theta = theta
@@ -53,24 +39,21 @@ class DynamicProgramming(object):
         self.policy = np.random.choice(self.actions, size=state_space)
         self.value_function = np.zeros(state_space)
 
-        self.use_MC = use_MC
-
         self.angle_features = angle_features
         self.verbose = verbose
 
-        if use_MC:
-            self.state_prime, self.reward = self.compute_transition_and_reward_matrices(n_samples=MC_samples)
+        self.transitions, self.reward = self._compute_transition_and_reward_matrices(n_samples=MC_samples)
 
     def run(self, max_iter=100000):
         raise NotImplementedError
 
-    def _look_ahead_MC(self):
-        values_prime = self.value_function[tuple(self.state_prime.T)]
+    def _look_ahead(self):
+        values_prime = self.value_function[tuple(self.transitions.T)]
         values_new = self.reward + self.discount * values_prime
 
         return values_new.reshape(-1, self.n_actions)
 
-    def compute_transition_and_reward_matrices(self, n_samples):
+    def _compute_transition_and_reward_matrices(self, n_samples):
         # create n samples within the bins an average in order to get better representation
         if n_samples == 1:
             states = self.discretizer_state.scale_values(self.states).reshape(self.states.shape[0], 1,
@@ -86,7 +69,7 @@ class DynamicProgramming(object):
 
         # print('states.shape[1]', states.shape[1])
 
-        if self.verbose is True:
+        if self.verbose:
             # this variable is used to show the current progress after 10% blocks
             step_counter = states.shape[0] // 10
 
@@ -103,49 +86,51 @@ class DynamicProgramming(object):
         mini_batch_size = 10000
 
         # create both boundaries of the feature space
-        x_low, x_high = get_feature_space_boundaries(self.env, self.angle_features)
+        # x_low, x_high = get_feature_space_boundaries(self.observation_space, self.action_space, self.angle_features)
 
         # predict for each sampled action
         for i in range(states.shape[1]):
 
             actions_full = actions.reshape(-1, self.action_dim)
             for z in range(0, states.shape[0] * self.n_actions, mini_batch_size):
-
                 # get all samples for all states and one action
                 s = np.repeat(states, self.n_actions, axis=0)
-                s = s[z:z+mini_batch_size, i, :]
+                s = s[z:z + mini_batch_size, i, :]
 
-                s = convert_state_to_sin_cos(s, self.angle_features)
-                sel_actions = actions_full[z:z+mini_batch_size]
-                s_a = np.concatenate([s, sel_actions], axis=1)
+                # s = convert_state_to_sin_cos(s, self.angle_features)
+                sel_actions = actions_full[z:z + mini_batch_size]
+                # s_a = np.concatenate([s, sel_actions], axis=1)
 
                 # normalize the state action pair to the range [0,1]
-                s_a = normalize_input(s_a, x_low, x_high)
+                # s_a = normalize_input(s_a, x_low, x_high)
 
                 # request the next state from our dynamics model
-                state_prime_pred = self.dynamics_model.predict(s_a)
+                # state_prime_pred = self.dynamics_model.predict(s_a)
 
-                # after predicting the state prime from our dynamic model we should rennormalize it back
-                # to it's original from. The sin(angle) replaces the original angle and the cos(angle) is appended to the
-                # original state representation
+                # after predicting the state prime from our dynamic model we should renormalize it back
+                # to it's original from. The sin(angle) replaces the original angle and the cos(angle)
+                # is appended to the original state representation
                 # unnormalize the state back to it's original state ranges
-                state_prime_pred = unnormalize_input(state_prime_pred, x_low[:-1], x_high[:-1])
+                # state_prime_pred = unnormalize_input(state_prime_pred, x_low[:-1], x_high[:-1])
                 # reconvert the angle feature back to a single angle to have a more compact representation
-                state_prime_pred = reconvert_state_to_angle(state_prime_pred, self.angle_features)
+                # state_prime_pred = reconvert_state_to_angle(state_prime_pred, self.angle_features)
+
+                state_prime_pred, reward_pred = self.model(s, sel_actions)
 
                 # fill in the state prime prediction
-                state_prime[z:z+mini_batch_size, i, :] = state_prime_pred
+                state_prime[z:z + mini_batch_size, i, :] = state_prime_pred
 
                 # request the reward prediction of the corresponding reward from our model
-                reward[i, z:z+mini_batch_size] = self.reward_model.predict(s_a).flatten()
+                # reward[i, z:z + mini_batch_size] = self.reward_model.predict(s_a).flatten()
+                reward[i, z:z + mini_batch_size] = reward_pred.flatten()
 
-            if self.verbose is True and z % step_counter == 0:
-                 sys.stdout.write("=")
-                 sys.stdout.flush()
+                if self.verbose and z % step_counter == 0:
+                    sys.stdout.write("=")
+                    sys.stdout.flush()
 
-        if self.verbose is True:
-            sys.stdout.write("]\n")
-            print(']')
+            if self.verbose:
+                sys.stdout.write("]\n")
+                print(']')
 
         # Deterministic case:
         # compute average state transition and reward.

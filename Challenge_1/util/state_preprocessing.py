@@ -47,7 +47,8 @@ def reconvert_state_to_angle(state_sincos, angle_features):
 
     for i, angle_idx in enumerate(angle_features):
         # replace sin() and cos() feature by the single angle value again
-        state_ret[:, angle_idx] = np.arctan2(state_sincos[:, angle_idx], state_sincos[:, state_sincos.shape[1]-len(angle_features) + angle_idx])
+        state_ret[:, angle_idx] = np.arctan2(state_sincos[:, angle_idx],
+                                             state_sincos[:, state_sincos.shape[1] - len(angle_features) + angle_idx])
 
     state_ret = state_ret[:, :-len(angle_features)]
 
@@ -84,19 +85,20 @@ def unnormalize_input(x, x_low, x_high):
     return x
 
 
-def get_feature_space_boundaries(env, angle_features):
+def get_feature_space_boundaries(observation_space, action_space, angle_features):
     """
     Returns the boundaries for the environment features space.
     This is used for the state_action pair and assumes sin()/cos() of the angle
-    :param env: OpenAI-gym environment handle
+    :param observation_space: OpenAI-gym environment observation_space
+    :param action_space: OpenAI-gym environment action_space
     :param angle_features: List of the features which are the angles in the original representation
     :return: x_low: Lower boundary of the feature space
-            x_high: Uppter boundary of the feature space
+            x_high: Upper boundary of the feature space
     """
     # define the vectors which describe the maximum and minimum of the feature space
-    x_low = np.concatenate([env.observation_space.low, len(angle_features) * [-1], env.action_space.low])
+    x_low = np.concatenate([observation_space.low, len(angle_features) * [-1], action_space.low])
     x_high = np.concatenate(
-        [env.observation_space.high, len(angle_features) * [1], env.action_space.high])
+        [observation_space.high, len(angle_features) * [1], action_space.high])
     for angle_idx in angle_features:
         x_low[angle_idx] = -1
         x_high[angle_idx] = 1
