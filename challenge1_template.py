@@ -1,7 +1,8 @@
 """
 Submission template for Programming Challenge 1: Dynamic Programming.
 """
-import scipy
+from scipy.signal import medfilt
+from scipy.ndimage.filters import gaussian_filter
 
 from Challenge_1.Algorithms.PolicyIteration import PolicyIteration
 from Challenge_1.Algorithms.ValueIteration import ValueIteration
@@ -30,10 +31,8 @@ info = dict(
 
 # Global variables
 # (used in order to be compatible with the template and provide an inference method
-x_low = None
-x_high = None
-# dynamics_model = None
-# reward_model = None
+# x_low = None
+# x_high = None
 convert_to_sincos = None
 angle_features = None
 load_model = True
@@ -49,8 +48,8 @@ def get_model(env, max_num_samples):
     :return: function f: s, a -> s', r
     """
 
-    global x_high
-    global x_low
+    # global x_high
+    # global x_low
     global convert_to_sincos
     global angle_features
     global load_model
@@ -62,7 +61,6 @@ def get_model(env, max_num_samples):
     optimizer_name = 'rmsprop'
     export_plots = False
     export_models = True
-    training_seed = 1234
     batch_size_dynamics = 64
     batch_size_reward = 256
     n_samples = max_num_samples
@@ -115,9 +113,9 @@ def get_model(env, max_num_samples):
         raise Exception('Unsupported optimizer')
 
     # Create Datasets for Training and Testing
-    s_a_pairs_train, state_prime_train, reward_train = create_dataset(env, training_seed, n_samples, angle_features,
+    s_a_pairs_train, state_prime_train, reward_train = create_dataset(env, n_samples, angle_features,
                                                                       convert_to_sincos)
-    s_a_pairs_test, state_prime_test, reward_test = create_dataset(env, training_seed + 1, n_samples, angle_features,
+    s_a_pairs_test, state_prime_test, reward_test = create_dataset(env, n_samples, angle_features,
                                                                    convert_to_sincos)
 
     # Normalize the input X for the neural network
@@ -248,7 +246,8 @@ def get_policy(model, observation_space, action_space):
     :return: function pi: s -> a
     """
 
-    global angle_features
+    global x_low
+    global x_high
 
     algorithm = "vi"
 
@@ -256,7 +255,7 @@ def get_policy(model, observation_space, action_space):
     use_gaussian_filter = False
 
     # params
-    bins_state = [200, 200]
+    bins_state = [360, 100]
     n_actions = 2
     dense_location = ["equal", "equal"]
     MC_samples = 1
@@ -264,17 +263,15 @@ def get_policy(model, observation_space, action_space):
 
     # We have to enter high an low here because the environment was changed last minute
     # and now the space does not provided the right information
-    discretizer_state = Discretizer(high=x_high, low=x_low, n_bins_per_feature=bins_state,
+    discretizer_state = Discretizer(high=[np.pi, 8], low=[-np.pi, -8], n_bins_per_feature=bins_state,
                                     dense_locations=dense_location)
 
     if algorithm == "pi":
         algo = PolicyIteration(action_space=action_space, model=model, discretizer_state=discretizer_state,
-                               n_actions=n_actions, theta=theta, MC_samples=MC_samples, angle_features=angle_features,
-                               verbose=False)
+                               n_actions=n_actions, theta=theta, MC_samples=MC_samples, verbose=False)
     elif algorithm == "vi":
         algo = ValueIteration(action_space=action_space, model=model, discretizer_state=discretizer_state,
-                              n_actions=n_actions, theta=theta, MC_samples=MC_samples, angle_features=angle_features,
-                              verbose=False)
+                              n_actions=n_actions, theta=theta, MC_samples=MC_samples, verbose=False)
     else:
         raise NotImplementedError()
 
@@ -282,9 +279,15 @@ def get_policy(model, observation_space, action_space):
     policy = algo.policy
 
     if use_gaussian_filter:
-        policy = scipy.ndimage.filters.gaussian_filter(policy, 3)
+        policy = gaussian_filter(policy, 3)
 
     if use_med_filter:
-        policy = scipy.signal.medfilt(policy)
+        policy = medfilt(policy)
 
-    return lambda obs: policy[tuple(discretizer_state.discretize(np.atleast_2d(obs)).T)]
+    if len(policy.shape) == 2:
+        plt.imshow(policy)
+        plt.colorbar()
+        plt.title("Policy")
+        plt.show()
+
+    return lambda obs: policy[tuple(discretizer_state.discretize(reconvert_state_to_angle(obs, [0])).T)]

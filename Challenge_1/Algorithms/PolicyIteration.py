@@ -11,8 +11,7 @@ from Challenge_1.util import Discretizer
 class PolicyIteration(DynamicProgramming):
 
     def __init__(self, action_space, model: callable, discretizer_state: Discretizer,
-                 n_actions: int, discount=.99, theta=1e-9, MC_samples=1, angle_features=[0],
-                 verbose=False):
+                 n_actions: int, discount=.99, theta=1e-9, MC_samples=1, verbose=False):
         """
 
         :param env:

@@ -17,15 +17,10 @@ class Discretizer(object):
         """
 
         self.n_bins_per_feature = n_bins_per_feature
-
-        # if len(n_bins_per_feature) != space.shape[0]:
-        #     raise Exception("The given number of bins %d configuration doesn't fit to your requested environment "
-        #                     "number of features %d" % (len(n_bins_per_feature), space.shape[0]))
+        self.bin_scaling = bin_scaling
 
         self.high = high
         self.low = low
-
-        self.bin_scaling = bin_scaling
 
         self.bins = []
 

@@ -11,11 +11,10 @@ from Challenge_1.util.Discretizer import Discretizer
 class ValueIteration(DynamicProgramming):
 
     def __init__(self, action_space, model: callable, discretizer_state: Discretizer,
-                 n_actions: int, discount=.99, theta=1e-9, MC_samples=1, angle_features=[0],
-                 verbose=False):
+                 n_actions: int, discount=.99, theta=1e-9, MC_samples=1, verbose=False):
 
         super(ValueIteration, self).__init__(action_space, model, discretizer_state,
-                                             n_actions, discount, theta, MC_samples, angle_features, verbose)
+                                             n_actions, discount, theta, MC_samples, verbose)
 
     def run(self, max_iter=100000):
 

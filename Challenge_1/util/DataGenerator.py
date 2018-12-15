@@ -4,12 +4,9 @@ import numpy as np
 
 class DataGenerator(object):
 
-    def __init__(self, env, seed):
-        self.seed = seed
+    def __init__(self, env):
 
         self.env = env
-        self.env.seed(self.seed)
-        np.random.seed(self.seed)
 
         # get the number of available action from the environment
         self.state_dim = self.env.observation_space.shape[0]

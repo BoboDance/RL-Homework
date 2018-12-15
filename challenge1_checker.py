@@ -10,7 +10,9 @@ from challenge1_template import get_model, get_policy
 # TODO: Delete force=True for final submission
 # 1. Learn the model f: s, a -> s', r
 env = Monitor(gym.make('Pendulum-v0'), 'training', video_callable=False, force=True)
+# env = gym.make('Pendulum-v0')
 env.seed(98251624)
+
 max_num_samples = 10000
 model = get_model(env, max_num_samples)
 env.close()
@@ -25,6 +27,7 @@ print(f'truth = {nobs, rwd}\nmodel = {nobs_pred, rwd_pred}')
 # 2. Perform dynamic programming using the learned model
 # TODO: Delete force=True for final submission
 env = Monitor(gym.make('Pendulum-v0'), 'evaluation', force=True)
+# env = gym.make('Pendulum-v0')
 env.seed(31186490)
 policy = get_policy(model, env.observation_space, env.action_space)
 
