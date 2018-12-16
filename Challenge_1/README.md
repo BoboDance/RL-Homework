@@ -50,7 +50,7 @@ For the other features we enable to have different number of bins per feature an
 ### Comparision of different dense locations for the bins
 
 | Dense Location | #Bins Theta | #Bins Theta Dot | MC_samples | Avg Reward over 100 episodes| Value Iterations |
-|:---|:---:|:---:||:---:||:---:|:---:|
+|:---|:---:|:---:|:---:|:---:|:---:|
 |equal | 100 | 100 | 100 | -146.732 | 100 |
 | center |  100 | 100 | 100 | -143.784 | 100 |
 | edge |  100 | 100 | 100 |-148.942 | 100 |
