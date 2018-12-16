@@ -66,14 +66,13 @@ class DynamicProgramming(object):
 
     def _look_ahead_stochastic(self):
 
-        values_prime = np.zeros((self.distribution.shape[0],))
-
         try:
             # broad cast current values times transitions prob, sum over all dimensions besides first.
             values_prime = np.sum(self.value_function * self.distribution,
                                   axis=tuple(np.arange(len(self.distribution.shape))[1:]))
         except MemoryError:
             # This loop is slow, but does not cause memory errors
+            values_prime = np.zeros((self.distribution.shape[0],))
             logging.info("Insufficient memory for broadcasting, running slower loop version.")
             for i in range(self.distribution.shape[0]):
                 values_prime[i] = np.sum(self.value_function * self.distribution[i])

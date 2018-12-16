@@ -253,19 +253,19 @@ def get_policy(model, observation_space, action_space):
 
     algorithm = "vi"
 
-    use_med_filter = False
+    use_median_filter = False
     use_gaussian_filter = False
 
     # params
     n_actions = 2
-    MC_samples = 100
+    MC_samples = 10
     theta = 1e-9
 
     # best pendulum: ["center", "center"], MC: 100, bins: [100, 100], no filter
 
     if env_name == 'Pendulum-v0':
-        bins_state = [160, 100]
-        dense_location = ["center", "center"]
+        bins_state = [10, 10]
+        dense_location = ["equal", "equal"]
         high = [np.pi, 8]
         low = [-np.pi, -8]
     elif env_name == 'Qube-v0':

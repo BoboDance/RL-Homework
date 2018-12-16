@@ -14,8 +14,8 @@ quanser_robots
 
 # TODO: Delete force=True for final submission
 # 1. Learn the model f: s, a -> s', r
-# env_name = 'Pendulum-v0'
-env_name = 'Qube-v0'
+env_name = 'Pendulum-v0'
+# env_name = 'Qube-v0'
 env = Monitor(gym.make(env_name), 'training', video_callable=False, force=True)
 env.seed(98251624)
 
@@ -39,14 +39,16 @@ policy = get_policy(model, env.observation_space, env.action_space)
 
 # Your policy will be judged based on the average episode return
 n_eval_episodes = 100
-for _ in range(n_eval_episodes):
+lengths = np.zeros(n_eval_episodes)
+for i in range(n_eval_episodes):
     done = False
     obs = env.reset()
     rewards = []
     while not done:
         act = policy(obs)
         obs, _, done, _ = env.step(act)
+        lengths[i] += 1
 av_ep_ret = sum(env.get_episode_rewards()) / len(env.get_episode_rewards())
 print(f'average return per episode: {av_ep_ret}')
-print(f'average length per episode: {len(env.get_episode_rewards()) / n_eval_episodes}')
+print(f'average length per episode: {lengths.mean()}')
 env.close()
