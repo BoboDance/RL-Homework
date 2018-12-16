@@ -8,9 +8,12 @@ from gym.wrappers.monitor import Monitor
 from challenge1 import get_model, get_policy
 import quanser_robots
 import numpy as np
+import logging
 
 # avoid auto removal of import with pycharm
 quanser_robots
+
+logging.info('script start')
 
 # TODO: Delete force=True for final submission
 # 1. Learn the model f: s, a -> s', r
@@ -18,8 +21,6 @@ env_name = 'Pendulum-v0'
 #env_name = 'Qube-v0'
 env = Monitor(gym.make(env_name), 'training', video_callable=False, force=True)
 env.seed(98251624)
-
-#print(env.observation_space)
 
 max_num_samples = 10000
 model = get_model(env, max_num_samples)
@@ -62,4 +63,6 @@ print('average reward over %d episodes: %.3f +- %.3f min: %.3f max: %.3f'
       % (n_eval_episodes, rewards.mean(), rewards.std(), rewards.min(), rewards.max()))
 print(f'average return per episode: {av_ep_ret}')
 print(f'average length per episode: {lengths.mean()}')
+
+logging.info('script end')
 env.close()

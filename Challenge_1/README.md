@@ -1,4 +1,8 @@
-# Challenge 1
+# Challenge 1 - Dynamic Programming
+
+Environments: 
+ * Pendulum-v0
+ * Qube-v0
 
 ## Learning the Dynamics and Rewards
 
@@ -47,14 +51,14 @@ For the pendulum more bins at the center leads to better results because this he
 
 # Pendulum v-0
 
+The runtime of the full script including training the Neural Networks and executing the value iteration takes 5 minutes and 12 seconds.
+ 
 ![pendulum 0](./Plots/Pendulum/pendulum-v0.gif)
 
 
 ## Value Iteration
-* Result for 200 equal sized bins for both features: 
+* Result for 200 bins which are more dense in the center for both features: 
 
-* X axis: theta dot
-* Y axis: theta
 ### Iteration 0
 ![dynamics state 0](./Plots/Pendulum/ValueIteration/ValueIteration_iter_0.png)
 ### Iteration 15
@@ -96,7 +100,7 @@ We tried both normal and uniform distributions over monte carlo samples
  `average reward over 100 episodes: -36.464 +- 3.562 min: -46.296 max: -26.041`
  
  ## Filter
- ### Median Filter
+ ### Median Filter & Gaussian Smoothing
  
  If we a have an ok policy it's beneficial to apply a median filter to reduce noise.
  For a very good policy applying a median filter on the policy matrix doesn't give any benefits.
