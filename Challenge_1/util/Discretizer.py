@@ -9,7 +9,7 @@ class Discretizer(object):
         :param n_bins_per_feature: Describes the number of bins per feature
         :param space: Feature space with .high and .low attribute (e.g. state_space or action_space)
         :param dense_locations: Possible options: [string] or None
-                                - None: Equal sized bins across the full space
+                                - "equal: Equal sized bins across the full space
                                 - "center": Higher density of bins at the center
                                 - "edge": More bins at both edges
                                 - "start": More bins at the start

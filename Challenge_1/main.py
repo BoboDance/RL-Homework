@@ -38,18 +38,13 @@ elif env_name == "Qube-v0":
 
 
 def main():
-    random_grid_search(env_name, seed, 4)
+    random_search(env_name, seed, 4)
     # grid_search(env_name, seed, 4, "vi")
     # find_good_sample_size(env_name, seed, steps=100, max=2000, n_samples_test=2000, type='gp')
     # train_and_eval_nn(train=False)
     # best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
     # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
     # bins_state = [100] * 4
-    # policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_state,
-    #                                                     bins_action=[2], angle_features=angle_features,
-    #                                                     MC_samples=1, dense_location=None,
-    #                                                     dynamics_model_params=dynamics_model_params,
-    #                                                     reward_model_params=reward_model_params)
     #
     # policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
     #                                                     n_samples=10000,
@@ -62,11 +57,10 @@ def main():
     #                                                     dynamics_model_params=dynamics_model_params,
     #                                                     reward_model_params=reward_model_params,
     #                                                     angle_features=angle_features)
-    #
     # test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=1000)
 
 
-def random_grid_search(env_name, seed, dim=2, algo="vi", n_steps=1000):
+def random_search(env_name, seed, dim=2, algo="vi", n_steps=1000):
     choices = [None] + list(itertools.product(["center", "edge", "start", "end"], repeat=dim))
 
     for i in range(n_steps):
@@ -230,59 +224,10 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
             action = policy[tuple(state.T)]
             state, reward, done, _ = env.step(action)
             rewards[i] += reward
-
         # print("Intermediate reward: {}".format(rewards[i]))
 
     print("Mean reward over {} epochs: {}".format(n_episodes, rewards.mean()))
     print("Mean reward over first 100 epochs: {}".format(rewards[:100].mean()))
-
-
-def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
-    env = gym.make(env_name)
-    path = "./NN-state_dict"
-
-    dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                             n_outputs=env.observation_space.shape[0],
-                             scaling=env.observation_space.high)
-
-    reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                           n_outputs=1,
-                           scaling=None)
-
-    if train:
-
-        dg_train = DataGenerator(env_name=env_name)
-
-        # s_prime - future state after you taken the action from state s
-        state_prime, state, action, reward = dg_train.get_samples(n_samples)
-
-        # create training input pairs
-        s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1).reshape(-1, env.observation_space.shape[0] +
-                                                                                   env.action_space.shape[0])
-        reward = reward.reshape(-1, 1)
-        state_prime = state_prime.reshape(-1, env.observation_space.shape[0])
-
-        # dynamics_model.train_network(s_a_pairs, state_prime, n_steps, path + "_dynamics")
-        # reward_model.train_network(s_a_pairs, reward, n_steps, path + "_reward")
-
-        dynamics_model.train_net(s_a_pairs, state_prime, path + "_dynamics")
-        reward_model.train_net(s_a_pairs, reward, path + "_reward")
-
-    else:
-        dynamics_model.load_model("NN-state_dict_dynamics")  # _10000_200hidden")
-        reward_model.load_model("NN-state_dict_reward")  # _10000_200hidden")
-
-    dg_test = DataGenerator(env_name=env_name)
-    s_prime, s, a, r = dg_test.get_samples(n_samples)
-
-    # create test input pairs
-    s_a = np.concatenate([s, a[:, np.newaxis]], axis=1).reshape(-1, env.observation_space.shape[0] +
-                                                                env.action_space.shape[0])
-    r = r.reshape(-1, 1)
-    s_prime = s_prime.reshape(-1, env.observation_space.shape[0])
-
-    dynamics_model.validate_model(s_a, s_prime)
-    reward_model.validate_model(s_a, r)
 
 
 def find_good_sample_size(env_name, seed, steps=1000, max=25000, n_samples_test=25000, type='rf'):

@@ -30,7 +30,7 @@ We use RMSProp as the optimizer with learning rate of `1e-3` and train for 150 e
 The learning rate is reduced by factor of 2 every 50 epochs.
 All available sample 10,000 sample for Pendulum-v0 are used.
 Training both networks takes about 3 minutes.
-After training the network weights are stored and can be reloaded via `load_model = False` in 
+After training the network weights are stored and can be reloaded via `load_model = True` in 
 [challenge1.py](./challenge1.py#L36).
 
 ![dynamics state last](./Plots/Pendulum/NN/Pendulum-v0_Dynamics.png)
@@ -38,7 +38,7 @@ After training the network weights are stored and can be reloaded via `load_mode
 
 
 ## Finding the right bin sizes
-One important detail is that two bins are sufficient for the action range for solving the pendumlum.
+One important detail is that two bins are sufficient for the action range for solving the Pendulum-v0.
 For the other features we enable to have different number of bins per feature and different support possible dense locations of the bins:
 * equal: equal sized bins
 * center: More bins at the center of the feature space
@@ -76,16 +76,20 @@ Result for Pendulum-v0
 ![dynamics state last](./Plots/Pendulum/PolicyIteration/PolicyIteration_value_function.png)
 ![dynamics state last](./Plots/Pendulum/PolicyIteration/PolicyIteration_policy.png)
 
-[Sourcecode](./main.py#L10)
-
+```python
+bins_state = [100, 100]
+dense_location = ["center", "center"]
+high = [np.pi, 8]
+low = [-np.pi, -8]
+MC_samples = 100
+```
 `average reward over 100 episodes: -149.038 +- 79.486 min: -356.445 max: -2.943`
 
 ### Distribution over states using Monte Carlo Sampling
 
-We tried both normal and uniform distributions over monte carlo samples
+We tried both normal and uniform distributions over monte carlo samples.
+We achiv
 
- 
- ### 
  # Qube-v0
  
  For changing to Qube-v0 to you must set `env_name = 'Qube-v0'` in [challenge1.py](./challenge1.py#L18).
@@ -93,11 +97,28 @@ We tried both normal and uniform distributions over monte carlo samples
  ![pendulum 0](./Plots/Qube/qube-v0.gif)
 
  Taking large action ranges leads to invalid states because Dynamic Programming can't take this into account by default.
- Interpolating
- 
- A stochastic version using a multinomal distribution should lead to better results, however the 
- 
+ Therefore we are using the Qube-v0 environment of the challenge branch of the quanser robot repository.
+ Using Monte Carlo sampling improves leads to higher computational cost, therefore one must find trade-off number of bins and number of samples. 
+
+ ```python
+ bins_state = [11, 88, 33, 44]
+dense_location = ["equal", "equal", "equal", "equal"]
+high = [2, np.pi, 30, 40]
+low = [-2, -np.pi,  -30, -40]
+MC_samples = 1
+```
  `average reward over 100 episodes: -36.464 +- 3.562 min: -46.296 max: -26.041`
+ On the old environment with a different seed value we achieved -22.51
+ By using a random search we get a reward of `-22.51` over first 100 epochs on a fixed seed value:
+ 
+   ```python
+ bins_state = [48 80 54 18]
+dense_location = ["edge", "edge", "edge", "edge"]
+high = [2, np.pi, 30, 40]
+low = [-2, -np.pi,  -30, -40]
+MC_samples = 1
+```
+  
  
  ## Filter
  ### Median Filter & Gaussian Smoothing
