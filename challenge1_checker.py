@@ -15,7 +15,6 @@ quanser_robots
 
 logging.info('script start')
 
-# TODO: Delete force=True for final submission
 # 1. Learn the model f: s, a -> s', r
 env_name = 'Pendulum-v0'
 #env_name = 'Qube-v0'
@@ -30,14 +29,10 @@ env.close()
 obs = env.reset()
 act = env.action_space.sample()
 nobs, rwd, _, _ = env.step(act)
-obs = np.vstack([obs, obs])
-act = np.vstack([act, act])
-print(obs.shape)
 nobs_pred, rwd_pred = model(obs, act)
 print(f'truth = {nobs, rwd}\nmodel = {nobs_pred, rwd_pred}')
 
 # 2. Perform dynamic programming using the learned model
-# TODO: Delete force=True for final submission
 env = Monitor(gym.make(env_name), 'evaluation', force=True)
 #env = gym.make(env_name)
 env.seed(31186490)

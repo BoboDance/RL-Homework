@@ -6,6 +6,7 @@ import numpy as np
 
 from Challenge_1.Algorithms.DynamicProgramming import DynamicProgramming
 from Challenge_1.util.Discretizer import Discretizer
+import logging
 
 
 class ValueIteration(DynamicProgramming):
@@ -33,14 +34,14 @@ class ValueIteration(DynamicProgramming):
 
             delta = np.maximum(delta, np.abs(best_value - values))
 
-            # print("Value iteration step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
-            #       "-- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(), delta.min(), time.time() - start))
+            logging.info("Value iteration step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} -- min delta {:4.9f} "
+                         .format(i, delta.mean(), delta.max(), delta.min()))
 
             if np.all(delta <= self.theta):
                 print('Value iteration finished in {} iterations.'.format(i + 1))
                 break
 
-            if i % 15 == 0 and len(self.value_function.shape) == 2:
+            if i % 15 == 0 and len(self.value_function.shape) == 2 and i <= 45:
                 plt.imshow(self.value_function)
                 plt.colorbar()
                 plt.xlabel(r'$\.{\theta}$')

@@ -55,7 +55,6 @@ class PolicyIteration(DynamicProgramming):
     def _policy_evaluation(self, max_iter=100000):
 
         for i in range(max_iter):
-            start = time.time()
             delta = 0
 
             # get index of best action from policy
@@ -104,8 +103,8 @@ class PolicyIteration(DynamicProgramming):
             self.value_function = values_new.reshape(self.value_function.shape)
 
             logging.info("Policy evaluation step: {:6d} -- mean delta: {:4.9f} -- max delta {:4.9f} "
-                         "-- min delta {:4.9f} -- time taken: {:2.4f}s".format(i, delta.mean(), delta.max(),
-                                                                               delta.min(), time.time() - start))
+                         "-- min delta {:4.9f}".format(i, delta.mean(), delta.max(),
+                                                                               delta.min()))
 
             # Terminate if change is below threshold
             if np.all(delta <= self.theta):
@@ -115,7 +114,6 @@ class PolicyIteration(DynamicProgramming):
     def _policy_improvement(self):
 
         stable = True
-        start = time.time()
 
         # Choose action with current policy
         policy_action = self.policy.flatten()
@@ -132,6 +130,6 @@ class PolicyIteration(DynamicProgramming):
             logging.info("# of incorrectly selected actions: {}".format(np.count_nonzero(policy_action != best_action)))
 
         logging.info("Policy improvement finished "
-                     "-- stable: {} -- time taken: {:2.4f}s".format(stable, time.time() - start))
+                     "-- stable: {}".format(stable))
 
         return stable

@@ -10,15 +10,15 @@ We tested out different model types for learning the dynamics and rewards
 
 ### Random Forest
 
-![dynamics state 0](./Plots/Pendulum/Random_Forrest/dynamics_state0.png)
-![dynamics state 01](./Plots/Pendulum/Random_Forrest/dynamics_state1.png)
-![rewards](./Plots/Pendulum/Random_Forrest/rewards.png)
+![dynamics state 0](./Export/Pendulum/Random_Forrest/dynamics_state0.png)
+![dynamics state 01](./Export/Pendulum/Random_Forrest/dynamics_state1.png)
+![rewards](./Export/Pendulum/Random_Forrest/rewards.png)
 
 ### Gaussian Process
 
-![dynamics state 0](./Plots/Pendulum/Gaussian_Process/dynamics_state0.png)
-![dynamics state 01](./Plots/Pendulum/Gaussian_Process/dynamics_state1.png)
-![rewards](./Plots/Pendulum/Gaussian_Process/rewards.png)
+![dynamics state 0](./Export/Pendulum/Gaussian_Process/dynamics_state0.png)
+![dynamics state 01](./Export/Pendulum/Gaussian_Process/dynamics_state1.png)
+![rewards](./Export/Pendulum/Gaussian_Process/rewards.png)
 
 ### Neural Network
 
@@ -33,18 +33,29 @@ Training both networks takes about 3 minutes.
 After training the network weights are stored and can be reloaded via `load_model = True` in 
 [challenge1.py](../challenge1.py#L36).
 
-![dynamics state last](./Plots/Pendulum/NN/Pendulum-v0_Dynamics.png)
-![dynamics state last](./Plots/Pendulum/NN/Pendulum-v0_Reward.png)
+![dynamics state last](./Export/Pendulum/NN/Pendulum-v0_Dynamics.png)
+![dynamics state last](./Export/Pendulum/NN/Pendulum-v0_Reward.png)
 
 
 ## Finding the right bin sizes
 One important detail is that two bins are sufficient for the action range for solving the Pendulum-v0.
 For the other features we enable to have different number of bins per feature and different support possible dense locations of the bins:
+
 * equal: equal sized bins
 * center: More bins at the center of the feature space
 * edge: More bins at the edges of the feature space
 * start: Most bins are a the start of the feature space
 * end: Most bins are the end of the feature space
+
+### Comparision of different dense locations for the bins
+
+| Dense Location | #Bins Theta | #Bins Theta Dot | MC_samples | Avg Reward over 100 episodes| Value Iterations |
+|:---|:---:|:---:||:---:||:---:|:---:|
+|equal | 100 | 100 | 100 | -146.732 | 100 |
+| center |  100 | 100 | 100 | -143.784 | 100 |
+| edge |  100 | 100 | 100 |-148.942 | 100 |
+| start |  100 | 100 | 100 | -148.317 | 100 |
+| end | 100 | 100 | 100 | -148.380 | 100 |
 
 There's a scaling parameter which defines how much bigger the bins are growing in size in respect to the dense region.
 For the pendulum more bins at the center leads to better results because this helps balancing.
@@ -53,30 +64,30 @@ For the pendulum more bins at the center leads to better results because this he
 
 The runtime of the full script including training the Neural Networks and executing the value iteration takes 5 minutes and 12 seconds.
  
-![pendulum 0](./Plots/Pendulum/pendulum-v0.gif)
+![pendulum 0](./Export/Pendulum/pendulum-v0.gif)
 
 
 ## Value Iteration
-* Result for 200 bins which are more dense in the center for both features: 
+* Result for 100 bins which are more dense in the center for both features: 
 
 ### Iteration 0
-![dynamics state 0](./Plots/Pendulum/ValueIteration/ValueIteration_iter_0.png)
+![dynamics state 0](./Export/Pendulum/ValueIteration/ValueIteration_iter_0.png)
 ### Iteration 15
-![dynamics state 15](./Plots/Pendulum/ValueIteration/ValueIteration_iter_15.png)
+![dynamics state 15](./Export/Pendulum/ValueIteration/ValueIteration_iter_15.png)
 ### Final Iteration
-![dynamics state last](./Plots/Pendulum/ValueIteration/ValueItertation_iter_last.png)
+![dynamics state last](./Export/Pendulum/ValueIteration/ValueItertation_iter_last.png)
 
 ### Resulting Policy
-![dynamics state last](./Plots/Pendulum/ValueIteration/ValueIteration_policy.png)
+![dynamics state last](./Export/Pendulum/ValueIteration/ValueIteration_policy.png)
 
 Result for Pendulum-v0
-`average reward over 100 episodes:: -144.677 +- 78.414 min: -368.291 max: -1.618`
+`average reward over 100 episodes: -143.784 +- 77.080 min: -372.172 max: -1.730`
 
-The policy is saved in [policy_PI.py](../policy_VI.npy).
+The policy is saved in [policy_VI_Pendulum-v0.npy](./Export/Pendulum/ValueIteration/policies/policy_VI_Pendulum-v0.npy).
 
 ## Policy Iteration
-![dynamics state last](./Plots/Pendulum/PolicyIteration/PolicyIteration_value_function.png)
-![dynamics state last](./Plots/Pendulum/PolicyIteration/PolicyIteration_policy.png)
+![dynamics state last](./Export/Pendulum/PolicyIteration/PolicyIteration_value_function.png)
+![dynamics state last](./Export/Pendulum/PolicyIteration/PolicyIteration_policy.png)
 
 ```python
 bins_state = [100, 100]
@@ -87,7 +98,7 @@ MC_samples = 100
 ```
 `average reward over 100 episodes: -149.038 +- 79.486 min: -356.445 max: -2.943`
 
-The policy is saved in [policy_VI.py](../policy_VI.npy).
+The policy is saved in [policy_VI_Pendulum-v0.npy](./Export/Pendulum/PolicyIteration/policies/policy_PI_Pendulum-v0.npy).
 
 ### Distribution over states using Monte Carlo Sampling
 
@@ -100,7 +111,7 @@ This gives better result on lower quality dynamics and reward models without uti
  
  For changing to Qube-v0 you must set `env_name = 'Qube-v0'` in [challenge1_checker.py](../challenge1_checker.py#L18).
   
- ![pendulum 0](./Plots/Qube/qube-v0.gif)
+ ![pendulum 0](./Export/Qube/qube-v0.gif)
 
  Taking large action ranges leads to invalid states because Dynamic Programming can't take this into account by default.
  Therefore we are using the Qube-v0 environment of the challenge branch of the quanser robot repository.
@@ -113,7 +124,11 @@ high = [2, np.pi, 30, 40]
 low = [-2, -np.pi,  -30, -40]
 MC_samples = 1
 ```
- `average reward over 100 episodes: -36.464 +- 3.562 min: -46.296 max: -26.041`
+ `average reward over 100 episodes: -35.574 +- 3.156 min: -44.248 max: -26.066`
+ 
+ The policy is saved at: [policy_VI_Qube-v0.npy](./Export/Qube/policies/policy_VI_Qube-v0.npy)
+ 
+ 
  By using a random search we get a reward of `-22.51` over first 100 epochs on a fixed seed value:
  
    ```python
