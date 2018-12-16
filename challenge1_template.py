@@ -31,11 +31,10 @@ info = dict(
 
 # Global variables
 # (used in order to be compatible with the template and provide an inference method
-# x_low = None
-# x_high = None
 convert_to_sincos = None
 angle_features = None
 load_model = True
+env_name = 'Pendulum-v0'
 
 
 def get_model(env, max_num_samples):
@@ -53,6 +52,7 @@ def get_model(env, max_num_samples):
     global convert_to_sincos
     global angle_features
     global load_model
+    global env_name
 
     logging.info('Start Training of Dynamic & Reward Models')
 
@@ -69,11 +69,16 @@ def get_model(env, max_num_samples):
     print(env.spec.id)
     # index list of angle features
     if env.spec.id == 'Pendulum-v0':
-        angle_features = []
+        angle_features = [0]
         convert_to_sincos = False
     elif env.spec.id == 'Pendulum-v2':
         angle_features = [0]
         convert_to_sincos = True
+    elif env.spec.id == 'Qube-v0':
+        angle_features = [0, 1]
+        convert_to_sincos = False
+
+    env_name = env.spec.id
 
     # define the input- and output shape of the NN
     n_inputs = env.observation_space.shape[0] + env.action_space.shape[0]
@@ -84,7 +89,7 @@ def get_model(env, max_num_samples):
         n_inputs += len(angle_features)
         n_outputs += len(angle_features)
 
-    x_low, x_high = get_feature_space_boundaries(env.observation_space, env.action_space, angle_features)
+    x_low, x_high = get_feature_space_boundaries(env.observation_space, env.action_space, [])
 
     # scaling defines how our outputs will be scaled after the tanh function
     # for this we use all state features ergo all of X_high excluding the last action feature
@@ -93,11 +98,11 @@ def get_model(env, max_num_samples):
     # here it's assumed to only work with the pendulum
     dynamics_model = NNModelPendulum(n_inputs=n_inputs,
                                      n_outputs=n_outputs,
-                                     scaling=scaling, optimizer='adam')
+                                     scaling=scaling)
 
     reward_model = NNModelPendulum(n_inputs=n_inputs,
                                    n_outputs=1,
-                                   scaling=None, optimizer='adam')
+                                   scaling=None)
     lossfunction = nn.MSELoss()
 
     if optimizer_name == 'rmsprop':
@@ -204,9 +209,9 @@ def get_model(env, max_num_samples):
         act = np.atleast_2d(act)
 
         if obs.shape[0] == 1:
-            obs = convert_state_to_sin_cos(obs, angle_features)
+            obs = convert_state_to_sin_cos(obs, [])
         else:
-            obs = convert_state_to_sin_cos(obs, [0])
+            obs = convert_state_to_sin_cos(obs, angle_features)
 
         s_a = np.concatenate([obs, act], axis=1)
 
@@ -224,9 +229,9 @@ def get_model(env, max_num_samples):
         # reconvert the angle feature back to a single angle to have a more compact representation
 
         if obs.shape[0] == 1:
-            state_prime_pred = reconvert_state_to_angle(state_prime_pred, angle_features)
+            state_prime_pred = reconvert_state_to_angle(state_prime_pred, [])
         else:
-            state_prime_pred = reconvert_state_to_angle(state_prime_pred, [0])
+            state_prime_pred = reconvert_state_to_angle(state_prime_pred, angle_features)
         # request the reward prediction of the corresponding reward from our model
         reward = reward_model.predict(s_a)
 
@@ -246,8 +251,7 @@ def get_policy(model, observation_space, action_space):
     :return: function pi: s -> a
     """
 
-    global x_low
-    global x_high
+    global env_name
 
     algorithm = "vi"
 
@@ -255,15 +259,26 @@ def get_policy(model, observation_space, action_space):
     use_gaussian_filter = False
 
     # params
-    bins_state = [100, 100]
     n_actions = 2
-    dense_location = ["equal", "equal"]
     MC_samples = 100
     theta = 1e-9
 
+    if env_name == 'Pendulum-v0':
+        bins_state = [100, 100]
+        dense_location = ["equal", "equal"]
+        high = [np.pi, 8]
+        low = [-np.pi, -8]
+    elif env_name == 'Qube-v0':
+        bins_state = [11, 88, 33, 44]
+        dense_location = ["equal", "equal", "equal", "equal"]
+        high = [2, np.pi, 30, 40]
+        low = [-2, -np.pi,  -30, -40]
+    else:
+        raise Exception('Unsupported Environment')
+
     # We have to enter high an low here because the environment was changed last minute
     # and now the space does not provided the right information
-    discretizer_state = Discretizer(high=[np.pi, 8], low=[-np.pi, -8], n_bins_per_feature=bins_state,
+    discretizer_state = Discretizer(high=high, low=low, n_bins_per_feature=bins_state,
                                     dense_locations=dense_location)
 
     if algorithm == "pi":
@@ -290,4 +305,4 @@ def get_policy(model, observation_space, action_space):
         plt.title("Policy")
         plt.show()
 
-    return lambda obs: policy[tuple(discretizer_state.discretize(reconvert_state_to_angle(obs, [0])).T)]
+    return lambda obs: policy[tuple(discretizer_state.discretize(reconvert_state_to_angle(obs, angle_features)).T)]

@@ -22,18 +22,6 @@ class NNModelPendulum(torch.nn.Module):
         self.n_outputs = n_outputs
         self.n_inputs = n_inputs
 
-        # self.state_dim = self.env.observation_space.shape[0]
-        # self.action_dim = self.env.action_space.shape[0]
-        #
-        # self.high_state = self.env.observation_space.high
-        # self.high_action = self.env.action_space.high
-        #
-        # self.low_state = self.env.observation_space.low
-        # self.low_action = self.env.action_space.low
-
-        # self.n_inputs = self.state_dim + self.action_dim
-        # self.n_outputs = self.state_dim
-
         # network architecture specification
         hidden = 200
 
@@ -48,20 +36,6 @@ class NNModelPendulum(torch.nn.Module):
             nn.Dropout(.3),
             nn.Linear(hidden, self.n_outputs),
         )
-
-        """
-        self.model = nn.Sequential(
-            nn.Linear(self.n_inputs, hidden),
-            act,
-            nn.Linear(hidden, hidden),
-            act,
-            nn.Linear(hidden, hidden),
-            act,
-            nn.Linear(hidden, hidden),
-            act,
-            nn.Linear(hidden, self.n_outputs),
-        )
-        """
 
         # initialize the weights
         self.apply(init_weights)
@@ -81,20 +55,10 @@ class NNModelPendulum(torch.nn.Module):
         """
         inputs = inputs.float()
 
-        """"
-        x = F.relu(self.fc1(inputs))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = F.relu(self.fc4(x))
-        x = self.dropout(x)
-        """
-
         out = self.model(inputs)
 
         if self.scaling is not None:
-            out = torch.from_numpy(self.scaling).float() * torch.tanh(out)  # self.out(x))
-        # else:
-        #    out = self.out(x)
+            out = torch.from_numpy(self.scaling).float() * torch.tanh(out)
 
         return out
 
