@@ -23,6 +23,8 @@ Later on we switched to using a Multi Layer Perceptron with the following archit
 ## Value Iteration
 * Result for 200 equal sized bins for both features: 
 
+* X axis: theta dot
+* Y axis: theta
 ### Iteration 0
 ![dynamics state 0](./Plots/Pendulum/ValueIteration/ValueIteration_iter_0.png)
 ### Iteration 15
@@ -41,3 +43,6 @@ Best results for Pendulum-v2
 ![dynamics state last](./Plots/Pendulum/PolicyIteration/PolicyIteration_policy.png)
 
 [Sourcecode](./main.py#L10)
+
+We found out that if we have a good dynmaic model then it's better to use more bins in the center because
+ this helps balaning. 

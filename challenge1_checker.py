@@ -14,10 +14,12 @@ quanser_robots
 
 # TODO: Delete force=True for final submission
 # 1. Learn the model f: s, a -> s', r
-env_name = 'Pendulum-v0'
-# env_name = 'Qube-v0'
+#env_name = 'Pendulum-v0'
+env_name = 'Qube-v0'
 env = Monitor(gym.make(env_name), 'training', video_callable=False, force=True)
 env.seed(98251624)
+
+#print(env.observation_space)
 
 max_num_samples = 10000
 model = get_model(env, max_num_samples)
@@ -33,22 +35,28 @@ print(f'truth = {nobs, rwd}\nmodel = {nobs_pred, rwd_pred}')
 # 2. Perform dynamic programming using the learned model
 # TODO: Delete force=True for final submission
 env = Monitor(gym.make(env_name), 'evaluation', force=True)
-# env = gym.make(env_name)
+#env = gym.make(env_name)
 env.seed(31186490)
 policy = get_policy(model, env.observation_space, env.action_space)
 
 # Your policy will be judged based on the average episode return
 n_eval_episodes = 100
 lengths = np.zeros(n_eval_episodes)
+rewards = np.zeros(n_eval_episodes)
 for i in range(n_eval_episodes):
     done = False
     obs = env.reset()
-    rewards = []
     while not done:
         act = policy(obs)
-        obs, _, done, _ = env.step(act)
+        obs, reward, done, _ = env.step(act)
         lengths[i] += 1
+        rewards[i] += reward
+        if i <= 2:
+            env.render()
+
 av_ep_ret = sum(env.get_episode_rewards()) / len(env.get_episode_rewards())
+print('average reward: %.3f +- %.3f min: %.3f max: %.3f'
+      % (rewards.mean(), rewards.std(), rewards.min(), rewards.max()))
 print(f'average return per episode: {av_ep_ret}')
 print(f'average length per episode: {lengths.mean()}')
 env.close()

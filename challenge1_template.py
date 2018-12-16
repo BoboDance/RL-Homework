@@ -34,7 +34,7 @@ info = dict(
 convert_to_sincos = None
 angle_features = None
 load_model = True
-env_name = 'Pendulum-v0'
+env_name = 'Qube-v0' #'Pendulum-v0'
 
 
 def get_model(env, max_num_samples):
@@ -74,7 +74,7 @@ def get_model(env, max_num_samples):
         convert_to_sincos = True
     elif env.spec.id == 'Qube-v0':
         angle_features = [0, 1]
-        convert_to_sincos = False
+        convert_to_sincos = True #False
 
     env_name = env.spec.id
 
@@ -87,7 +87,10 @@ def get_model(env, max_num_samples):
         n_inputs += len(angle_features)
         n_outputs += len(angle_features)
 
-    x_low, x_high = get_feature_space_boundaries(env.observation_space, env.action_space, [])
+    if convert_to_sincos is True:
+        x_low, x_high = get_feature_space_boundaries(env.observation_space, env.action_space, angle_features)
+    else:
+        x_low, x_high = get_feature_space_boundaries(env.observation_space, env.action_space, [])
 
     # scaling defines how our outputs will be scaled after the tanh function
     # for this we use all state features ergo all of X_high excluding the last action feature
@@ -206,10 +209,18 @@ def get_model(env, max_num_samples):
         obs = np.atleast_2d(obs)
         act = np.atleast_2d(act)
 
+        if convert_to_sincos is True:
+            angle_list = angle_features
+        else:
+            angle_list = []
+
         if obs.shape[0] == 1:
-            obs = convert_state_to_sin_cos(obs, [])
+            obs = convert_state_to_sin_cos(obs, angle_list)
         else:
             obs = convert_state_to_sin_cos(obs, angle_features)
+
+        #if convert_to_sincos is True:
+        #    obs = convert_state_to_sin_cos(obs, angle_features)
 
         s_a = np.concatenate([obs, act], axis=1)
 
@@ -227,7 +238,7 @@ def get_model(env, max_num_samples):
         # reconvert the angle feature back to a single angle to have a more compact representation
 
         if obs.shape[0] == 1:
-            state_prime_pred = reconvert_state_to_angle(state_prime_pred, [])
+            state_prime_pred = reconvert_state_to_angle(state_prime_pred, angle_list)
         else:
             state_prime_pred = reconvert_state_to_angle(state_prime_pred, angle_features)
         # request the reward prediction of the corresponding reward from our model
@@ -264,8 +275,8 @@ def get_policy(model, observation_space, action_space):
     # best pendulum: ["center", "center"], MC: 100, bins: [100, 100], no filter
 
     if env_name == 'Pendulum-v0':
-        bins_state = [10, 10]
-        dense_location = ["equal", "equal"]
+        bins_state = [100, 100] #[10, 10]
+        dense_location = ["center", "center"] #["equal", "equal"]
         high = [np.pi, 8]
         low = [-np.pi, -8]
     elif env_name == 'Qube-v0':
@@ -305,4 +316,7 @@ def get_policy(model, observation_space, action_space):
         plt.title("Policy")
         plt.show()
 
-    return lambda obs: policy[tuple(discretizer_state.discretize(reconvert_state_to_angle(obs, angle_features)).T)]
+    if convert_to_sincos is True:
+        return lambda obs: policy[tuple(discretizer_state.discretize(np.atleast_2d(obs)).T)]
+    else:
+        return lambda obs: policy[tuple(discretizer_state.discretize(reconvert_state_to_angle(obs, angle_features)).T)]

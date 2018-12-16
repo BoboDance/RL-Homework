@@ -108,6 +108,6 @@ venv.bak/
 # Pycharm
 .idea
 
-# avoid pushing the manifest json logging files from the env
-*.json
-
+# avoid pushing the logging files from the monitor object
+evaluation/
+training/

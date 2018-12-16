@@ -67,6 +67,7 @@ def normalize_input(x, x_low, x_high):
     :param x_high: Vector describing the highest possilbe entry for each feature
     :return:
     """
+
     x = x - x_low
     x /= (x_high - x_low)
 
