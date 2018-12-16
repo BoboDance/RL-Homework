@@ -33,7 +33,7 @@ info = dict(
 # (used in order to be compatible with the template and provide an inference method
 convert_to_sincos = None
 angle_features = None
-load_model = True
+load_model = False
 env_name = None
 
 
