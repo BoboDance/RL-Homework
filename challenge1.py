@@ -34,7 +34,7 @@ info = dict(
 convert_to_sincos = None
 angle_features = None
 load_model = True
-env_name = 'Qube-v0' #'Pendulum-v0'
+env_name = None
 
 
 def get_model(env, max_num_samples):
@@ -150,8 +150,8 @@ def get_model(env, max_num_samples):
                                          batch_size=batch_size_dynamics, n_epochs=n_epochs, lossfunction=lossfunction)
 
             # Visualize the training process
-            plt.title('%s: Learning Rewards\n Batch-Size=%d, lr=%f, optimizer=%s' %
-                      (env.spec.id, batch_size, lr, optimizer_name))
+            plt.title('%s: Learning %s\n Batch-Size=%d, lr=%f, optimizer=%s' %
+                      (env.spec.id, model_type, batch_size, lr, optimizer_name))
             plt.plot(train_loss, label='train-loss')
             plt.plot(val_loss, label='val-loss')
             plt.xlabel('Epoch')
@@ -214,7 +214,7 @@ def get_model(env, max_num_samples):
         else:
             angle_list = []
 
-        if obs.shape[0] == 1:
+        if env.observation_space.shape[0] == obs.shape[1]:
             obs = convert_state_to_sin_cos(obs, angle_list)
         else:
             obs = convert_state_to_sin_cos(obs, angle_features)
@@ -269,7 +269,6 @@ def get_policy(model, observation_space, action_space):
 
     # params
     n_actions = 2
-    MC_samples = 10
     theta = 1e-9
 
     # best pendulum: ["center", "center"], MC: 100, bins: [100, 100], no filter
@@ -279,11 +278,13 @@ def get_policy(model, observation_space, action_space):
         dense_location = ["center", "center"] #["equal", "equal"]
         high = [np.pi, 8]
         low = [-np.pi, -8]
+        MC_samples = 10
     elif env_name == 'Qube-v0':
-        bins_state = [10, 10, 10, 10]
-        dense_location = ["edge", "edge", "equal", "equal"]
+        bins_state = [11, 88, 33, 44]
+        dense_location = ["equal", "equal", "equal", "equal"]
         high = [2, np.pi, 30, 40]
         low = [-2, -np.pi,  -30, -40]
+        MC_samples = 1
     else:
         raise Exception('Unsupported Environment')
 
@@ -313,7 +314,10 @@ def get_policy(model, observation_space, action_space):
     if len(policy.shape) == 2:
         plt.imshow(policy)
         plt.colorbar()
+        plt.xlabel(r'$\.{\theta}$')
+        plt.ylabel(r'$\theta$')
         plt.title("Policy")
+        plt.tight_layout()
         plt.show()
 
     if convert_to_sincos is True:

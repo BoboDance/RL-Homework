@@ -5,7 +5,7 @@ interface.
 
 import gym
 from gym.wrappers.monitor import Monitor
-from challenge1_template import get_model, get_policy
+from challenge1 import get_model, get_policy
 import quanser_robots
 import numpy as np
 
@@ -14,8 +14,8 @@ quanser_robots
 
 # TODO: Delete force=True for final submission
 # 1. Learn the model f: s, a -> s', r
-#env_name = 'Pendulum-v0'
-env_name = 'Qube-v0'
+env_name = 'Pendulum-v0'
+#env_name = 'Qube-v0'
 env = Monitor(gym.make(env_name), 'training', video_callable=False, force=True)
 env.seed(98251624)
 
@@ -29,6 +29,9 @@ env.close()
 obs = env.reset()
 act = env.action_space.sample()
 nobs, rwd, _, _ = env.step(act)
+obs = np.vstack([obs, obs])
+act = np.vstack([act, act])
+print(obs.shape)
 nobs_pred, rwd_pred = model(obs, act)
 print(f'truth = {nobs, rwd}\nmodel = {nobs_pred, rwd_pred}')
 
@@ -55,8 +58,8 @@ for i in range(n_eval_episodes):
             env.render()
 
 av_ep_ret = sum(env.get_episode_rewards()) / len(env.get_episode_rewards())
-print('average reward: %.3f +- %.3f min: %.3f max: %.3f'
-      % (rewards.mean(), rewards.std(), rewards.min(), rewards.max()))
+print('average reward over %d episodes: %.3f +- %.3f min: %.3f max: %.3f'
+      % (n_eval_episodes, rewards.mean(), rewards.std(), rewards.min(), rewards.max()))
 print(f'average return per episode: {av_ep_ret}')
 print(f'average length per episode: {lengths.mean()}')
 env.close()

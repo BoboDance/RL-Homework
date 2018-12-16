@@ -46,7 +46,10 @@ class PolicyIteration(DynamicProgramming):
                 if len(self.value_function.shape) == 2:
                     plt.imshow(self.value_function)
                     plt.colorbar()
+                    plt.xlabel(r'$\.{\theta}$')
+                    plt.ylabel(r'$\theta$')
                     plt.title("Policy iteration -- value function")
+                    plt.tight_layout()
                     plt.show()
 
     def _policy_evaluation(self, max_iter=100000):

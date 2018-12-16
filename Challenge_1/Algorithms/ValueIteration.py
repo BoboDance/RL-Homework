@@ -43,6 +43,8 @@ class ValueIteration(DynamicProgramming):
             if i % 15 == 0 and len(self.value_function.shape) == 2:
                 plt.imshow(self.value_function)
                 plt.colorbar()
+                plt.xlabel(r'$\.{\theta}$')
+                plt.ylabel(r'$\theta$')
                 plt.title("Value iteration - value function - iteration {}".format(i))
                 plt.show()
 
