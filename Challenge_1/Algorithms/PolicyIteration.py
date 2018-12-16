@@ -43,7 +43,7 @@ class PolicyIteration(DynamicProgramming):
                 np.save('./policy_PI', self.policy)
 
                 if len(self.value_function.shape) == 2:
-                    plt.matshow(self.value_function)
+                    plt.imshow(self.value_function)
                     plt.colorbar()
                     plt.title("Value function policy iteration")
                     plt.show()

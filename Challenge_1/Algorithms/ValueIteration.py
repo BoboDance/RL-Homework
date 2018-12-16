@@ -42,7 +42,7 @@ class ValueIteration(DynamicProgramming):
                 break
 
             if i % 15 == 0 and len(self.value_function.shape) == 2:
-                plt.matshow(self.value_function)
+                plt.imshow(self.value_function)
                 plt.colorbar()
                 plt.title("Value function value iteration")
                 plt.show()

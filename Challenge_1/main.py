@@ -38,39 +38,70 @@ elif env_name == "Qube-v0":
 
 
 def main():
-    #grid_search(env_name, seed, 4, "vi")
-    #find_good_sample_size(env_name, seed, steps=100, max=2000, n_samples_test=2000, type='gp')
+    random_grid_search(env_name, seed, 4)
+    # grid_search(env_name, seed, 4, "vi")
+    # find_good_sample_size(env_name, seed, steps=100, max=2000, n_samples_test=2000, type='gp')
     # train_and_eval_nn(train=False)
     # best for pendulum VI: 500 MC samples, 50 bins, [center, edge] -- reward: 334
     # best for pendulum PI: ('edge', 'center') -- MC samples: 500 -- state bins: 100 --- reward: 330
-    bins_sate = [200] * 2
-    policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_sate,
-                                                         bins_action=[2], angle_features=angle_features,
-                                                         MC_samples=1, dense_location=None,
-                                                         dynamics_model_params=dynamics_model_params,
-                                                         reward_model_params=reward_model_params)
+    # bins_state = [100] * 4
+    # policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins_state,
+    #                                                     bins_action=[2], angle_features=angle_features,
+    #                                                     MC_samples=1, dense_location=None,
+    #                                                     dynamics_model_params=dynamics_model_params,
+    #                                                     reward_model_params=reward_model_params)
+    #
+    # policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
+    #                                                     n_samples=10000,
+    #                                                     bins_state=[],
+    #                                                     bins_action=[2],
+    #                                                     seed=seed, theta=1e-9,
+    #                                                     use_MC=True,
+    #                                                     MC_samples=1,
+    #                                                     dense_location=None,
+    #                                                     dynamics_model_params=dynamics_model_params,
+    #                                                     reward_model_params=reward_model_params,
+    #                                                     angle_features=angle_features)
+    #
+    # test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes=1000)
 
-    # Mean reward over first 100 epochs: -30.968596786647105 - [22, 77, 44, 33]
 
-# Mean reward over first 100 epochs: -49.30522089086473 - [88, 88, 21, 21]
-# Mean reward [11, 88, 33, 44] - -23.71103979620617 - -23.71103979620617
-    #80 20 44 66
-# try out different permutation: with center edge
-    """
-    policy, discretizer_action, discretizer_state = run(env_name, algorithm="vi",
-                                                        n_samples=10000,
-                                                        bins_state=[12, 88, 34, 44],
-                                                        bins_action=[2],
-                                                        seed=seed, theta=1e-9,
-                                                        use_MC=True,
-                                                        MC_samples=1,
-                                                        dense_location=["center", "center", "edge", "center"],
-                                                        dynamics_model_params=dynamics_model_params,
-                                                        reward_model_params=reward_model_params,
-                                                        angle_features=angle_features)
+def random_grid_search(env_name, seed, dim=2, algo="vi", n_steps=1000):
+    choices = [None] + list(itertools.product(["center", "edge", "start", "end"], repeat=dim))
 
-    test_run(env_name, policy, discretizer_action, discretizer_state,n_episodes=100)
-    """
+    for i in range(n_steps):
+        bins = np.random.randint(5, 81, size=dim)
+        bins = bins + bins % 2
+        dense_loc = np.random.choice(choices)
+        MC_samples = 1
+        policy, discretizer_action, discretizer_state = run(env_name, seed=seed, bins_state=bins,
+                                                             bins_action=[2], angle_features=angle_features,
+                                                             MC_samples=1, dense_location=None,
+                                                             dynamics_model_params=dynamics_model_params,
+                                                             reward_model_params=reward_model_params)
+
+        string = "Run: {} -- Score dense_loc: {} -- MC samples: {} -- state bins: {}".format(i, dense_loc,
+                                                                                                MC_samples, bins)
+        print(string)
+
+        # policy, discretizer_action, discretizer_state = run(env_name, algorithm=algo,
+        #                                                     n_samples=25000,
+        #                                                     bins_state=bins,
+        #                                                     bins_action=[2],
+        #                                                     seed=seed, theta=1e-9,
+        #                                                     use_MC=True,
+        #                                                     MC_samples=MC_samples,
+        #                                                     dense_location=dense_loc,
+        #                                                     dynamics_model_params=dynamics_model_params,
+        #                                                     reward_model_params=reward_model_params,
+        #                                                     angle_features=angle_features)
+
+        f = open("Results_qube.txt", "a+")
+        f.write(string)
+        f.close()
+
+        test_run(env_name, policy, discretizer_action, discretizer_state)
+
 
 def grid_search(env_name, seed, dim=2, algo="pi"):
     for dense_loc in [None] + list(itertools.product(["center", "edge", "start", "end"], repeat=dim)):
@@ -197,8 +228,8 @@ def test_run(env_name, policy, discretizer_action, discretizer_state, n_episodes
             # env.render()
             state = discretizer_state.discretize(np.atleast_2d(state))
             action = policy[tuple(state.T)]
-            rewards[i] += reward
             state, reward, done, _ = env.step(action)
+            rewards[i] += reward
 
         # print("Intermediate reward: {}".format(rewards[i]))
 
@@ -225,7 +256,7 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
         # s_prime - future state after you taken the action from state s
         state_prime, state, action, reward = dg_train.get_samples(n_samples)
 
-        # create training input pairs # needed for output for challenge
+        # create training input pairs
         s_a_pairs = np.concatenate([state, action[:, np.newaxis]], axis=1).reshape(-1, env.observation_space.shape[0] +
                                                                                    env.action_space.shape[0])
         reward = reward.reshape(-1, 1)
