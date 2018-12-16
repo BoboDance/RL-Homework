@@ -30,19 +30,20 @@ class DataGenerator(object):
 
         i = 0
         while i < n_samples:
-            state = self.env.reset()
             done = False
+            state = self.env.reset()
 
-            while not done and i < n_samples:
+            while not done:
                 # sample and apply action
                 action = self.env.action_space.sample()
                 state_prime, reward, done, _ = self.env.step(action)
 
-                # save outcomes
-                states_prime[i] = np.array(state_prime)
-                states[i] = np.array(state)
-                actions[i] = action
-                rewards[i] = reward
+                if i < n_samples:
+                    # save outcomes
+                    states_prime[i] = np.array(state_prime)
+                    states[i] = np.array(state)
+                    actions[i] = action
+                    rewards[i] = reward
 
                 # increment counter
                 state = state_prime
