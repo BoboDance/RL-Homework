@@ -22,8 +22,7 @@ class ValueIteration(DynamicProgramming):
             delta = 0
 
             # compute value of state with lookahead
-            # Q = self._look_ahead()
-            Q = self._look_ahead_stochastic()
+            Q = self._look_ahead_stochastic() if self.MC_samples != 1 else self._look_ahead()
             best_value = np.amax(Q, axis=1)
 
             # get value of all states
@@ -44,10 +43,12 @@ class ValueIteration(DynamicProgramming):
             if i % 15 == 0 and len(self.value_function.shape) == 2:
                 plt.imshow(self.value_function)
                 plt.colorbar()
-                plt.title("Value function value iteration")
+                plt.title("Value iteration - value function - iteration {}".format(i))
                 plt.show()
 
         # Create policy in order to use optimal value function
-        self.policy = self.actions[np.argmax(self._look_ahead_stochastic(), axis=1)].reshape(self.policy.shape)
+        self.policy = self.actions[
+            np.argmax(self._look_ahead_stochastic() if self.MC_samples != 1 else self._look_ahead(), axis=1)].reshape(
+            self.policy.shape)
 
         np.save('./policy_VI', self.policy)

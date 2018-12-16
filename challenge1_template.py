@@ -6,7 +6,7 @@ from scipy.ndimage.filters import gaussian_filter
 
 from Challenge_1.Algorithms.PolicyIteration import PolicyIteration
 from Challenge_1.Algorithms.ValueIteration import ValueIteration
-from Challenge_1.Models.NNModelPendulum import NNModelPendulum
+from Challenge_1.Models.NNModel import NNModel
 from Challenge_1.util.Discretizer import Discretizer
 from Challenge_1.util.state_preprocessing import reconvert_state_to_angle, normalize_input, \
     get_feature_space_boundaries, convert_state_to_sin_cos, unnormalize_input
@@ -47,8 +47,6 @@ def get_model(env, max_num_samples):
     :return: function f: s, a -> s', r
     """
 
-    # global x_high
-    # global x_low
     global convert_to_sincos
     global angle_features
     global load_model
@@ -66,7 +64,7 @@ def get_model(env, max_num_samples):
     n_samples = max_num_samples
     n_epochs = 150
 
-    print(env.spec.id)
+    logging.info("Current environment: {}".format(env.spec.id))
     # index list of angle features
     if env.spec.id == 'Pendulum-v0':
         angle_features = [0]
@@ -96,13 +94,13 @@ def get_model(env, max_num_samples):
     scaling = x_high[:-1]
 
     # here it's assumed to only work with the pendulum
-    dynamics_model = NNModelPendulum(n_inputs=n_inputs,
-                                     n_outputs=n_outputs,
-                                     scaling=scaling)
+    dynamics_model = NNModel(n_inputs=n_inputs,
+                             n_outputs=n_outputs,
+                             scaling=scaling)
 
-    reward_model = NNModelPendulum(n_inputs=n_inputs,
-                                   n_outputs=1,
-                                   scaling=None)
+    reward_model = NNModel(n_inputs=n_inputs,
+                           n_outputs=1,
+                           scaling=None)
     lossfunction = nn.MSELoss()
 
     if optimizer_name == 'rmsprop':
@@ -271,8 +269,8 @@ def get_policy(model, observation_space, action_space):
         high = [np.pi, 8]
         low = [-np.pi, -8]
     elif env_name == 'Qube-v0':
-        bins_state = [11, 88, 33, 44]
-        dense_location = ["equal", "equal", "equal", "equal"]
+        bins_state = [10, 10, 10, 10]
+        dense_location = ["edge", "edge", "equal", "equal"]
         high = [2, np.pi, 30, 40]
         low = [-2, -np.pi,  -30, -40]
     else:
@@ -298,7 +296,7 @@ def get_policy(model, observation_space, action_space):
     if use_gaussian_filter:
         policy = gaussian_filter(policy, 3)
 
-    if use_med_filter:
+    if use_median_filter:
         policy = medfilt(policy)
 
     if len(policy.shape) == 2:

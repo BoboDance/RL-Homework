@@ -13,10 +13,10 @@ def init_weights(m):
 act = nn.ReLU()
 
 
-class NNModelPendulum(torch.nn.Module):
+class NNModel(torch.nn.Module):
 
     def __init__(self, n_inputs, n_outputs, scaling=None, lr=1e-3, optimizer='adam'):
-        super(NNModelPendulum, self).__init__()
+        super(NNModel, self).__init__()
 
         self.scaling = scaling
         self.n_outputs = n_outputs

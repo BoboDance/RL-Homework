@@ -45,16 +45,15 @@ class DynamicProgramming(object):
         self.policy = np.random.choice(self.actions, size=state_space)
         self.value_function = np.zeros(state_space)
 
-        # a = np.tile(self.actions, self.states.shape[0]).reshape(-1, self.action_dim)
-        # b = np.repeat(self.discretizer_state.scale_values(self.states), self.n_actions, axis=0).reshape(-1,
-        #                                                                                                 self.state_dim)
-        # self.tri = scipy.spatial.Delaunay(np.concatenate([a, b], axis=1))
+        self.MC_samples = MC_samples
 
-        self.distribution = np.zeros([self.states.shape[0] * self.n_actions] + state_space)
+        if MC_samples != 1:
+            self.distribution = np.zeros([self.states.shape[0] * self.n_actions] + state_space)
 
         self.verbose = verbose
 
-        self.transitions, self.reward = self._compute_transition_and_reward_matrices(n_samples=MC_samples)
+        # precompute transition and reward matricies
+        self._compute_transition_and_reward_matrices(n_samples=MC_samples)
 
     def run(self, max_iter=100000):
         raise NotImplementedError
@@ -143,9 +142,10 @@ class DynamicProgramming(object):
             # compute average state transition and reward.
             state_prime = np.mean(state_prime, axis=1)
             state_prime = self.discretizer_state.discretize(state_prime)
+            self.transitions = state_prime
         else:
-            # TODO stochastic case: return dist over actions and reward
-            # Maybe compute reward based on transition probability
+            # Stochastic Case:
+            # Compute transition probabilities
             for i in range(state_prime.shape[1]):
                 state_prime[:, i, :] = self.discretizer_state.discretize(state_prime[:, i, :])
 
@@ -153,7 +153,6 @@ class DynamicProgramming(object):
                 u, c = np.unique(elem, return_counts=True, axis=0)
                 self.distribution[i][tuple(u.astype(np.int32).T)] = c
 
-        self.distribution /= n_samples
-        value = np.mean(reward, axis=0)
+            self.distribution /= n_samples
 
-        return state_prime, value
+        self.reward = np.mean(reward, axis=0)

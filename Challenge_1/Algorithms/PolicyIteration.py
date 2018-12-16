@@ -23,7 +23,7 @@ class PolicyIteration(DynamicProgramming):
         :param theta:
         """
         super(PolicyIteration, self).__init__(action_space, model, discretizer_state,
-                                              n_actions, discount, theta, MC_samples, angle_features, verbose)
+                                              n_actions, discount, theta, MC_samples, verbose)
 
     def run(self, max_iter=100000):
 
@@ -57,17 +57,23 @@ class PolicyIteration(DynamicProgramming):
             # get index of best action from policy
             action_idx = np.searchsorted(self.actions, self.policy).flatten()
 
-            # select only successor states from transition matrix which are reached based on the policy actions
-            state_prime = self.transitions.reshape(self.policy.shape + (self.n_actions,) + (self.state_dim,))
-            state_prime = state_prime[tuple(self.states.T)][np.arange(0, len(action_idx)), action_idx, :]
+            if self.MC_samples == 1:
+                # Deterministic case:
+                # select only successor states from transition matrix which are reached based on the policy actions
+                state_prime = self.transitions.reshape(self.policy.shape + (self.n_actions,) + (self.state_dim,))
+                state_prime = state_prime[tuple(self.states.T)][np.arange(0, len(action_idx)), action_idx, :]
 
-            # select only rewards from reward matrix which are reached based on the policy actions
-            reward = self.reward.reshape(self.policy.shape + (self.n_actions,))
-            reward = reward[tuple(self.states.T)][np.arange(0, len(action_idx)), action_idx]
+                # select only rewards from reward matrix which are reached based on the policy actions
+                reward = self.reward.reshape(self.policy.shape + (self.n_actions,))
+                reward = reward[tuple(self.states.T)][np.arange(0, len(action_idx)), action_idx]
 
-            # Calculate the expected values of next state
-            values_prime = self.value_function[tuple(state_prime.T)]
-            values_new = reward + self.discount * values_prime
+                # Calculate the expected values of next state
+                values_prime = self.value_function[tuple(state_prime.T)]
+                values_new = reward + self.discount * values_prime
+            else:
+                # Stochastic case:
+                dist = self.distribution.reshape(self.policy.shape + (self.n_actions,) + (self.state_dim,))
+                pass
 
             # calculate convergence criterion
             values = self.value_function[tuple(self.states.T)]
@@ -93,7 +99,7 @@ class PolicyIteration(DynamicProgramming):
         policy_action = self.policy.flatten()
 
         # Check if current policy_action is actually best by checking all actions
-        Q = self._look_ahead()
+        Q = self._look_ahead_stochastic() if self.MC_samples != 1 else self._look_ahead()
         best_action = self.actions[np.argmax(Q, axis=1)]
 
         # If better action was found

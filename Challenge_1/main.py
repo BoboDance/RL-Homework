@@ -9,7 +9,7 @@ import scipy
 
 from Challenge_1.Algorithms.PolicyIteration import PolicyIteration
 from Challenge_1.Algorithms.ValueIteration import ValueIteration
-from Challenge_1.Models.NNModelPendulum import NNModelPendulum
+from Challenge_1.Models.NNModel import NNModel
 from Challenge_1.Models.NNModelQube import NNModelQube
 from Challenge_1.Models.SklearnModel import SklearnModel
 from Challenge_1.util.ColorLogger import enable_color_logging
@@ -159,13 +159,13 @@ def run(env_name, dense_location, angle_features, dynamics_model_params, reward_
     scaling = x_high[:-1]
 
     if env_name == 'Pendulum-v2':
-        dynamics_model = NNModelPendulum(n_inputs=n_inputs,
-                                         n_outputs=n_outputs,
-                                         scaling=scaling)
+        dynamics_model = NNModel(n_inputs=n_inputs,
+                                 n_outputs=n_outputs,
+                                 scaling=scaling)
 
-        reward_model = NNModelPendulum(n_inputs=n_inputs,
-                                       n_outputs=1,
-                                       scaling=None)
+        reward_model = NNModel(n_inputs=n_inputs,
+                               n_outputs=1,
+                               scaling=None)
     elif env_name == 'Qube-v0':
         dynamics_model = NNModelQube(n_inputs=n_inputs,
                                      n_outputs=n_outputs,
@@ -241,13 +241,13 @@ def train_and_eval_nn(train=True, n_samples=25000, n_steps=20000):
     env = gym.make(env_name)
     path = "./NN-state_dict"
 
-    dynamics_model = NNModelPendulum(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                                     n_outputs=env.observation_space.shape[0],
-                                     scaling=env.observation_space.high)
+    dynamics_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                             n_outputs=env.observation_space.shape[0],
+                             scaling=env.observation_space.high)
 
-    reward_model = NNModelPendulum(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
-                                   n_outputs=1,
-                                   scaling=None)
+    reward_model = NNModel(n_inputs=env.observation_space.shape[0] + env.action_space.shape[0],
+                           n_outputs=1,
+                           scaling=None)
 
     if train:
 
