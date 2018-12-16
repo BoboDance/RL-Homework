@@ -1,5 +1,9 @@
 import gym
 import numpy as np
+import scipy.spatial
+import scipy.interpolate
+import scipy.sparse
+import sklearn
 
 from Challenge_1.util import Discretizer
 from Challenge_1.util.state_preprocessing import convert_state_to_sin_cos, normalize_input, \
@@ -39,6 +43,13 @@ class DynamicProgramming(object):
         self.policy = np.random.choice(self.actions, size=state_space)
         self.value_function = np.zeros(state_space)
 
+        # a = np.tile(self.actions, self.states.shape[0]).reshape(-1, self.action_dim)
+        # b = np.repeat(self.discretizer_state.scale_values(self.states), self.n_actions, axis=0).reshape(-1,
+        #                                                                                                 self.state_dim)
+        # self.tri = scipy.spatial.Delaunay(np.concatenate([a, b], axis=1))
+
+        self.distribution = np.zeros([self.states.shape[0] * self.n_actions] + state_space)
+
         self.verbose = verbose
 
         self.transitions, self.reward = self._compute_transition_and_reward_matrices(n_samples=MC_samples)
@@ -48,6 +59,13 @@ class DynamicProgramming(object):
 
     def _look_ahead(self):
         values_prime = self.value_function[tuple(self.transitions.T)]
+        values_new = self.reward + self.discount * values_prime
+
+        return values_new.reshape(-1, self.n_actions)
+
+    def _look_ahead_stochastic(self):
+
+        values_prime = np.sum(np.sum(self.value_function * self.distribution, axis=2), axis=1)
         values_new = self.reward + self.discount * values_prime
 
         return values_new.reshape(-1, self.n_actions)
@@ -107,12 +125,22 @@ class DynamicProgramming(object):
                 sys.stdout.write("]\n")
                 print(']')
 
-        # Deterministic case:
-        # compute average state transition and reward.
-        # TODO stochastic case: return dist over actions and reward
-        # Maybe compute reward based on transition probability
-        state_prime = np.mean(state_prime, axis=1)
-        state_prime = self.discretizer_state.discretize(state_prime)
+        if n_samples == 1:
+            # Deterministic case:
+            # compute average state transition and reward.
+            state_prime = np.mean(state_prime, axis=1)
+            state_prime = self.discretizer_state.discretize(state_prime)
+        else:
+            # TODO stochastic case: return dist over actions and reward
+            # Maybe compute reward based on transition probability
+            for i in range(state_prime.shape[1]):
+                state_prime[:, i, :] = self.discretizer_state.discretize(state_prime[:, i, :])
+
+            for i, elem in enumerate(state_prime):
+                u, c = np.unique(elem, return_counts=True, axis=0)
+                self.distribution[i][tuple(u.astype(np.int32).T)] = c
+
+        self.distribution /= n_samples
         value = np.mean(reward, axis=0)
 
         return state_prime, value

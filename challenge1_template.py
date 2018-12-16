@@ -255,10 +255,10 @@ def get_policy(model, observation_space, action_space):
     use_gaussian_filter = False
 
     # params
-    bins_state = [360, 100]
+    bins_state = [100, 100]
     n_actions = 2
     dense_location = ["equal", "equal"]
-    MC_samples = 1
+    MC_samples = 100
     theta = 1e-9
 
     # We have to enter high an low here because the environment was changed last minute
