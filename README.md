@@ -1,5 +1,5 @@
 # RL-Homework
-## Collection of our solutions to the RL-Challegnes
+## Collection of our solutions to the RL-Challenges
 
 For creating a new Anaconda-Env based on YML-file use:
 
