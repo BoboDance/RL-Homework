@@ -40,12 +40,10 @@ class DQNModel(torch.nn.Module):
         self.apply(init_weights)
         self.train()
 
-        #if optimizer == 'adam':
-        #    self.optimizer = optim.Adam(self.parameters(), lr=lr)
-        #elif optimizer == 'sgd':
-        #    self.optimizer = optim.SGD(self.parameters(), lr=lr, momentum=0.9)
-
-        self.optimizer = optim.Adam(self.parameters(), lr=lr)
+        if optimizer == 'adam':
+            self.optimizer = optim.Adam(self.parameters(), lr=lr)
+        elif optimizer == 'sgd':
+            self.optimizer = optim.SGD(self.parameters(), lr=lr, momentum=0.9)
 
     def copy_state_dict(self, other_model):
         self.load_state_dict(other_model.state_dict())

@@ -60,9 +60,8 @@ training_episodes = 100
 model = DQNModel(dim_obs + dim_action, 1)
 target_model = copy.deepcopy(model)
 target_model.copy_state_dict(model)
-
-# the amount of steps after which the old model is updated
-old_model_update_steps = 10
+# the amount of steps after which the target model is updated
+target_model_update_steps = 10
 
 # the maximum number of steps per episode
 max_steps_per_episode = 500
@@ -103,7 +102,7 @@ while episodes < training_episodes:
 
     # learning step
     minibatch = memory.sample(minibatch_size)
-    # calculate our y based on the old model
+    # calculate our y based on the target model
     y = get_y(minibatch, discount_factor, target_model)
     # perform gradient descend regarding to y on the current model
     episode_loss += model.gradient_descend_step(minibatch[:, 0:dim_obs + 1], y, loss_function=nn.MSELoss())
@@ -111,8 +110,8 @@ while episodes < training_episodes:
     total_steps += 1
     episode_steps += 1
 
-    # copy the current model each old_model_update_steps steps
-    if total_steps % old_model_update_steps == 0:
+    # copy the current model each target_model_update_steps steps
+    if total_steps % target_model_update_steps == 0:
         target_model.copy_state_dict(model)
 
     if done or episode_steps >= max_steps_per_episode:
@@ -123,7 +122,7 @@ while episodes < training_episodes:
         episode_state_action_values_list = []
         mean_state_action_values_list.append(state_action_values_mean)
 
-        print("Episode {} > avg reward: {}, steps: {}, reward: {}, training loss: {}, avg value:"
+        print("Episode {} > avg reward: {}, steps: {}, reward: {}, training loss: {}, avg value: {}"
               .format(episodes, episode_reward / episode_steps, episode_steps, episode_reward, episode_loss, state_action_values_mean))
 
         reward_list.append(episode_reward / episode_steps)
