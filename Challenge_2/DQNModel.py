@@ -106,6 +106,10 @@ class DQNModel(torch.nn.Module):
         values = self.get_action_values(observation, discrete_actions)
         return np.max(values)
 
+    def get_best_action_and_value(self, observation, discrete_actions):
+        values = self.get_action_values(observation, discrete_actions)
+        return np.array([discrete_actions[np.argmax(values)]]), np.max(values)
+
     def get_action_values(self, observation, discrete_actions):
         # first build a matrix with duplicates of the last observation as rows for each discrete action
         tiled_observations = np.tile(observation, (len(discrete_actions), 1))

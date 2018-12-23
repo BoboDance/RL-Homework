@@ -10,7 +10,7 @@ import torch.nn as nn
 
 from Challenge_2.DQNModel import DQNModel
 from Challenge_2.ReplayMemory import ReplayMemory
-from Challenge_2.Util import create_initial_samples
+from Challenge_2.Util import create_initial_samples, DQNStatsFigure
 
 env = gym.make("CartpoleSwingShort-v0")
 np.random.seed(1)
@@ -69,26 +69,29 @@ max_steps_per_episode = 500
 
 reward_list = []
 loss_list = []
-rewards = []
+mean_state_action_values_list = []
+
+episode_state_action_values_list = []
 episodes = 0
 total_steps = 0
 episode_steps = 0
 episode_reward = 0
 episode_loss = 0
-fig, ax = plt.subplots(2, 1)
+detail_plot_episodes = 20
 last_observation = env.reset()
+stats_figure = DQNStatsFigure()
 while episodes < training_episodes:
     # choose an action (random with prob. epsilon, otherwise choose the action with the best estimated value)
     if np.random.rand() <= epsilon:
         action = env.action_space.sample()
     else:
-        action = model.get_best_action(last_observation, discrete_actions)
+        action, value = model.get_best_action_and_value(last_observation, discrete_actions)
+        episode_state_action_values_list.append(value)
         if episode_steps == 0:
-            print("First step best value: {}".format(model.get_best_value(last_observation, discrete_actions)))
+            print("First step best value: {}".format(value))
 
     observation, reward, done, info = env.step(action)
     episode_reward += reward
-    rewards.append(reward)
 
     # save the observed step in our replay memory
     memory.push((*last_observation, *action, reward, *observation, done))
@@ -115,7 +118,14 @@ while episodes < training_episodes:
     if done or episode_steps >= max_steps_per_episode:
         last_observation = env.reset()
         episodes += 1
-        print("Episode {} > avg reward: {}, steps: {}, reward: {}, training loss: {}".format(episodes, episode_reward / episode_steps, episode_steps, episode_reward, episode_loss))
+
+        state_action_values_mean = np.array(episode_state_action_values_list).mean()
+        episode_state_action_values_list = []
+        mean_state_action_values_list.append(state_action_values_mean)
+
+        print("Episode {} > avg reward: {}, steps: {}, reward: {}, training loss: {}, avg value:"
+              .format(episodes, episode_reward / episode_steps, episode_steps, episode_reward, episode_loss, state_action_values_mean))
+
         reward_list.append(episode_reward / episode_steps)
         loss_list.append(episode_loss)
         episode_steps = 0
@@ -123,19 +133,9 @@ while episodes < training_episodes:
         episode_reward = 0
 
         # update the plot
-        ax[0].cla()
-        ax[1].cla()
-        ax[0].plot(reward_list, c="blue")
-        ax[0].set_title("Episode Average Reward")
-        ax[1].plot(loss_list, c="red")
-        ax[1].set_title("Episode Total Loss")
-        fig.tight_layout()
+        stats_figure.draw(reward_list, mean_state_action_values_list, loss_list, episodes, detail_plot_episodes)
 
-        plt.draw()
-        plt.pause(0.001)
 
-plt.show()
-plt.hist(rewards)
 plt.show()
 # memory.plot_observations_cartpole()
 
