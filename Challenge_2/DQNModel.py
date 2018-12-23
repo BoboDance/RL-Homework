@@ -12,7 +12,6 @@ def init_weights(m):
 
 act = nn.ReLU()
 
-
 class DQNModel(torch.nn.Module):
 
     def __init__(self, n_inputs, n_outputs, scaling=None, lr=1e-3, optimizer='adam'):
@@ -23,7 +22,7 @@ class DQNModel(torch.nn.Module):
         self.n_inputs = n_inputs
 
         # network architecture specification
-        hidden = 100
+        hidden = 42
 
         self.model = nn.Sequential(
             nn.Linear(self.n_inputs, hidden),
@@ -47,6 +46,9 @@ class DQNModel(torch.nn.Module):
         #    self.optimizer = optim.SGD(self.parameters(), lr=lr, momentum=0.9)
 
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
+
+    def copy_state_dict(self, other_model):
+        self.load_state_dict(other_model.state_dict())
 
     def forward(self, inputs):
         """
@@ -96,14 +98,21 @@ class DQNModel(torch.nn.Module):
         :return: the action which is considered the best with the current model
         """
 
+        values = self.get_action_values(observation, discrete_actions)
+        # choose the action which gets the best value
+        return np.array([discrete_actions[np.argmax(values)]])
+
+    def get_best_value(self, observation, discrete_actions):
+        values = self.get_action_values(observation, discrete_actions)
+        return np.max(values)
+
+    def get_action_values(self, observation, discrete_actions):
         # first build a matrix with duplicates of the last observation as rows for each discrete action
         tiled_observations = np.tile(observation, (len(discrete_actions), 1))
         # then append each discrete action value
         model_input = np.append(tiled_observations, discrete_actions.reshape(-1, 1), axis=-1)
         # predict all the values
-        values = self.predict(model_input)
-        # choose the action which gets the best value
-        return np.array([discrete_actions[np.argmax(values)]])
+        return self.predict(model_input)
 
     def predict(self, X):
         self.eval()

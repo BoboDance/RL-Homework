@@ -6,9 +6,11 @@ import sys
 import numpy as np
 import copy
 import matplotlib.pyplot as plt
+import torch.nn as nn
 
-from Challenge_2.DQNModel import DQNModel, init_weights
+from Challenge_2.DQNModel import DQNModel
 from Challenge_2.ReplayMemory import ReplayMemory
+from Challenge_2.Util import create_initial_samples
 
 env = gym.make("CartpoleSwingShort-v0")
 np.random.seed(1)
@@ -31,54 +33,43 @@ def get_y(transitions, discount_factor, old_model):
 
     for i, replay_entry in enumerate(transitions):
         if replay_entry[DONE_INDEX]:
-            # if the episode is done after this step, simply use the reward
+            # if the episode is done after this step, only use the direct reward
             y[i] = replay_entry[REWARD_INDEX]
         else:
             # otherwise look ahead one step
             next_obs = replay_entry[NEXT_OBS_INDEX:NEXT_OBS_INDEX + dim_obs]
-            y[i] = replay_entry[REWARD_INDEX] + discount_factor * old_model.get_best_action(next_obs, discrete_actions)
+            y[i] = replay_entry[REWARD_INDEX] + discount_factor * old_model.get_best_value(next_obs, discrete_actions)
 
     return y
 
 # the probability to choose an random action
-epsilon = 0.1
-discount_factor = 0.9
+epsilon = 0.01
+discount_factor = 0.99
 
 memory = ReplayMemory(5000, transition_size)
-# The amount of random samples gathered before the learning starts (must be <= capacity of replay memory)
-initial_samples_count = 3000
+# The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
+create_initial_samples(env, memory, 100)
+# memory.plot_observations_cartpole()
 
 # the size of the sampled minibatch used for learning in each step
 minibatch_size = 7
 # how many training episodes to do
-training_episodes = 40
+training_episodes = 100
 
 # try to predict the value of this state
 model = DQNModel(dim_obs + dim_action, 1)
-old_model = copy.deepcopy(model)
+target_model = copy.deepcopy(model)
+target_model.copy_state_dict(model)
+
 # the amount of steps after which the old model is updated
-old_model_update_steps = 1000
+old_model_update_steps = 10
 
-# build the initial samples for the table
-last_observation = env.reset()
-samples = 0
-action = env.action_space.sample()
-while samples < initial_samples_count:
-    action = env.action_space.sample() # np.clip(np.random.normal(action, 1), env.action_space.low, env.action_space.high)
-    observation, reward, done, info = env.step(action)
-    memory.push((*last_observation, *action, reward, *observation, done))
-    samples += 1
-
-    if done:
-        last_observation = env.reset()
-        action = env.action_space.sample()
-
-# memory.plot_observations_cartpole()
+# the maximum number of steps per episode
+max_steps_per_episode = 500
 
 reward_list = []
 loss_list = []
-observations = []
-
+rewards = []
 episodes = 0
 total_steps = 0
 episode_steps = 0
@@ -92,10 +83,12 @@ while episodes < training_episodes:
         action = env.action_space.sample()
     else:
         action = model.get_best_action(last_observation, discrete_actions)
+        if episode_steps == 0:
+            print("First step best value: {}".format(model.get_best_value(last_observation, discrete_actions)))
 
     observation, reward, done, info = env.step(action)
     episode_reward += reward
-    observations.append(observation)
+    rewards.append(reward)
 
     # save the observed step in our replay memory
     memory.push((*last_observation, *action, reward, *observation, done))
@@ -108,18 +101,18 @@ while episodes < training_episodes:
     # learning step
     minibatch = memory.sample(minibatch_size)
     # calculate our y based on the old model
-    y = get_y(minibatch, discount_factor, old_model)
+    y = get_y(minibatch, discount_factor, target_model)
     # perform gradient descend regarding to y on the current model
-    episode_loss += model.gradient_descend_step(minibatch[:, 0:dim_obs + 1], y)
+    episode_loss += model.gradient_descend_step(minibatch[:, 0:dim_obs + 1], y, loss_function=nn.MSELoss())
 
     total_steps += 1
     episode_steps += 1
 
     # copy the current model each old_model_update_steps steps
     if total_steps % old_model_update_steps == 0:
-        old_model = copy.deepcopy(model)
+        target_model.copy_state_dict(model)
 
-    if done:
+    if done or episode_steps >= max_steps_per_episode:
         last_observation = env.reset()
         episodes += 1
         print("Episode {} > avg reward: {}, steps: {}, reward: {}, training loss: {}".format(episodes, episode_reward / episode_steps, episode_steps, episode_reward, episode_loss))
@@ -141,6 +134,8 @@ while episodes < training_episodes:
         plt.draw()
         plt.pause(0.001)
 
+plt.show()
+plt.hist(rewards)
 plt.show()
 # memory.plot_observations_cartpole()
 
