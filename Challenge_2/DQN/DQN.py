@@ -199,11 +199,12 @@ while episodes < max_episodes:
             'episodes': episodes,
             'Q': Q.state_dict(),
             'target_Q': target_Q.state_dict(),
-            'reward': reward,
+            'reward': episode_reward,
             'optimizer': Q.optimizer.state_dict(),
-        }, filename="./checkpoints/Q_model_epoch-{}_reward-{}.pth.tar".format(total_steps, reward))
+        }, filename="./checkpoints/Q_model_epoch-{}_reward-{}.pth.tar".format(total_steps, episode_reward))
 
-        print("Episode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} -- training loss: {:10.5f}"
+        print("Episode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
+              "-- training loss: {:10.5f}"
               .format(episodes, total_steps, avg_reward, episode_steps, episode_reward, episode_loss))
 
         # writer.add_scalar("avg_value", value_mean, episodes)
