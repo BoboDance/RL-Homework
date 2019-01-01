@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 class ReplayMemory():
     def __init__(self, capacity, entry_size):
         """
