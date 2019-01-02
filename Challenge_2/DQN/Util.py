@@ -8,7 +8,7 @@ def create_initial_samples(env, memory, count, discrete_actions):
     last_observation = env.reset()
     samples = 0
     while samples < count:
-        action_idx = np.random.choice(len(discrete_actions), 1)
+        action_idx = np.random.choice(range(len(discrete_actions)), 1)
         action = discrete_actions[action_idx]
         # np.clip(np.random.normal(action, 1), env.action_space.low, env.action_space.high)
         observation, reward, done, _ = env.step(action)
@@ -37,7 +37,7 @@ def load_saved_model(model, path, T, global_reward, optimizer=None):
         print("=> no checkpoint found at '{}'".format(path))
 
 
-def get_best_action(Q, observation, discrete_actions):
+def get_best_action(Q, observation):
     # choose the action which gets the best value
     return [Q(np.atleast_2d(observation)).argmax(1).item()]
 

@@ -25,7 +25,8 @@ env.seed(seed)
 dim_obs = env.observation_space.shape[0]
 dim_action = env.action_space.shape[0]
 
-discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 20)
+discrete_actions = np.linspace(-5, 5, 20)
+# discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 20)
 print("Used discrete actions: ", discrete_actions)
 
 # transition: observation, action, reward, next observation, done
@@ -36,7 +37,14 @@ NEXT_OBS_INDEX = dim_obs + dim_action + 1
 DONE_INDEX = -1
 
 # Enable if double Q learning is allowed for challenge
-use_double_Q = True
+use_double_Q = False
+
+# the probability to choose an random action decaying over time
+eps_start = .5
+eps_end = 0.05
+eps_decay = 200
+
+gamma = 0.99
 
 
 def get_expected_values(transitions, model):
@@ -65,9 +73,9 @@ def choose_action(Q, observation, discrete_actions):
     eps_threshold = eps_end + (eps_start - eps_end) * math.exp(-1. * total_steps / eps_decay)
     # choose epsilon-greedy action
     if np.random.uniform() <= eps_threshold:
-        action_idx = np.random.choice(len(discrete_actions), 1)
+        action_idx = np.random.choice(range(len(discrete_actions)), 1)
     else:
-        action_idx = get_best_action(Q, observation, discrete_actions)
+        action_idx = get_best_action(Q, observation)
 
     return action_idx
 
@@ -105,13 +113,6 @@ def optimize(memory, Q, target_Q, use_double_Q=False, criterion=nn.SmoothL1Loss(
 
     return loss.item()
 
-
-# the probability to choose an random action decaying over time
-eps_start = .5
-eps_end = 0.05
-eps_decay = 200
-
-gamma = 0.99
 
 memory = ReplayMemory(5000, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
