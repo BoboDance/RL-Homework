@@ -20,7 +20,7 @@ env.seed(seed)
 dim_obs = env.observation_space.shape[0]
 dim_action = env.action_space.shape[0]
 
-discrete_actions = np.linspace(-5, 5, 20)
+discrete_actions = np.linspace(-5, 5, 2) #20)
 # discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 20)
 print("Used discrete actions: ", discrete_actions)
 
@@ -37,9 +37,9 @@ DONE_IDX = -1
 importance_weights = False
 
 # the probability to choose an random action decaying over time
-eps_start = .5
+eps_start = .25
 eps_end = 0.05
-eps_decay = 10
+eps_decay = 1
 
 gamma = 0.99  # discount
 theta = 1e-5  # convergence criterion
@@ -141,6 +141,7 @@ while delta >= theta and episodes <= max_episodes:
             "Episode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} ".format(
                 episodes, total_steps, reward / episode_steps, episode_steps, episode_reward))
         episode_steps = 0
+        episode_reward = 0
 
     reward = min(max(-1., reward), 1.)
     episode_reward += reward
