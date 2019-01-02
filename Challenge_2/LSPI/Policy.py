@@ -27,21 +27,26 @@ class Policy:
             self.w = weights
 
     def Q(self, state, action):
+
         phi = self.basis_function(state, action)
-        return self.w.dot(phi)
+        return phi.dot(self.w)
 
     def get_best_action(self, observation):
 
-        Q_values = [self.Q(observation, action) for action in range(self.n_actions)]
+        observation = np.atleast_2d(observation)
+        #Q_values = [self.Q(observation, action) for action in range(self.n_actions)]
+        Q_values = np.array([self.Q(np.tile(obs, self.n_actions).reshape(self.n_actions, -1),
+                           np.arange(self.n_actions)) for obs in observation])
+
 
         if self.tie_breaker == "first":
-            return np.argmax(Q_values)
+            return np.argmax(Q_values, axis=1)
 
         elif self.tie_breaker == "last":
-            return np.argmax(reversed(Q_values))
+            return np.argmax(reversed(Q_values), axis=1)
 
         elif self.tie_breaker == "random":
-            best_actions = np.argwhere(Q_values == np.max(Q_values))
+            best_actions = np.argwhere(Q_values == np.max(Q_values, axis=1))
             return np.random.choice(best_actions)
 
     def choose_action(self, observation):

@@ -3,7 +3,7 @@ import numpy as np
 
 def calc_rbf(state, mean, beta):
     diff = (state - mean) ** 2
-    return np.exp(-beta * np.sum(diff))
+    return np.exp(-beta * np.sum(diff, axis=1))
 
 
 class RBF(object):
@@ -21,14 +21,18 @@ class RBF(object):
         self.means = means
 
     def __call__(self, state, action_idx):
-        phi = np.zeros((self.size(),))
-        offset = (len(self.means[0]) + 1) * int(action_idx)
+        phi = np.zeros((len(action_idx), self.size(),))
 
-        rbf = [calc_rbf(state, mean, self.beta) for mean in self.means]
+        offset = self.means.shape[0] * action_idx.astype(np.int32)
+        rbf = np.array([calc_rbf(state, mean, self.beta) for mean in self.means])
 
         # print np.sum(rbf,axis=0),1/(np.sum(rbf,axis=0))
-        phi[offset] = 1.
-        phi[offset + 1: offset + 1 + len(rbf)] = rbf
+        phi[np.arange(0, len(offset)), offset] = 1.
+        offset_select = np.zeros((len(offset), len(rbf)))
+
+        # TODO: Probably make it in matrix vector form
+        for i, rbf_row in enumerate(rbf.T):
+            phi[i, offset[i] + 1: offset[i] + 1 + len(rbf)] = rbf_row
 
         return phi
 

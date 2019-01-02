@@ -70,25 +70,26 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
     b = np.zeros((k, 1))
 
     # TODO maybe do not do this with a loop
-    for i, sample in enumerate(samples):
 
-        print(f"Processing sample {i + 1}/{len(samples)}")
+    #for i, sample in enumerate(samples):
 
-        obs = sample[0: ACTION_IDX]
-        action_idx = sample[ACTION_IDX]
-        reward = sample[REWARD_IDX: NEXT_OBS_IDX]
-        next_obs = sample[NEXT_OBS_IDX: DONE_IDX]
-        done = sample[DONE_IDX]
+    #print(f"Processing sample {i + 1}/{len(samples)}")
+    obs = samples[:, 0: ACTION_IDX]
+    action_idx = samples[:, ACTION_IDX]
+    reward = samples[:, REWARD_IDX: NEXT_OBS_IDX]
+    next_obs = samples[:, NEXT_OBS_IDX: DONE_IDX]
+    done = samples[:, DONE_IDX].astype(np.bool)
 
-        phi = (policy.basis_function(obs, action_idx).reshape((-1, 1)))
-        phi_next = np.zeros((k, 1))
+    phi = (policy.basis_function(obs, action_idx).reshape((-1, len(samples))))
+    phi_next = np.zeros((k, len(samples)))
 
-        if not done:
-            best_action = policy.get_best_action(next_obs)
-            phi_next = (policy.basis_function(next_obs, best_action).reshape((-1, 1)))
+    if np.any(~done):
+        sel_next_obs = next_obs[~done]
+        best_action = policy.get_best_action(sel_next_obs)
+        phi_next[:, ~done] = (policy.basis_function(sel_next_obs, best_action).reshape((-1, len(sel_next_obs))))
 
-        A += phi.dot((phi - policy.gamma * phi_next).T)
-        b += phi * reward
+    A = phi.dot((phi - policy.gamma * phi_next).T) #.sum(axis=0)
+    b = phi @ reward #).sum(axis=0)
 
     rank_A = np.linalg.matrix_rank(A)
 
@@ -98,6 +99,7 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
         print(f'A matrix does not have full rank {k} > {rank_A}. Using least squares solver.')
         w = scipy.linalg.lstsq(A, b)[0]
 
+    phi.dot((phi - policy.gamma * phi_next).T)
     return w.reshape((-1,))
 
 
