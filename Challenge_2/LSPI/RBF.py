@@ -1,9 +1,5 @@
 import numpy as np
-
-
-def calc_rbf(state, mean, beta):
-    diff = (state - mean) ** 2
-    return np.exp(-beta * np.sum(diff, axis=1))
+from scipy.ndimage.interpolation import shift
 
 
 class RBF(object):
@@ -20,21 +16,49 @@ class RBF(object):
         self.n_actions = n_actions
         self.means = means
 
-    def __call__(self, state, action_idx):
-        phi = np.zeros((len(action_idx), self.size(),))
+    def __call__(self, observation, action_idx=None):
+        """
+        returns rbf features for state action pair. If action is None, values for all actions are returned.
+        :param observation: ndarray [batch_size x state_dim]
+        :param action_idx: ndarray [batch_size x action_dim]
+        :return:
+        """
+        rbf = self._calc_rbf(observation)
 
-        offset = self.means.shape[0] * action_idx.astype(np.int32)
-        rbf = np.array([calc_rbf(state, mean, self.beta) for mean in self.means])
+        if action_idx is None:
+            # return features for all actions
 
-        # print np.sum(rbf,axis=0),1/(np.sum(rbf,axis=0))
-        phi[np.arange(0, len(offset)), offset] = 1.
-        offset_select = np.zeros((len(offset), len(rbf)))
+            phi = np.zeros((observation.shape[0], self.n_actions, self.size(),))
 
-        # TODO: Probably make it in matrix vector form
-        for i, rbf_row in enumerate(rbf.T):
-            phi[i, offset[i] + 1: offset[i] + 1 + len(rbf)] = rbf_row
+            offset = (self.means.shape[0] + 1) * np.arange(0, self.n_actions)
+
+            # write features to the beginning of array for all observations and actions
+            phi[:, :, 0] = 1.
+            phi = np.transpose(phi, [1, 0, 2])
+            phi[:, :, 1:1 + len(rbf)] = rbf.T
+            phi = np.transpose(phi, [1, 0, 2])
+
+            # shift elements according to offset for all observations
+            phi = phi[:, np.arange(self.n_actions)[:, None], -offset[:, None] + np.arange(self.size())]
+
+        else:
+            # return features for one specified action
+
+            phi = np.zeros((observation.shape[0], self.size(),))
+            offset = (self.means.shape[0] + 1) * action_idx.astype(np.int32)
+
+            # write features to the beginning of array for all observations action pairs
+            phi[:, 0] = 1.
+            phi[:, 1:1 + len(rbf)] = rbf.T
+
+            # shift elements according to offset for all observations
+            phi = phi[np.arange(len(observation))[:, None], -offset[:, None] + np.arange(self.size())]
 
         return phi
+
+    def _calc_rbf(self, observations):
+        diff = (self.means[:, None, :] - observations[None, :, :]) ** 2
+        return np.exp(-self.beta * np.sum(diff, axis=2))
 
     def size(self):
         return (len(self.means) + 1) * self.n_actions

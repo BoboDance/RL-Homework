@@ -26,18 +26,24 @@ class Policy:
         else:
             self.w = weights
 
-    def Q(self, state, action):
-
-        phi = self.basis_function(state, action)
+    def Q(self, state, action_idx=None):
+        """
+        returns Q value for state action pair. If action is none value for all actions is returned.
+        :param state: ndarray [batch_size x state_dim]
+        :param action_idx: ndarray [batch_size x action_dim]
+        :return:
+        """
+        phi = self.basis_function(state, action_idx)
         return phi.dot(self.w)
 
     def get_best_action(self, observation):
 
         observation = np.atleast_2d(observation)
-        #Q_values = [self.Q(observation, action) for action in range(self.n_actions)]
-        Q_values = np.array([self.Q(np.tile(obs, self.n_actions).reshape(self.n_actions, -1),
-                           np.arange(self.n_actions)) for obs in observation])
+        # Q_values = [self.Q(observation, action) for action in range(self.n_actions)]
+        # Q_values = np.array([self.Q(np.tile(obs, self.n_actions).reshape(self.n_actions, -1),
+        #                             np.arange(self.n_actions)) for obs in observation])
 
+        Q_values = self.Q(observation)
 
         if self.tie_breaker == "first":
             return np.argmax(Q_values, axis=1)
@@ -51,8 +57,8 @@ class Policy:
 
     def choose_action(self, observation):
         if np.random.uniform() <= self.eps:
-            action = np.random.choice(range(self.n_actions))
+            action_idx = np.random.choice(range(self.n_actions))
         else:
-            action = self.get_best_action(observation)
+            action_idx = self.get_best_action(observation)
 
-        return np.atleast_1d(action)
+        return np.atleast_1d(action_idx)
