@@ -39,9 +39,6 @@ class Policy:
     def get_best_action(self, observation):
 
         observation = np.atleast_2d(observation)
-        # Q_values = [self.Q(observation, action) for action in range(self.n_actions)]
-        # Q_values = np.array([self.Q(np.tile(obs, self.n_actions).reshape(self.n_actions, -1),
-        #                             np.arange(self.n_actions)) for obs in observation])
 
         Q_values = self.Q(observation)
 

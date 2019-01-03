@@ -14,13 +14,13 @@ from Challenge_2.LSPI.Util import create_initial_samples
 seed = 1
 np.random.seed(seed)
 
-env = gym.make("CartpoleStabShort-v0")
+env = gym.make("Pendulum-v0")
 env.seed(seed)
 
 dim_obs = env.observation_space.shape[0]
 dim_action = env.action_space.shape[0]
 
-discrete_actions = np.linspace(-2.5, 2.5, 11)
+discrete_actions = np.linspace(-2, 2, 2)
 # discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 20)
 print("Used discrete actions: ", discrete_actions)
 
@@ -101,8 +101,13 @@ memory = ReplayMemory(5000, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
 create_initial_samples(env, memory, 500, discrete_actions)
 
-low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
-high = np.array(list(env.observation_space.high[:3]) + [5, 5])
+# low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
+# high = np.array(list(env.observation_space.high[:3]) + [5, 5])
+
+low = env.observation_space.low
+high = env.observation_space.high
+
+# TODO: find better init
 means = np.random.multivariate_normal((low - high) / 2, np.diag(high / 3), size=(n_features,))
 # means = np.array([np.linspace(low[i], high[i], n_features) for i in range(dim_obs)]).T
 
@@ -133,7 +138,7 @@ while delta >= theta and episodes <= max_episodes:
         episodes += 1
         print(
             "Episode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- episode steps: {:4d} "
-            "-- episode reward: {:5.5f} -- delta: {} -- epsilon {}".format(
+            "-- episode reward: {:5.5f} -- delta: {:6.10f} -- epsilon {:.10f}".format(
                 episodes, total_steps, reward / episode_steps, episode_steps, episode_reward, delta, policy.eps))
         episode_steps = 0
         episode_reward = 0
@@ -141,7 +146,7 @@ while delta >= theta and episodes <= max_episodes:
         # reduce random action prob each episode
         policy.eps = eps_end + (eps_start - eps_end) * math.exp(-1. * episodes / eps_decay)
 
-    reward = min(max(-1., reward), 1.)
+    # reward = min(max(-1., reward), 1.)
     episode_reward += reward
 
     memory.push((*obs, *action_idx, reward, *next_obs, done))
