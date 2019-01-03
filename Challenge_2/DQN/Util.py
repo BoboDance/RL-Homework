@@ -42,8 +42,8 @@ def get_best_action(Q, observation):
     return [Q(np.atleast_2d(observation)).argmax(1).item()]
 
 
-def get_best_value(Q, observation):
-    return Q(np.atleast_2d(observation)).max(1)[0].item()
+def get_best_values(Q, observations):
+    return Q(np.atleast_2d(observations)).max(1)[0].detach().numpy()
 
 
 def get_best_action_and_value(Q, observation, discrete_actions):

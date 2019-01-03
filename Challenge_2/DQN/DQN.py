@@ -10,7 +10,7 @@ from tensorboardX import SummaryWriter
 
 from Challenge_2.DQN.DQNModel import DQNModel
 from Challenge_2.DQN.ReplayMemory import ReplayMemory
-from Challenge_2.DQN.Util import create_initial_samples, save_checkpoint, get_best_action, get_best_value
+from Challenge_2.DQN.Util import create_initial_samples, save_checkpoint, get_best_action, get_best_values
 
 import quanser_robots
 
@@ -54,15 +54,10 @@ def get_expected_values(transitions, model):
     global dim_obs
     global gamma
 
-    y = np.zeros((len(transitions), 1))
-
-    # TODO to make this in one step and do not use loop
-    for i, replay_entry in enumerate(transitions):
-        y[i] = replay_entry[REWARD_INDEX]
-        if not replay_entry[DONE_INDEX]:
-            # if non terminal state is present look ahead one step
-            next_obs = replay_entry[NEXT_OBS_INDEX:NEXT_OBS_INDEX + dim_obs]
-            y[i] += gamma * get_best_value(model, next_obs)
+    y = transitions[:, REWARD_INDEX].reshape(-1, 1)
+    not_done_filter = ~transitions[:, DONE_INDEX].astype(bool)
+    next_obs = transitions[not_done_filter, NEXT_OBS_INDEX:NEXT_OBS_INDEX + dim_obs]
+    y[not_done_filter] += gamma * get_best_values(model, next_obs).reshape(-1, 1)
 
     return y
 
