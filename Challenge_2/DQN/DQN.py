@@ -10,9 +10,10 @@ from tensorboardX import SummaryWriter
 
 from Challenge_2.DQN.DQNModel import DQNModel
 from Challenge_2.DQN.ReplayMemory import ReplayMemory
-from Challenge_2.DQN.Util import create_initial_samples, save_checkpoint, get_best_action, get_best_values
 
 import quanser_robots
+
+from Challenge_2.DQN.Util import create_initial_samples, get_best_values, get_best_action, save_checkpoint
 
 seed = 1
 
@@ -25,7 +26,7 @@ env.seed(seed)
 dim_obs = env.observation_space.shape[0]
 dim_action = env.action_space.shape[0]
 
-discrete_actions = np.linspace(-5, 5, 20)
+discrete_actions = np.array([-20, -5, 5, 20])
 # discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 20)
 print("Used discrete actions: ", discrete_actions)
 
@@ -40,12 +41,11 @@ DONE_INDEX = -1
 use_double_Q = False
 
 # the probability to choose an random action decaying over time
-eps_start = .5
-eps_end = 0.05
-eps_decay = 200
+eps_start = 1.0
+eps_end = 0.00001
+eps_decay = 3000
 
 gamma = 0.99
-
 
 def get_expected_values(transitions, model):
     global REWARD_INDEX
@@ -108,14 +108,34 @@ def optimize(memory, Q, target_Q, use_double_Q=False, criterion=nn.SmoothL1Loss(
 
     return loss.item()
 
+def evaluate_policy_Q(env, Q, discrete_actions, max_steps=10000, render=True):
+    Q.eval()
+    obs = env.reset()
 
-memory = ReplayMemory(5000, transition_size)
+    total_reward = 0
+
+    steps = 0
+    done = False
+    while steps <= max_steps and not done:
+        action_idx = choose_action(Q, obs, discrete_actions)
+        action = discrete_actions[action_idx]
+
+        next_obs, reward, done, _ = env.step(action)
+
+        total_reward += reward
+
+        if render:
+            env.render()
+
+    return total_reward
+
+memory = ReplayMemory(10000, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
 create_initial_samples(env, memory, 500, discrete_actions)
 # memory.plot_observations_cartpole()
 
 # the size of the sampled minibatch used for learning in each step
-minibatch_size = 128
+minibatch_size = 200
 # how many training episodes to do
 max_episodes = 5000
 
@@ -123,12 +143,12 @@ max_episodes = 5000
 writer = SummaryWriter()
 
 # init NNs for Q function approximation
-Q = DQNModel(n_inputs=dim_obs, n_outputs=len(discrete_actions), optimizer="rmsprop")
+Q = DQNModel(n_inputs=dim_obs, n_outputs=len(discrete_actions), optimizer="rmsprop", lr=1e-4)
 target_Q = DQNModel(n_inputs=dim_obs, n_outputs=len(discrete_actions), optimizer=None)
 target_Q.load_state_dict(Q.state_dict())
 
 # the amount of steps after which the target model is updated
-target_model_update_steps = 10
+target_model_update_steps = 20
 
 # the maximum number of steps per episode
 max_steps_per_episode = 2500
@@ -148,14 +168,19 @@ episode_loss = 0
 # detail_plot_episodes = 20
 obs = env.reset()
 
+best_reward = 1500
+# don't render all episodes
+render_episodes_mod = 10
 while episodes < max_episodes:
+    Q.eval()
 
     action_idx = choose_action(Q, obs, discrete_actions)
     action = discrete_actions[action_idx]
 
     next_obs, reward, done, _ = env.step(action)
     # reward clipping
-    reward = min(max(-1., reward), 1.)
+    #reward = min(max(-1., reward), 1.)
+
     episode_reward += reward
 
     # save the observed step in our replay memory
@@ -164,7 +189,8 @@ while episodes < max_episodes:
     # remember last observation
     obs = next_obs
 
-    env.render()
+    if episodes % render_episodes_mod == 0:
+        env.render()
 
     loss = optimize(memory, Q, target_Q, criterion=nn.MSELoss())
     episode_loss += loss
@@ -180,6 +206,11 @@ while episodes < max_episodes:
         # target_model.copy_state_dict(model)
 
     if done or episode_steps >= max_steps_per_episode:
+        # if episode_reward > best_reward:
+        #     real_q_reward = evaluate_policy_Q(env, Q, discrete_actions)
+        #     print("Expected: {}, Last Model: {}".format(episode_reward, real_q_reward))
+        #     best_reward = real_q_reward
+
         obs = env.reset()
         episodes += 1
 

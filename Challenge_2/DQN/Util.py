@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import os
 
-
 def create_initial_samples(env, memory, count, discrete_actions):
     last_observation = env.reset()
     samples = 0
