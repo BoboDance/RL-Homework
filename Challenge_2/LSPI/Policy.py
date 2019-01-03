@@ -3,7 +3,7 @@ import numpy as np
 
 class Policy:
 
-    def __init__(self, basis_function, n_actions, weights=None, gamma=.99, eps=1, tie_breaker="first"):
+    def __init__(self, basis_function, n_actions, weights=None, eps=1, tie_breaker="first"):
         """
 
         :param basis_function: Basisfunction object which returns phi upon call
@@ -18,7 +18,6 @@ class Policy:
         self.tie_breaker = tie_breaker
 
         self.n_actions = n_actions
-        self.gamma = gamma
         self.eps = eps
 
         if weights is None:
@@ -34,12 +33,13 @@ class Policy:
         :return:
         """
         phi = self.basis_function(state, action_idx)
-        return phi.dot(self.w)
+        return phi @ self.w
 
     def get_best_action(self, observation):
 
         observation = np.atleast_2d(observation)
 
+        # action_idx is None, therefore all actions are evaluated
         Q_values = self.Q(observation)
 
         if self.tie_breaker == "first":

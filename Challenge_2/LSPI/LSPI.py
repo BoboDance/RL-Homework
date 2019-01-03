@@ -46,6 +46,7 @@ theta = 1e-5  # convergence criterion
 
 max_episodes = 10000
 minibatch_size = 256
+optimize_after_steps = 1
 
 n_features = 100
 beta = 4  # parameter for width of gaussians
@@ -74,15 +75,15 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
     next_obs = samples[:, NEXT_OBS_IDX: DONE_IDX]
     done = samples[:, DONE_IDX].astype(np.bool)
 
-    phi = (policy.basis_function(obs, action_idx).reshape((-1, len(samples))))
+    phi = policy.basis_function(obs, action_idx).reshape((-1, len(samples)))
     phi_next = np.zeros((k, len(samples)))
 
     if np.any(~done):
         sel_next_obs = next_obs[~done]
         best_action = policy.get_best_action(sel_next_obs)
-        phi_next[:, ~done] = (policy.basis_function(sel_next_obs, best_action).reshape((-1, len(sel_next_obs))))
+        phi_next[:, ~done] = policy.basis_function(sel_next_obs, best_action).reshape((-1, len(sel_next_obs)))
 
-    A = phi.dot((phi - policy.gamma * phi_next).T) + np.identity(k) * precondition_value
+    A = phi.dot((phi - gamma * phi_next).T) + np.identity(k) * precondition_value
     b = phi @ reward
 
     rank_A = np.linalg.matrix_rank(A)
@@ -93,7 +94,6 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
         print(f'A matrix does not have full rank {k} > {rank_A}. Using least squares solver.')
         w = scipy.linalg.lstsq(A, b)[0]
 
-    phi.dot((phi - policy.gamma * phi_next).T)
     return w.reshape((-1,))
 
 
@@ -112,7 +112,7 @@ means = np.random.multivariate_normal((low - high) / 2, np.diag(high / 3), size=
 # means = np.array([np.linspace(low[i], high[i], n_features) for i in range(dim_obs)]).T
 
 basis_function = RBF(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
-policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), gamma=gamma, eps=eps_start)
+policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), eps=eps_start)
 
 delta = np.inf
 episodes = 0
@@ -152,9 +152,9 @@ while delta >= theta and episodes <= max_episodes:
     memory.push((*obs, *action_idx, reward, *next_obs, done))
 
     obs = next_obs
-    env.render()
+    # env.render()
 
-    if total_steps % 50 == 0:
+    if total_steps % optimize_after_steps == 0:
         if importance_weights:
             raise NotImplementedError()
         else:
