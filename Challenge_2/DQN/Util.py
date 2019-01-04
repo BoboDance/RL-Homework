@@ -5,29 +5,6 @@ import os
 
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 
-def plot_observations_cartpole(replay_memory: ReplayMemory):
-    fig, ax = plt.subplots(3, 2)
-
-    ax[0, 0].hist(replay_memory.memory[0:replay_memory.valid_entries, 0])
-    ax[0, 0].set_title("x")
-    ax[0, 1].hist(replay_memory.memory[0:replay_memory.valid_entries, 3])
-    ax[0, 1].set_title("x_dot")
-
-    ax[1, 0].hist(replay_memory.memory[0:replay_memory.valid_entries, 1])
-    ax[1, 0].set_title("sin(theta)")
-    ax[1, 1].hist(replay_memory.memory[0:replay_memory.valid_entries, 2])
-    ax[1, 1].set_title("cos(theta)")
-    ax[2, 0].hist(replay_memory.memory[0:replay_memory.valid_entries, 4])
-    ax[2, 0].set_title("theta_dot")
-
-    ax[2, 1].hist(replay_memory.memory[0:replay_memory.valid_entries, 5])
-    ax[2, 1].set_title("action")
-
-    fig.tight_layout()
-
-    plt.show()
-
-
 def save_checkpoint(state, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
 
@@ -59,6 +36,39 @@ def get_best_action_and_value(Q, observation, discrete_actions):
     values = Q(np.atleast_2d(observation))
     return np.array([discrete_actions[values.argmax(1).item()]]), values.max(1)[0].item()
 
+class CartpoleReplayMemoryFigure():
+    def __init__(self, replay_memory: ReplayMemory, discrete_actions):
+        self.fig, self.ax = plt.subplots(3, 2)
+        self.replay_memory = replay_memory
+        self.discrete_actions = discrete_actions
+
+    def draw(self):
+        self.ax[0, 0].cla()
+        self.ax[0, 1].cla()
+        self.ax[1, 0].cla()
+        self.ax[1, 1].cla()
+        self.ax[2, 0].cla()
+        self.ax[2, 1].cla()
+
+        self.ax[0, 0].hist(self.replay_memory.memory[0:self.replay_memory.valid_entries, 0])
+        self.ax[0, 0].set_title("x")
+        self.ax[0, 1].hist(self.replay_memory.memory[0:self.replay_memory.valid_entries, 3])
+        self.ax[0, 1].set_title("x_dot")
+
+        self.ax[1, 0].hist(self.replay_memory.memory[0:self.replay_memory.valid_entries, 1])
+        self.ax[1, 0].set_title("sin(theta)")
+        self.ax[1, 1].hist(self.replay_memory.memory[0:self.replay_memory.valid_entries, 2])
+        self.ax[1, 1].set_title("cos(theta)")
+        self.ax[2, 0].hist(self.replay_memory.memory[0:self.replay_memory.valid_entries, 4])
+        self.ax[2, 0].set_title("theta_dot")
+
+        action_indices = self.replay_memory.memory[0:self.replay_memory.valid_entries, 5].astype(int)
+        self.ax[2, 1].hist(self.discrete_actions[action_indices], bins=(len(self.discrete_actions) * 2))
+        self.ax[2, 1].set_title("action")
+
+        self.fig.tight_layout()
+        plt.draw()
+        plt.pause(0.001)
 
 class DQNStatsFigure():
     def __init__(self):

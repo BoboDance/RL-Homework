@@ -1,0 +1,4 @@
+# avoid pushing the logging files
+checkpoints/*
+!checkpoints/.gitkeep
+runs/
