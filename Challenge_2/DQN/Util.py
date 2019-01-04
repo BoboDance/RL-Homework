@@ -3,19 +3,29 @@ import numpy as np
 import torch
 import os
 
-def create_initial_samples(env, memory, count, discrete_actions):
-    last_observation = env.reset()
-    samples = 0
-    while samples < count:
-        action_idx = np.random.choice(range(len(discrete_actions)), 1)
-        action = discrete_actions[action_idx]
-        # np.clip(np.random.normal(action, 1), env.action_space.low, env.action_space.high)
-        observation, reward, done, _ = env.step(action)
-        memory.push((*last_observation, *action_idx, reward, *observation, done))
-        samples += 1
+from Challenge_2.Common.ReplayMemory import ReplayMemory
 
-        if done:
-            last_observation = env.reset()
+def plot_observations_cartpole(replay_memory: ReplayMemory):
+    fig, ax = plt.subplots(3, 2)
+
+    ax[0, 0].hist(replay_memory.memory[0:replay_memory.valid_entries, 0])
+    ax[0, 0].set_title("x")
+    ax[0, 1].hist(replay_memory.memory[0:replay_memory.valid_entries, 3])
+    ax[0, 1].set_title("x_dot")
+
+    ax[1, 0].hist(replay_memory.memory[0:replay_memory.valid_entries, 1])
+    ax[1, 0].set_title("sin(theta)")
+    ax[1, 1].hist(replay_memory.memory[0:replay_memory.valid_entries, 2])
+    ax[1, 1].set_title("cos(theta)")
+    ax[2, 0].hist(replay_memory.memory[0:replay_memory.valid_entries, 4])
+    ax[2, 0].set_title("theta_dot")
+
+    ax[2, 1].hist(replay_memory.memory[0:replay_memory.valid_entries, 5])
+    ax[2, 1].set_title("action")
+
+    fig.tight_layout()
+
+    plt.show()
 
 
 def save_checkpoint(state, filename='checkpoint.pth.tar'):

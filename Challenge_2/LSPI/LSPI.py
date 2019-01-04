@@ -8,8 +8,8 @@ import scipy
 
 from Challenge_2.LSPI.Policy import Policy
 from Challenge_2.LSPI.RBF import RBF
-from Challenge_2.LSPI.ReplayMemory import ReplayMemory
-from Challenge_2.LSPI.Util import create_initial_samples
+from Challenge_2.Common.ReplayMemory import ReplayMemory
+from Challenge_2.Common.Util import create_initial_samples
 
 seed = 1
 np.random.seed(seed)

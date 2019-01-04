@@ -1,6 +1,7 @@
 import math
 
 import gym
+import quanser_robots
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
@@ -9,11 +10,10 @@ import torch.nn as nn
 from tensorboardX import SummaryWriter
 
 from Challenge_2.DQN.DQNModel import DQNModel
-from Challenge_2.DQN.ReplayMemory import ReplayMemory
+from Challenge_2.Common.ReplayMemory import ReplayMemory
 
-import quanser_robots
-
-from Challenge_2.DQN.Util import create_initial_samples, get_best_values, get_best_action, save_checkpoint
+from Challenge_2.DQN.Util import get_best_values, get_best_action, save_checkpoint
+from Challenge_2.Common.Util import create_initial_samples
 
 seed = 1
 

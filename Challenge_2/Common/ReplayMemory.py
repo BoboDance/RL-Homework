@@ -42,25 +42,3 @@ class ReplayMemory():
             raise ValueError("You cannot sample from zero elements! Push elements to the memory first.")
 
         return self.memory[indices].reshape(count, self.entry_size)
-
-    def plot_observations_cartpole(self):
-        fig, ax = plt.subplots(3, 2)
-
-        ax[0, 0].hist(self.memory[0:self.valid_entries, 0])
-        ax[0, 0].set_title("x")
-        ax[0, 1].hist(self.memory[0:self.valid_entries, 3])
-        ax[0, 1].set_title("x_dot")
-
-        ax[1, 0].hist(self.memory[0:self.valid_entries, 1])
-        ax[1, 0].set_title("sin(theta)")
-        ax[1, 1].hist(self.memory[0:self.valid_entries, 2])
-        ax[1, 1].set_title("cos(theta)")
-        ax[2, 0].hist(self.memory[0:self.valid_entries, 4])
-        ax[2, 0].set_title("theta_dot")
-
-        ax[2, 1].hist(self.memory[0:self.valid_entries, 5])
-        ax[2, 1].set_title("action")
-
-        fig.tight_layout()
-
-        plt.show()
