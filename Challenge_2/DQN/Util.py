@@ -5,6 +5,11 @@ import os
 
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 
+
+def get_current_lr(optimizer):
+    return optimizer.param_groups[0]['lr']
+
+
 def save_checkpoint(state, filename='checkpoint.pth.tar'):
     torch.save(state, filename)
 

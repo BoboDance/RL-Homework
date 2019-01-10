@@ -23,17 +23,14 @@ class DQNModel(torch.nn.Module):
         self.n_inputs = n_inputs
 
         # network architecture specification
-        hidden = 123
+        hidden = 15
 
         self.model = nn.Sequential(
             nn.Linear(self.n_inputs, hidden),
-            nn.BatchNorm1d(hidden),
             act,
             nn.Linear(hidden, hidden),
-            nn.BatchNorm1d(hidden),
             act,
             nn.Linear(hidden, hidden),
-            nn.BatchNorm1d(hidden),
             act,
             nn.Linear(hidden, self.n_outputs),
         )
