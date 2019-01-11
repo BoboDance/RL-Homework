@@ -15,19 +15,18 @@ seed = 1
 np.random.seed(seed)
 
 env = gym.make("Pendulum-v0")
+# env = gym.make("CartpoleStabShort-v0")
 env.seed(seed)
 
 dim_obs = env.observation_space.shape[0]
 dim_action = env.action_space.shape[0]
 
 discrete_actions = np.linspace(-2, 2, 2)
-# discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 20)
+# discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 5)
 print("Used discrete actions: ", discrete_actions)
 
 # transition: observation, action, reward, next observation, done
 transition_size = dim_obs + dim_action + 1 + dim_obs + 1
-
-# Helps to ensure few samples give a matrix of full rank, choose 0 if not desired
 
 ACTION_IDX = dim_obs
 REWARD_IDX = dim_obs + dim_action
@@ -37,11 +36,11 @@ DONE_IDX = -1
 importance_weights = False
 
 # the probability to choose an random action decaying over time
-eps_start = .25
-eps_end = 0.05
+eps_start = 0.  #.25
+eps_end = 0  #.05
 eps_decay = 100
 
-gamma = 0.99  # discount
+gamma = 0.995  # discount
 theta = 1e-5  # convergence criterion
 
 max_episodes = 10000
@@ -49,7 +48,7 @@ minibatch_size = 256
 optimize_after_steps = 1
 
 n_features = 100
-beta = 4  # parameter for width of gaussians
+beta = .8  # parameter for width of gaussians
 
 
 def LSTDQ_iteration(samples, policy, precondition_value=.1):
@@ -75,16 +74,16 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
     next_obs = samples[:, NEXT_OBS_IDX: DONE_IDX]
     done = samples[:, DONE_IDX].astype(np.bool)
 
-    phi = policy.basis_function(obs, action_idx).reshape((-1, len(samples)))
-    phi_next = np.zeros((k, len(samples)))
+    phi = policy.basis_function(obs, action_idx)
+    phi_next = np.zeros_like(phi)
 
     if np.any(~done):
         sel_next_obs = next_obs[~done]
         best_action = policy.get_best_action(sel_next_obs)
-        phi_next[:, ~done] = policy.basis_function(sel_next_obs, best_action).reshape((-1, len(sel_next_obs)))
+        phi_next[~done, :] = policy.basis_function(sel_next_obs, best_action)
 
-    A = phi.dot((phi - gamma * phi_next).T) + np.identity(k) * precondition_value
-    b = phi @ reward
+    A = phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value
+    b = phi.T @ reward
 
     rank_A = np.linalg.matrix_rank(A)
 
@@ -97,9 +96,9 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
     return w.reshape((-1,))
 
 
-memory = ReplayMemory(5000, transition_size)
+memory = ReplayMemory(20000, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
-create_initial_samples(env, memory, 500, discrete_actions)
+create_initial_samples(env, memory, 20000, discrete_actions)
 
 # low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
 # high = np.array(list(env.observation_space.high[:3]) + [5, 5])
@@ -108,8 +107,10 @@ low = env.observation_space.low
 high = env.observation_space.high
 
 # TODO: find better init
-means = np.random.multivariate_normal((low - high) / 2, np.diag(high / 3), size=(n_features,))
+# means = np.random.multivariate_normal((low + high) / 2, np.diag(high / 3), size=(n_features,))
+means = np.random.uniform(low, high, size=(n_features, dim_obs))
 # means = np.array([np.linspace(low[i], high[i], n_features) for i in range(dim_obs)]).T
+# means = np.array([[1, 1, 1, 1, 1], [2, 2, 2, 2, 2]])
 
 basis_function = RBF(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
 policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), eps=eps_start)
@@ -149,10 +150,10 @@ while delta >= theta and episodes <= max_episodes:
     # reward = min(max(-1., reward), 1.)
     episode_reward += reward
 
-    memory.push((*obs, *action_idx, reward, *next_obs, done))
+    # memory.push((*obs, *action_idx, reward, *next_obs, done))
 
     obs = next_obs
-    # env.render()
+    env.render()
 
     if total_steps % optimize_after_steps == 0:
         if importance_weights:

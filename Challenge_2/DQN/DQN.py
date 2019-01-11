@@ -1,21 +1,17 @@
 import math
 
-import gym
 import quanser_robots
+import gym
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 
-from Challenge_2.DQN.DQNModel import DQNModel
 from Challenge_2.Common.ReplayMemory import ReplayMemory
-
-from Challenge_2.DQN.Util import get_best_values, get_best_action, save_checkpoint, CartpoleReplayMemoryFigure, \
-    get_current_lr
 from Challenge_2.Common.Util import create_initial_samples
+from Challenge_2.DQN.DQNModel import DQNModel
+from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr
 
 # init tensorboard writer for better visualizations
 writer = SummaryWriter()
@@ -25,14 +21,15 @@ seed = 1
 torch.manual_seed(seed)
 np.random.seed(seed)
 
-env = gym.make("Pendulum-v0")
+# env = gym.make("Pendulum-v0")
+env = gym.make("CartpoleSwingShort-v0")
 env.seed(seed)
 
 dim_obs = env.observation_space.shape[0]
 dim_action = env.action_space.shape[0]
 
-discrete_actions = np.array([-2, 2])
-# discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 20)
+# discrete_actions = np.array([-2, 2])
+discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 2)
 print("Used discrete actions: ", discrete_actions)
 
 # transition: observation, action, reward, next observation, done
@@ -51,6 +48,7 @@ eps_end = 0.1
 eps_decay = 2000
 
 gamma = 0.999
+
 
 def get_expected_values(transitions, model):
     global REWARD_INDEX
@@ -98,7 +96,7 @@ def optimize(memory, Q, target_Q, use_double_Q=False, criterion=nn.SmoothL1Loss(
     expected_values = get_expected_values(minibatch, target_Q)
     expected_values = torch.from_numpy(expected_values).float()
 
-    obs = minibatch[:, 0:dim_obs]
+    obs = minibatch[:, :dim_obs]
     # obs = torch.from_numpy(obs).float()
 
     actions = minibatch[:, ACTION_INDEX:REWARD_INDEX]
@@ -116,6 +114,7 @@ def optimize(memory, Q, target_Q, use_double_Q=False, criterion=nn.SmoothL1Loss(
     Q.optimizer.step()
 
     return loss.item()
+
 
 def evaluate_policy_Q(Q, episodes=100, max_steps=10000, render=0):
     global env
@@ -167,7 +166,7 @@ target_Q.load_state_dict(Q.state_dict())
 scheduler = StepLR(Q.optimizer, 200, 0.99)
 
 # the amount of steps after which the target model is updated
-target_model_update_steps = 100
+target_model_update_steps = 1000
 
 # how many training episodes to do
 max_episodes = 5000
@@ -201,7 +200,7 @@ try:
 
         next_obs, reward, done, _ = env.step(action)
         # reward clipping
-        #reward = min(max(-1., reward), 1.)
+        # reward = min(max(-1., reward), 1.)
 
         episode_reward += reward
 
@@ -234,7 +233,6 @@ try:
 
         if done or (episode_steps >= soft_max_episode_steps and avg_reward < soft_avg_reward_threshold) \
                 or episode_steps >= max_steps_per_episode:
-
             obs = env.reset()
             episodes += 1
 
@@ -250,7 +248,8 @@ try:
 
             print("\rEpisode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
                   "-- training loss: {:10.5f} -- lr: {:0.8f} -- eps: {:0.8f}"
-                  .format(episodes, total_steps, avg_reward, episode_steps, episode_reward, episode_loss, get_current_lr(Q.optimizer), get_eps()))
+                  .format(episodes, total_steps, avg_reward, episode_steps, episode_reward, episode_loss,
+                          get_current_lr(Q.optimizer), get_eps()))
 
             writer.add_scalar("avg_reward", avg_reward, episodes)
             writer.add_scalar("total_reward", episode_reward, episodes)

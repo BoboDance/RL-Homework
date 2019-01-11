@@ -57,8 +57,8 @@ class RBF(object):
         return phi
 
     def _calc_rbf(self, observations):
-        diff = (self.means[:, None, :] - observations[None, :, :]) ** 2
-        return np.exp(-self.beta * np.sum(diff, axis=2))
+        diff = (self.means[:, None, :] - observations[None, :, :]) / self.beta
+        return np.exp(-.5 * np.sum(diff ** 2, axis=2))
 
     def size(self):
         return (len(self.means) + 1) * self.n_actions
