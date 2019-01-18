@@ -1,9 +1,12 @@
 import numpy as np
 
+from Challenge_2.LSPI.BasisFunctions.BasisFunction import BasisFunction
+
 
 class Policy:
 
-    def __init__(self, basis_function, n_actions, weights=None, eps=1, tie_breaker="first"):
+    def __init__(self, basis_function: BasisFunction, n_actions: int, weights: np.ndarray = None, eps: float = 1,
+                 tie_breaker: str = "first"):
         """
 
         :param basis_function: Basisfunction object which returns phi upon call
@@ -24,7 +27,7 @@ class Policy:
         else:
             self.w = weights
 
-    def Q(self, state, action_idx=None):
+    def Q(self, state: np.ndarray, action_idx: np.ndarray = None) -> np.ndarray:
         """
         returns Q value for state action pair. If action is none value for all actions is returned.
         :param state: ndarray [batch_size x state_dim]
@@ -34,7 +37,12 @@ class Policy:
         phi = self.basis_function(state, action_idx)
         return phi @ self.w
 
-    def get_best_action(self, observation):
+    def get_best_action(self, observation: np.ndarray) -> np.ndarray:
+        """
+        return best value based on current Q estimation
+        :param observation: ndarray [batch_size x state_dim]
+        :return: action index of action with current highest Q value
+        """
 
         observation = np.atleast_2d(observation)
 
@@ -51,7 +59,12 @@ class Policy:
             best_actions = np.argwhere(Q_values == np.max(Q_values, axis=1))
             return np.random.choice(best_actions)
 
-    def choose_action(self, observation):
+    def choose_action(self, observation: np.ndarray) -> np.ndarray:
+        """
+        Choose an action to take, either take action with highest Q or select random action with prob eps
+        :param observation: ndarray [batch_size x state_dim]
+        :return: action index
+        """
         if np.random.uniform() <= self.eps:
             action_idx = np.random.choice(range(self.n_actions))
         else:

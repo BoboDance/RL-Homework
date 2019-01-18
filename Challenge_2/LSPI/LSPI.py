@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """Contains main interface to LSPI algorithm."""
 import math
-import quanser_robots
 import gym
 import numpy as np
-import scipy
+import scipy.linalg
+import quanser_robots
 
-from Challenge_2.LSPI.FourierBasis import FourierBasis
+from Challenge_2.LSPI.BasisFunctions.FourierBasis import FourierBasis
 from Challenge_2.LSPI.Policy import Policy
-from Challenge_2.LSPI.RBF import RBF
+from Challenge_2.LSPI.BasisFunctions.RadialBasisFunction import RadialBasisFunction
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import create_initial_samples
 
@@ -22,7 +22,7 @@ env.seed(seed)
 dim_obs = env.observation_space.shape[0]
 dim_action = env.action_space.shape[0]
 
-discrete_actions = np.linspace(-5, 5, 2)
+discrete_actions = np.linspace(-10, 10, 5)
 # discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 5)
 print("Used discrete actions: ", discrete_actions)
 
@@ -37,19 +37,23 @@ DONE_IDX = -1
 importance_weights = False
 
 # the probability to choose an random action decaying over time
-eps_start = 0.25  #.25
-eps_end = 0.05  #.05
+eps_start = 0.25  # .25
+eps_end = 0.05  # .05
 eps_decay = 100
 
 gamma = 0.99  # discount
 theta = 1e-5  # convergence criterion
 
 max_episodes = 10000
-minibatch_size = 256
+minibatch_size = 10
 optimize_after_steps = 1
 
-n_features = 100
+n_features = 50
 beta = .8  # parameter for width of gaussians
+
+width = 1  # width of fourier features
+
+do_render = False
 
 
 def LSTDQ_iteration(samples, policy, precondition_value=.1):
@@ -62,6 +66,7 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
     :param precondition_value: Helps to ensure few samples give a matrix of full rank, choose 0 if not desired
     :return:
     """
+
     global ACTION_IDX
     global REWARD_IDX
     global NEXT_OBS_IDX
@@ -99,24 +104,24 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
 
 memory = ReplayMemory(20000, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
-create_initial_samples(env, memory, 20000, discrete_actions)
+create_initial_samples(env, memory, 20000, discrete_actions, normalize=True)
 
-# low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
-# high = np.array(list(env.observation_space.high[:3]) + [5, 5])
+low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
+high = np.array(list(env.observation_space.high[:3]) + [5, 5])
 
-low = env.observation_space.low
-high = env.observation_space.high
+# low = env.observation_space.low
+# high = env.observation_space.high
 
 # TODO: find better init
 # means = np.random.multivariate_normal((low + high) / 2, np.diag(high / 3), size=(n_features,))
 # means = np.random.uniform(low, high, size=(n_features, dim_obs))
 # means = np.array([np.linspace(low[i], high[i], n_features) for i in range(dim_obs)]).T
-# means = np.array([[1, 1, 1, 1, 1], [2, 2, 2, 2, 2]])
-# basis_function = RBF(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
+# means = np.array([[1, 1, 1, 1, 1], [2, 2, 2, 2, 2], [3, 3, 3, 3, 3], [4, 4, 4, 4, 4]])
+# basis_function = RadialBasisFunction(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
 
 # widths = np.random.multivariate_normal((low + high) / 2, np.diag(high / 3), size=(n_features,))
-widths = np.fft.rfftfreq(n_features, d=.5)
-basis_function = FourierBasis(input_dim=dim_obs, widths=widths, n_actions=len(discrete_actions))
+frequency = np.fft.rfftfreq(n_features, d=width)
+basis_function = FourierBasis(input_dim=dim_obs, frequency=frequency, n_actions=len(discrete_actions))
 policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), eps=eps_start)
 
 delta = np.inf
@@ -157,7 +162,7 @@ while delta >= theta and episodes <= max_episodes:
     # memory.push((*obs, *action_idx, reward, *next_obs, done))
 
     obs = next_obs
-    if episode_steps % 24 == 0:
+    if do_render and episode_steps % 24 == 0:
         env.render()
 
     if total_steps % optimize_after_steps == 0:
