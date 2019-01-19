@@ -17,11 +17,15 @@ np.random.seed(seed)
 
 # env = gym.make("Pendulum-v0")
 env = gym.make("CartpoleStabShort-v0")
+# env = gym.make("CartPole-v0")
 env.seed(seed)
 
 dim_obs = env.observation_space.shape[0]
 dim_action = env.action_space.shape[0]
+# dim_action = 1
 
+
+# discrete_actions = np.arange(env.action_space.n)
 discrete_actions = np.linspace(-10, 10, 5)
 # discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 5)
 print("Used discrete actions: ", discrete_actions)
@@ -44,19 +48,26 @@ eps_decay = 100
 gamma = 0.99  # discount
 theta = 1e-5  # convergence criterion
 
+# sample hyperparameter
 max_episodes = 10000
-minibatch_size = 10
+replay_memory_size = 20000
+initial_samples = 20000
+minibatch_size = 20000
 optimize_after_steps = 1
 
-n_features = 50
+n_features = 10
+
+# RBFS base function
 beta = .8  # parameter for width of gaussians
 
-width = 1  # width of fourier features
+# Fourier base function
+width = .1  # width of fourier features
 
 do_render = False
+normalize_state = False
 
 
-def LSTDQ_iteration(samples, policy, precondition_value=.1):
+def LSTDQ_iteration(samples, policy, precondition_value=.01, use_optimized=False):
     """
     Compute Q value function of current policy via LSTDQ iteration.
     If a matrix has full rank: scipy.linalg solver
@@ -88,29 +99,44 @@ def LSTDQ_iteration(samples, policy, precondition_value=.1):
         best_action = policy.get_best_action(sel_next_obs)
         phi_next[~done, :] = policy.basis_function(sel_next_obs, best_action)
 
-    A = phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value
-    b = phi.T @ reward
+    if not use_optimized:
+        A = (phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value) / minibatch_size
+        b = (phi.T @ reward) / minibatch_size
 
-    rank_A = np.linalg.matrix_rank(A)
+        rank_A = np.linalg.matrix_rank(A)
 
-    if rank_A == k:
-        w = scipy.linalg.solve(A, b)
+        if rank_A == k:
+            w = scipy.linalg.solve(A, b)
+        else:
+            print(f'A matrix does not have full rank {k} > {rank_A}. Using least squares solver.')
+            w = scipy.linalg.lstsq(A, b)[0]
+
     else:
-        print(f'A matrix does not have full rank {k} > {rank_A}. Using least squares solver.')
-        w = scipy.linalg.lstsq(A, b)[0]
+        B = (1 / precondition_value) * np.identity(k)
+        b = 0
+        for i in range(len(phi)):
+            p = phi[i].reshape(-1, 1)
+            pn = phi_next[i].reshape(-1, 1)
+
+            top = B @ (p @ (p - gamma * pn).T) @ B.T
+            bottom = 1 + (p - gamma * pn).T @ B @ p
+            B -= top / bottom
+            b += p @ reward[i]
+
+        w = B @ b
 
     return w.reshape((-1,))
 
 
-memory = ReplayMemory(20000, transition_size)
+memory = ReplayMemory(replay_memory_size, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
-create_initial_samples(env, memory, 20000, discrete_actions, normalize=True)
+create_initial_samples(env, memory, initial_samples, discrete_actions, normalize=normalize_state)
 
-low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
-high = np.array(list(env.observation_space.high[:3]) + [5, 5])
+# low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
+# high = np.array(list(env.observation_space.high[:3]) + [5, 5])
 
-# low = env.observation_space.low
-# high = env.observation_space.high
+low = env.observation_space.low
+high = env.observation_space.high
 
 # TODO: find better init
 # means = np.random.multivariate_normal((low + high) / 2, np.diag(high / 3), size=(n_features,))
@@ -119,7 +145,6 @@ high = np.array(list(env.observation_space.high[:3]) + [5, 5])
 # means = np.array([[1, 1, 1, 1, 1], [2, 2, 2, 2, 2], [3, 3, 3, 3, 3], [4, 4, 4, 4, 4]])
 # basis_function = RadialBasisFunction(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
 
-# widths = np.random.multivariate_normal((low + high) / 2, np.diag(high / 3), size=(n_features,))
 frequency = np.fft.rfftfreq(n_features, d=width)
 basis_function = FourierBasis(input_dim=dim_obs, frequency=frequency, n_actions=len(discrete_actions))
 policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), eps=eps_start)
@@ -162,7 +187,7 @@ while delta >= theta and episodes <= max_episodes:
     # memory.push((*obs, *action_idx, reward, *next_obs, done))
 
     obs = next_obs
-    if do_render and episode_steps % 24 == 0:
+    if do_render and episode_steps % 12 == 0:
         env.render()
 
     if total_steps % optimize_after_steps == 0:

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-class ReplayMemory():
+class ReplayMemory(object):
     def __init__(self, capacity, entry_size):
         """
         Create the replay memory.

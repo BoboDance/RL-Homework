@@ -4,13 +4,13 @@ import numpy as np
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 
 
-def create_initial_samples(env: gym.Env, memory: ReplayMemory, count: int, discrete_actions: np.ndarray,
+def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, discrete_actions: np.ndarray,
                            normalize: bool = False) -> None:
     """
     Create initial data set and push to replay memory
     :param env: gym env to work with
     :param memory: replay memory which receives data samples
-    :param count: number of samples
+    :param n_samples: number of samples
     :param discrete_actions: valid actions to take
     :param normalize: normalize observations
     :return: None
@@ -18,8 +18,9 @@ def create_initial_samples(env: gym.Env, memory: ReplayMemory, count: int, discr
     last_observation = env.reset()
     if normalize:
         last_observation = normalize_state(env, last_observation)
-    samples = 0
-    while samples < count:
+
+    samples_ctr = 0
+    while samples_ctr < n_samples:
         # choose a random action
         action_idx = np.random.choice(range(len(discrete_actions)), 1)
         action = discrete_actions[action_idx]
@@ -30,11 +31,13 @@ def create_initial_samples(env: gym.Env, memory: ReplayMemory, count: int, discr
 
         memory.push((*last_observation, *action_idx, reward, *observation, done))
 
-        samples += 1
+        samples_ctr += 1
         last_observation = observation
 
         if done:
             last_observation = env.reset()
+            if normalize:
+                last_observation = normalize_state(env, last_observation)
 
 
 def normalize_state(env, observation):
