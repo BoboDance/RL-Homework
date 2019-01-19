@@ -41,8 +41,8 @@ DONE_IDX = -1
 importance_weights = False
 
 # the probability to choose an random action decaying over time
-eps_start = 0.25  # .25
-eps_end = 0.05  # .05
+eps_start = 0  # .25
+eps_end = 0  # .05
 eps_decay = 100
 
 gamma = 0.99  # discount
@@ -50,20 +50,20 @@ theta = 1e-5  # convergence criterion
 
 # sample hyperparameter
 max_episodes = 10000
-replay_memory_size = 20000
-initial_samples = 20000
-minibatch_size = 20000
+replay_memory_size = 10000
+initial_samples = 10000
+minibatch_size = 1024
 optimize_after_steps = 1
 
-n_features = 10
+n_features = 30  # current best: 20 with beta .8
 
 # RBFS base function
 beta = .8  # parameter for width of gaussians
 
 # Fourier base function
-width = .1  # width of fourier features
+width = 1  # width of fourier features
 
-do_render = False
+do_render = True
 normalize_state = False
 
 
@@ -100,15 +100,16 @@ def LSTDQ_iteration(samples, policy, precondition_value=.01, use_optimized=False
         phi_next[~done, :] = policy.basis_function(sel_next_obs, best_action)
 
     if not use_optimized:
-        A = (phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value) / minibatch_size
-        b = (phi.T @ reward) / minibatch_size
+        A = (phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value)
+        b = (phi.T @ reward)
 
+        # a_mat, b_vec, phi_sa, phi_sprime = loop_it(samples, precondition_value)
         rank_A = np.linalg.matrix_rank(A)
 
         if rank_A == k:
             w = scipy.linalg.solve(A, b)
         else:
-            print(f'A matrix does not have full rank {k} > {rank_A}. Using least squares solver.')
+            # print(f'A matrix does not have full rank {k} > {rank_A}. Using least squares solver.')
             w = scipy.linalg.lstsq(A, b)[0]
 
     else:
@@ -128,25 +129,62 @@ def LSTDQ_iteration(samples, policy, precondition_value=.01, use_optimized=False
     return w.reshape((-1,))
 
 
+def loop_it(samples, precondition_value):
+    k = policy.basis_function.size()
+
+    a_mat = np.zeros((k, k))
+    np.fill_diagonal(a_mat, precondition_value)
+
+    b_vec = np.zeros((k, 1))
+
+    phi = []
+    phi_next = []
+
+    for sample in samples:
+
+        obs = sample[0: ACTION_IDX]
+        action_idx = sample[ACTION_IDX]
+        reward = sample[REWARD_IDX: NEXT_OBS_IDX]
+        next_obs = sample[NEXT_OBS_IDX: DONE_IDX]
+        done = sample[DONE_IDX].astype(np.bool)
+
+        phi_sa = (policy.basis_function.evaluate(obs, action_idx).reshape((-1, 1)))
+
+        if not done:
+            best_action = policy.best_action(next_obs)
+            phi_sprime = (policy.basis_function.evaluate(next_obs, best_action).reshape((-1, 1)))
+        else:
+            phi_sprime = np.zeros((k, 1))
+
+        phi.append(phi_sa)
+        phi_next.append(phi_sprime)
+
+        a_mat += phi_sa.dot((phi_sa - gamma * phi_sprime).T)
+        b_vec += phi_sa * reward
+
+    return a_mat, b_vec, np.array(phi), np.array(phi_next)
+
+
 memory = ReplayMemory(replay_memory_size, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
 create_initial_samples(env, memory, initial_samples, discrete_actions, normalize=normalize_state)
 
-# low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
-# high = np.array(list(env.observation_space.high[:3]) + [5, 5])
+low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
+high = np.array(list(env.observation_space.high[:3]) + [5, 5])
 
-low = env.observation_space.low
-high = env.observation_space.high
+# low = env.observation_space.low
+# high = env.observation_space.high
 
 # TODO: find better init
 # means = np.random.multivariate_normal((low + high) / 2, np.diag(high / 3), size=(n_features,))
 # means = np.random.uniform(low, high, size=(n_features, dim_obs))
 # means = np.array([np.linspace(low[i], high[i], n_features) for i in range(dim_obs)]).T
 # means = np.array([[1, 1, 1, 1, 1], [2, 2, 2, 2, 2], [3, 3, 3, 3, 3], [4, 4, 4, 4, 4]])
-# basis_function = RadialBasisFunction(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
+means = np.array(np.meshgrid(*tuple([np.linspace(low[i], high[i], 2) for i in range(dim_obs)]))).T.reshape(-1, dim_obs)
+basis_function = RadialBasisFunction(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
 
-frequency = np.fft.rfftfreq(n_features, d=width)
-basis_function = FourierBasis(input_dim=dim_obs, frequency=frequency, n_actions=len(discrete_actions))
+# frequency = np.fft.rfftfreq(n_features, d=width)
+# basis_function = FourierBasis(input_dim=dim_obs, frequency=frequency, n_actions=len(discrete_actions))
 policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), eps=eps_start)
 
 delta = np.inf

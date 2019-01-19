@@ -23,3 +23,17 @@ class RadialBasisFunction(BasisFunction):
 
     def get_offset(self, actions):
         return (len(self.means) + 1) * actions
+
+    def evaluate(self, state, action):
+        phi = np.zeros((self.size(),))
+        offset = int((len(self.means) + 1) * action)
+
+        rbf = [self.calc_features_loopy(state, mean) for mean in self.means]
+        phi[offset] = 1.
+        phi[offset + 1:offset + 1 + len(rbf)] = rbf
+
+        return phi
+
+    def calc_features_loopy(self, observations, mean):
+        diff = (mean - observations) / self.beta
+        return np.exp(-.5 * np.sum(diff ** 2))

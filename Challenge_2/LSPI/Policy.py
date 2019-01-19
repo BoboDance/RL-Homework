@@ -37,12 +37,26 @@ class Policy:
         phi = self.basis_function(state, action_idx)
         return phi @ self.w
 
-    def get_best_action(self, observation: np.ndarray) -> np.ndarray:
-        """
-        return best value based on current Q estimation
-        :param observation: ndarray [batch_size x state_dim]
-        :return: action index of action with current highest Q value
-        """
+    def calc_q_value(self, state, action):
+        return self.w.dot(self.basis_function.evaluate(state, action))
+
+    def best_action(self, state):
+        q_values = [self.calc_q_value(state, action)
+                    for action in range(self.n_actions)]
+
+        best_q = float('-inf')
+        best_actions = []
+
+        for action, q_value in enumerate(q_values):
+            if q_value > best_q:
+                best_actions = [action]
+                best_q = q_value
+            elif q_value == best_q:
+                best_actions.append(action)
+
+        return best_actions[0]
+
+    def get_best_action(self, observation):
 
         observation = np.atleast_2d(observation)
 
