@@ -111,3 +111,9 @@ venv.bak/
 # avoid pushing the logging files from the monitor object
 evaluation/
 training/
+
+# challenge 2
+dqn_eval/
+dqn_train/
+lspi_eval/
+lspi_train/
