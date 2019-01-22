@@ -4,28 +4,35 @@ import torch
 import os
 
 from Challenge_2.Common.ReplayMemory import ReplayMemory
+from Challenge_2.DQN import DQNModel
 
 
 def get_current_lr(optimizer):
     return optimizer.param_groups[0]['lr']
 
 
-def save_checkpoint(state, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
+def save_model(env, Q: DQNModel, episodes, reward):
+    torch.save({
+        'env_id': env.unwrapped.spec.id,
+        'episodes': episodes,
+        'Q': Q.state_dict(),
+        'reward': reward,
+    }, "./checkpoints/Q_{}_{}_{:.2f}.pth.tar".format(env.unwrapped.spec.id, episodes, reward))
 
 
-def load_saved_model(model, path, T, global_reward, optimizer=None):
+def load_model(env, Q: DQNModel, path):
     if os.path.isfile(path):
-        print("=> loading checkpoint '{}'".format(path))
         checkpoint = torch.load(path)
-        model.load_state_dict(checkpoint['state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        T.value = checkpoint['epoch']
-        global_reward.value = checkpoint['global_reward']
-        print("=> loaded checkpoint '{}' (T: {} -- global reward: {})"
-              .format(path, checkpoint['epoch'], checkpoint['global_reward']))
+
+        if checkpoint['env_id'] != env.unwrapped.spec.id:
+            print("The model you are trying to load was created for a different environment!")
+            return
+
+        Q.load_state_dict(checkpoint['Q'])
+
+        print("Loaded model from '{}'".format(path))
     else:
-        print("=> no checkpoint found at '{}'".format(path))
+        print("No model found at '{}'".format(path))
 
 
 def get_best_action(Q, observation):
@@ -40,6 +47,41 @@ def get_best_values(Q, observations):
 def get_best_action_and_value(Q, observation, discrete_actions):
     values = Q(np.atleast_2d(observation))
     return np.array([discrete_actions[values.argmax(1).item()]]), values.max(1)[0].item()
+
+
+def evaluate(env, Q, episodes=100, max_steps=10000, render=0, seed=1):
+    print("Evaluating the learned policy")
+    Q.eval()
+
+    env.seed(seed)
+    rewards = np.empty(episodes)
+
+    for episode in range(0, episodes):
+        print("\rEpisode {:4d}/{:4d}".format(episode, episodes), end="")
+        total_reward = 0
+        obs = env.reset()
+        steps = 0
+        done = False
+        while steps <= max_steps and not done:
+            action_idx = get_best_action(Q, obs)
+            action = Q.discrete_actions[action_idx]
+
+            obs, reward, done, _ = env.step(action)
+
+            total_reward += reward
+            steps += 1
+
+            if episode < render:
+                env.render()
+                if steps % 25 == 0:
+                    print("\rEpisode {:4d}/{:4d} > {:4d} steps".format(episode, episodes, steps), end="")
+
+        rewards[episode] = total_reward
+
+    print("\rDone.")
+    print("Stats: Episodes {}, avg: {}, std: {}".format(episodes, rewards.mean(), rewards.std()))
+
+    return rewards.mean()
 
 class CartpoleReplayMemoryFigure():
     def __init__(self, replay_memory: ReplayMemory, discrete_actions):
@@ -68,7 +110,7 @@ class CartpoleReplayMemoryFigure():
         self.ax[2, 0].set_title("theta_dot")
 
         action_indices = self.replay_memory.memory[0:self.replay_memory.valid_entries, 5].astype(int)
-        self.ax[2, 1].hist(self.discrete_actions[action_indices], bins=(len(self.discrete_actions) * 2))
+        self.ax[2, 1].hist(self.discrete_actions[action_indices], bins=(len(self.discrete_actions) * 2 - 1))
         self.ax[2, 1].set_title("action")
 
         self.fig.tight_layout()

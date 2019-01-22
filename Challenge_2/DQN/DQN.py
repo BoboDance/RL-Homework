@@ -7,263 +7,205 @@ import torch
 import torch.nn as nn
 from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
+import copy
 
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import create_initial_samples
 from Challenge_2.DQN.DQNModel import DQNModel
-from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr
+from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr, save_model, load_model, evaluate
+
+
+class DQN(object):
+
+    def __init__(self, env, Q: DQNModel, memory_size, initial_memory_count, minibatch_size,
+                 target_model_update_steps, gamma, eps_start, eps_end, eps_decay, max_episodes,
+                 max_steps_per_episode, lr_scheduler = None, loss = nn.SmoothL1Loss()):
+        """
+        Initializes the DQN wrapper.
+
+        :param env: the environment to train on
+        :param Q: the Q model for this environment
+        :param memory_size: the size of the replay memory
+        :param initial_memory_count: the amount of samples which will be initially created in the replay memory
+        :param minibatch_size: the size of the minibatch used in the optimization step
+        :param target_model_update_steps: the number of steps after which the target Q model is updated
+        :param gamma: the discount factor
+        :param eps_start: the value of eps at the beginning (exploration ~ eps)
+        :param eps_end: the value of eps at the end
+        :param eps_decay: defines how fast eps translates from eps_start to eps_end
+        :param max_episodes: the maximum number of episodes used in training
+        :param max_steps_per_episode: the maximum number of steps in each episode during training
+        :param lr_scheduler: the learning rate scheduler
+        :param loss: the loss used for the optimization step
+        """
+
+        self.env = env
+        self.discrete_actions = Q.discrete_actions
+        self.minibatch_size = minibatch_size
+        self.Q = Q
+        self.target_model_update_steps = target_model_update_steps
+        self.gamma = gamma
+        self.eps_start = eps_start
+        self.eps_end = eps_end
+        self.eps_decay = eps_decay
+        self.max_episodes = max_episodes
+        self.max_steps_per_episode = max_steps_per_episode
+        self.lr_scheduler = lr_scheduler
+        self.loss = loss
+
+        # init tensorboard writer for better visualizations
+        self.writer = SummaryWriter()
+
+        self.dim_obs = env.observation_space.shape[0]
+        self.dim_action = env.action_space.shape[0]
+
+        print("Used discrete actions: ", self.discrete_actions)
+
+        # transition: observation, action, reward, next observation, done
+        self.transition_size = self.dim_obs + self.dim_action + 1 + self.dim_obs + 1
+        self.ACTION_INDEX = self.dim_obs
+        self.REWARD_INDEX = self.dim_obs + self.dim_action
+        self.NEXT_OBS_INDEX = self.dim_obs + self.dim_action + 1
+        self.DONE_INDEX = -1
 
-# init tensorboard writer for better visualizations
-writer = SummaryWriter()
+        self.memory = ReplayMemory(memory_size, self.transition_size)
+        create_initial_samples(env, self.memory, initial_memory_count, self.discrete_actions)
 
-seed = 1
+        # create the target Q network which will only be evaluated and not trained
+        self.target_Q = copy.deepcopy(self.Q)
+        self.target_Q.optimizer = None
+        self.target_Q.load_state_dict(self.Q.state_dict())
+        self.target_Q.eval()
 
-torch.manual_seed(seed)
-np.random.seed(seed)
+    def get_expected_values(self, transitions, model):
+        y = transitions[:, self.REWARD_INDEX].reshape(-1, 1)
+        not_done_filter = ~transitions[:, self.DONE_INDEX].astype(bool)
+        next_obs = transitions[not_done_filter, self.NEXT_OBS_INDEX:self.NEXT_OBS_INDEX + self.dim_obs]
+        y[not_done_filter] += self.gamma * get_best_values(model, next_obs).reshape(-1, 1)
 
-# env = gym.make("Pendulum-v0")
-env = gym.make("CartpoleSwingShort-v0")
-env.seed(seed)
+        return y
 
-dim_obs = env.observation_space.shape[0]
-dim_action = env.action_space.shape[0]
+    def get_eps(self, total_steps):
+        # TODO: Move total steps somewhere else (no self..)
+        # compute decaying eps_threshold to encourage exploration at the beginning
+        return self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * total_steps / self.eps_decay)
 
-# discrete_actions = np.array([-2, 2])
-discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 2)
-print("Used discrete actions: ", discrete_actions)
+    def choose_action_eps(self, observation, total_steps):
+        eps_threshold = self.get_eps(total_steps)
 
-# transition: observation, action, reward, next observation, done
-transition_size = dim_obs + dim_action + 1 + dim_obs + 1
-ACTION_INDEX = dim_obs
-REWARD_INDEX = dim_obs + dim_action
-NEXT_OBS_INDEX = dim_obs + dim_action + 1
-DONE_INDEX = -1
+        # choose epsilon-greedy action
+        if np.random.uniform() <= eps_threshold:
+            action_idx = np.random.choice(range(len(self.discrete_actions)), 1)
+        else:
+            action_idx = get_best_action(self.Q, observation)
 
-# Enable if double Q learning is allowed for challenge
-use_double_Q = False
+        return action_idx
 
-# the probability to choose an random action decaying over time
-eps_start = 1.
-eps_end = 0.1
-eps_decay = 2000
+    def optimize(self):
+        if self.lr_scheduler is not None:
+            self.lr_scheduler.step()
 
-gamma = 0.999
+        self.Q.train()
 
+        minibatch = self.memory.sample(self.minibatch_size)
 
-def get_expected_values(transitions, model):
-    global REWARD_INDEX
-    global DONE_INDEX
-    global NEXT_OBS_INDEX
-    global dim_obs
-    global gamma
+        # calculate our y based on the target model
+        expected_values = self.get_expected_values(minibatch, self.target_Q)
+        expected_values = torch.from_numpy(expected_values).float()
 
-    y = transitions[:, REWARD_INDEX].reshape(-1, 1)
-    not_done_filter = ~transitions[:, DONE_INDEX].astype(bool)
-    next_obs = transitions[not_done_filter, NEXT_OBS_INDEX:NEXT_OBS_INDEX + dim_obs]
-    y[not_done_filter] += gamma * get_best_values(model, next_obs).reshape(-1, 1)
+        obs = minibatch[:, :self.dim_obs]
+        # obs = torch.from_numpy(obs).float()
 
-    return y
+        actions = minibatch[:, self.ACTION_INDEX:self.REWARD_INDEX]
+        actions = torch.from_numpy(actions).long()
 
+        # perform gradient descend regarding to expected values on the current model
+        self.Q.optimizer.zero_grad()
 
-def get_eps():
-    global total_steps
-    # compute decaying eps_threshold to encourage exploration at the beginning
-    return eps_end + (eps_start - eps_end) * math.exp(-1. * total_steps / eps_decay)
+        values = self.Q(obs).gather(1, actions)
+        loss_val = self.loss(values, expected_values)
+        loss_val.backward()
 
+        torch.nn.utils.clip_grad_norm_(self.Q.parameters(), 1)
 
-def choose_action(Q, observation, discrete_actions):
-    eps_threshold = get_eps()
-    # choose epsilon-greedy action
-    if np.random.uniform() <= eps_threshold:
-        action_idx = np.random.choice(range(len(discrete_actions)), 1)
-    else:
-        action_idx = get_best_action(Q, observation)
+        self.Q.optimizer.step()
 
-    return action_idx
+        return loss_val.item()
 
+    def train(self, render_episodes_mod=None):
+        episode = 0
+        total_steps = 0
 
-def optimize(memory, Q, target_Q, use_double_Q=False, criterion=nn.SmoothL1Loss()):
-    global minibatch_size
-    global gamma
-    global dim_obs
-    global NEXT_OBS_INDEX
+        episode_steps = 0
+        episode_reward = 0
+        episode_loss = 0
 
-    Q.train()
+        obs = self.env.reset()
+        # try-catch block to allow stopping the training process on KeyboardInterrupt
+        try:
+            while episode < self.max_episodes:
+                self.Q.eval()
 
-    minibatch = memory.sample(minibatch_size)
+                action_idx = self.choose_action_eps(obs, total_steps)
+                action = self.discrete_actions[action_idx]
 
-    # calculate our y based on the target model
-    expected_values = get_expected_values(minibatch, target_Q)
-    expected_values = torch.from_numpy(expected_values).float()
+                next_obs, reward, done, _ = self.env.step(action)
+                # reward clipping
+                # reward = min(max(-1., reward), 1.)
 
-    obs = minibatch[:, :dim_obs]
-    # obs = torch.from_numpy(obs).float()
+                episode_reward += reward
 
-    actions = minibatch[:, ACTION_INDEX:REWARD_INDEX]
-    actions = torch.from_numpy(actions).long()
+                # save the observed step in our replay memory
+                self.memory.push((*obs, *action_idx, reward, *next_obs, done))
 
-    # perform gradient descend regarding to expected values on the current model
-    Q.optimizer.zero_grad()
+                # remember last observation
+                obs = next_obs
 
-    values = Q(obs).gather(1, actions)
-    loss = criterion(values, expected_values)
-    loss.backward()
+                if render_episodes_mod is not None and episode % render_episodes_mod == 0:
+                    self.env.render()
 
-    torch.nn.utils.clip_grad_norm_(Q.parameters(), 1)
+                loss = self.optimize()
+                episode_loss += loss
 
-    Q.optimizer.step()
+                self.writer.add_scalar("loss", loss, total_steps)
 
-    return loss.item()
+                total_steps += 1
+                episode_steps += 1
 
+                # copy the current model each target_model_update_steps steps
+                if total_steps % self.target_model_update_steps == 0:
+                    self.target_Q.load_state_dict(self.Q.state_dict())
 
-def evaluate_policy_Q(Q, episodes=100, max_steps=10000, render=0):
-    global env
-    global discrete_actions
+                avg_reward = episode_reward / episode_steps
 
-    print("Evaluating the policy")
-    Q.eval()
+                if episode_steps % 100 == 0:
+                    print("\rEpisode {:5d} -- total steps: {:8d} > steps: {:4d} (Running)"
+                          .format(episode + 1, total_steps, episode_steps), end="")
 
-    rewards = np.empty(episodes)
+                if done or episode_steps >= self.max_steps_per_episode:
+                    obs = self.env.reset()
+                    episode += 1
 
-    for episode in range(0, episodes):
-        print("\rEpisode {:4d}/{:4d}".format(episode, episodes), end="")
-        total_reward = 0
-        obs = env.reset()
-        steps = 0
-        done = False
-        while steps <= max_steps and not done:
-            action_idx = choose_action(Q, obs, discrete_actions)
-            action = discrete_actions[action_idx]
+                    print(
+                        "\rEpisode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
+                        "-- training loss: {:10.5f} -- lr: {:0.8f} -- eps: {:0.8f}"
+                        .format(episode, total_steps, avg_reward, episode_steps, episode_reward, episode_loss,
+                                get_current_lr(self.Q.optimizer), self.get_eps(total_steps)))
 
-            obs, reward, done, _ = env.step(action)
+                    self.writer.add_scalar("avg_reward", avg_reward, episode)
+                    self.writer.add_scalar("total_reward", episode_reward, episode)
+                    self.Q.eval()
+                    self.writer.add_scalar("first_best_value", get_best_values(self.Q, np.atleast_2d(obs))[0], episode)
 
-            total_reward += reward
-            steps += 1
+                    episode_steps = 0
+                    episode_loss = 0
+                    episode_reward = 0
 
-            if episode < render:
-                env.render()
-                if steps % 25 == 0:
-                    print("\rEpisode {:4d}/{:4d} > {:4d} steps".format(episode, episodes, steps), end="")
+                    # fig.draw()
 
-        rewards[episode] = total_reward
-    print("\rDone.")
+        except(KeyboardInterrupt):
+            print("Interrupted.")
+        except:
+            raise
 
-    print("Stats: Episodes {}, avg: {}, std: {}".format(episodes, rewards.mean(), rewards.std()))
-
-
-memory = ReplayMemory(8000, transition_size)
-# The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
-create_initial_samples(env, memory, 2000, discrete_actions)
-
-# the size of the sampled minibatch used for learning in each step
-minibatch_size = 128
-
-# init NNs for Q function approximation
-Q = DQNModel(n_inputs=dim_obs, n_outputs=len(discrete_actions), optimizer="rmsprop", lr=1e-2)
-target_Q = DQNModel(n_inputs=dim_obs, n_outputs=len(discrete_actions), optimizer=None)
-target_Q.load_state_dict(Q.state_dict())
-
-scheduler = StepLR(Q.optimizer, 200, 0.99)
-
-# the amount of steps after which the target model is updated
-target_model_update_steps = 1000
-
-# how many training episodes to do
-max_episodes = 5000
-
-# the maximum number of steps per episode
-max_steps_per_episode = 15000
-# stop the current episode after this many steps..
-soft_max_episode_steps = 2500
-# ..when the current episode performed worse than this avg reward threshold
-soft_avg_reward_threshold = 0.8
-
-episodes = 0
-total_steps = 0
-
-episode_steps = 0
-episode_reward = 0
-episode_loss = 0
-
-# don't render all episodes
-render_episodes_mod = 10
-
-obs = env.reset()
-# try-catch block to allow stopping the training process on KeyboardInterrupt
-try:
-    while episodes < max_episodes:
-        scheduler.step()
-        Q.eval()
-
-        action_idx = choose_action(Q, obs, discrete_actions)
-        action = discrete_actions[action_idx]
-
-        next_obs, reward, done, _ = env.step(action)
-        # reward clipping
-        # reward = min(max(-1., reward), 1.)
-
-        episode_reward += reward
-
-        # save the observed step in our replay memory
-        memory.push((*obs, *action_idx, reward, *next_obs, done))
-
-        # remember last observation
-        obs = next_obs
-
-        if episodes % render_episodes_mod == 0:
-            env.render()
-
-        loss = optimize(memory, Q, target_Q, criterion=nn.SmoothL1Loss())
-        episode_loss += loss
-
-        writer.add_scalar("loss", loss, total_steps)
-
-        total_steps += 1
-        episode_steps += 1
-
-        # copy the current model each target_model_update_steps steps
-        if total_steps % target_model_update_steps == 0:
-            target_Q.load_state_dict(Q.state_dict())
-
-        avg_reward = episode_reward / episode_steps
-
-        if episode_steps % 100 == 0:
-            print("\rEpisode {:5d} -- total steps: {:8d} > steps: {:4d} (Running)"
-                  .format(episodes + 1, total_steps, episode_steps), end="")
-
-        if done or (episode_steps >= soft_max_episode_steps and avg_reward < soft_avg_reward_threshold) \
-                or episode_steps >= max_steps_per_episode:
-            obs = env.reset()
-            episodes += 1
-
-            # save model after each epoch
-            # save_checkpoint({
-            #     'epoch': total_steps,
-            #     'episodes': episodes,
-            #     'Q': Q.state_dict(),
-            #     'target_Q': target_Q.state_dict(),
-            #     'reward': episode_reward,
-            #     'optimizer': Q.optimizer.state_dict(),
-            # }, filename="./checkpoints/Q_model_epoch-{}_reward-{}.pth.tar".format(total_steps, episode_reward))
-
-            print("\rEpisode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
-                  "-- training loss: {:10.5f} -- lr: {:0.8f} -- eps: {:0.8f}"
-                  .format(episodes, total_steps, avg_reward, episode_steps, episode_reward, episode_loss,
-                          get_current_lr(Q.optimizer), get_eps()))
-
-            writer.add_scalar("avg_reward", avg_reward, episodes)
-            writer.add_scalar("total_reward", episode_reward, episodes)
-            Q.eval()
-            writer.add_scalar("first_best_value", get_best_values(Q, np.atleast_2d(obs))[0], episodes)
-
-            episode_steps = 0
-            episode_loss = 0
-            episode_reward = 0
-
-except(KeyboardInterrupt):
-    print()
-    evaluate_policy_Q(target_Q, episodes=200, render=5)
-except:
-    raise
-
-env.close()
+        return episode
