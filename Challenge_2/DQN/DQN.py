@@ -48,10 +48,14 @@ class DQN(object):
         self.eps_start = eps_start
         self.eps_end = eps_end
         self.eps_decay = eps_decay
+        #self.eps = eps_start
         self.max_episodes = max_episodes
         self.max_steps_per_episode = max_steps_per_episode
         self.lr_scheduler = lr_scheduler
         self.loss = loss
+
+        # save the current best episode reward
+        self.best_episode_reward = None
 
         # init tensorboard writer for better visualizations
         self.writer = SummaryWriter()
@@ -89,6 +93,7 @@ class DQN(object):
         # TODO: Move total steps somewhere else (no self..)
         # compute decaying eps_threshold to encourage exploration at the beginning
         return self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * total_steps / self.eps_decay)
+        #return self.eps
 
     def choose_action_eps(self, observation, total_steps):
         eps_threshold = self.get_eps(total_steps)
@@ -185,6 +190,8 @@ class DQN(object):
                 if done or episode_steps >= self.max_steps_per_episode:
                     obs = self.env.reset()
                     episode += 1
+                    # decrease the epsilon value
+                    # self.eps /= 1.01
 
                     print(
                         "\rEpisode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
@@ -196,6 +203,12 @@ class DQN(object):
                     self.writer.add_scalar("total_reward", episode_reward, episode)
                     self.Q.eval()
                     self.writer.add_scalar("first_best_value", get_best_values(self.Q, np.atleast_2d(obs))[0], episode)
+
+                    # check if episode reward is better than best model so far
+                    if self.best_episode_reward is None or episode_reward > self.best_episode_reward:
+                        self.best_episode_reward = episode_reward
+                        print("new best model with reward {:5.5f}".format(self.best_episode_reward))
+                        torch.save(self.Q.state_dict(), "checkpoints/best_weights.pth")
 
                     episode_steps = 0
                     episode_loss = 0

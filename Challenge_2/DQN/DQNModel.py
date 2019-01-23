@@ -21,16 +21,22 @@ class DQNModel(torch.nn.Module):
         self.n_inputs = env.observation_space.shape[0]
 
         # network architecture specification
-        hidden = 15
+        hidden = 30
 
         act = nn.ReLU()
 
+        # self.model = nn.Sequential(
+        #     nn.Linear(self.n_inputs, hidden),
+        #     act,
+        #     nn.Linear(hidden, hidden),
+        #     act,
+        #     nn.Linear(hidden, hidden),
+        #     act,
+        #     nn.Linear(hidden, self.n_outputs),
+        # )
+
         self.model = nn.Sequential(
             nn.Linear(self.n_inputs, hidden),
-            act,
-            nn.Linear(hidden, hidden),
-            act,
-            nn.Linear(hidden, hidden),
             act,
             nn.Linear(hidden, self.n_outputs),
         )
@@ -39,7 +45,7 @@ class DQNModel(torch.nn.Module):
         self.apply(init_weights)
         self.train()
 
-        if optimizer == 'adam':
+        if optimizer == 'adam': # adam used
             self.optimizer = optim.Adam(self.parameters(), lr=lr)
         elif optimizer == 'rmsprop':
             self.optimizer = optim.RMSprop(self.parameters(), lr=lr)
