@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import gym
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR
 
 from Challenge_2.DQN.DQN import DQN
 from Challenge_2.DQN.DQNModel import DQNModel
@@ -30,17 +30,23 @@ max_episodes = 300
 max_episode_length = 2000
 minibatch_size = 500
 optimizer = "adam"
-lr_scheduler = None  # StepLR(Q.optimizer, 5000, 0.9)
+lr_scheduler = None
 loss = nn.SmoothL1Loss()
+normalize = False
 
 discrete_actions = np.linspace(min_action, max_action, nb_bins)
 
 Q = DQNModel(env, discrete_actions, optimizer="adam", lr=lr)
 
+# test for dividing lr by 2 every 50 episodes - start_lr = 1e-3 - noramlize=False
+# Stats: Episodes 100, avg: 932.2933493737411, std: 22.219861482005673
+# lr_scheduler = StepLR(Q.optimizer, max_episode_length*50, 0.5)  # None
+# lr_scheduler = CosineAnnealingLR(Q.optimizer, 10) #T_max=max_episode_length)
+
 dqn = DQN(env, Q, memory_size=memory_size, initial_memory_count=minibatch_size, minibatch_size=minibatch_size,
           target_model_update_steps=minibatch_size, gamma=gamma,
           eps_start=eps_start, eps_end=eps_end, eps_decay=eps_decay, max_episodes=max_episodes,
-          max_steps_per_episode=max_episode_length, lr_scheduler=lr_scheduler, loss=loss)
+          max_steps_per_episode=max_episode_length, lr_scheduler=lr_scheduler, loss=loss, normalize=normalize)
 
 trained_episodes = dqn.train()
 # load_model(env, Q, "./checkpoints/Q_Pendulum-v0_100_-133.66.pth.tar")
