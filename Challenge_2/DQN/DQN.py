@@ -13,13 +13,14 @@ from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import create_initial_samples
 from Challenge_2.DQN.DQNModel import DQNModel
 from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr, save_model, load_model, evaluate
-
+from Challenge_2.Common.MinMaxScaler import MinMaxScaler
+import logging
 
 class DQN(object):
 
     def __init__(self, env, Q: DQNModel, memory_size, initial_memory_count, minibatch_size,
                  target_model_update_steps, gamma, eps_start, eps_end, eps_decay, max_episodes,
-                 max_steps_per_episode, lr_scheduler = None, loss = nn.SmoothL1Loss()):
+                 max_steps_per_episode, lr_scheduler = None, loss = nn.SmoothL1Loss(), normalize=False):
         """
         Initializes the DQN wrapper.
 
@@ -37,6 +38,7 @@ class DQN(object):
         :param max_steps_per_episode: the maximum number of steps in each episode during training
         :param lr_scheduler: the learning rate scheduler
         :param loss: the loss used for the optimization step
+        :param normalize: boolean which enables or disables state normalization into feature range of [0,1]
         """
 
         self.env = env
@@ -53,6 +55,7 @@ class DQN(object):
         self.max_steps_per_episode = max_steps_per_episode
         self.lr_scheduler = lr_scheduler
         self.loss = loss
+        self.normalize = normalize
 
         # save the current best episode reward
         self.best_episode_reward = None
@@ -127,6 +130,26 @@ class DQN(object):
         # perform gradient descend regarding to expected values on the current model
         self.Q.optimizer.zero_grad()
 
+        # convert observation from numpy into pytorch tensor format for fwd and bwd propagation
+        obs = torch.from_numpy(obs)
+        # define the minimum maximum state representation for min/max scaling
+        if self.normalize:
+            if self.env.spec._env_name in ["CartpoleStabShort", "CartpoleSwingShort"]:
+                min_state = self.env.observation_space.low
+                max_state = self.env.observation_space.high
+                # set the minimum and maximum for x_dot and theta_dot manually because
+                # they are set to infinity by default
+                min_state[3] = -3
+                max_state[3] = 3
+                min_state[4] = -80
+                max_state[4] = 80
+                min_state = torch.from_numpy(min_state).double()
+                max_state = torch.from_numpy(max_state).double()
+                min_max_scaler = MinMaxScaler(min_state, max_state)
+                obs = min_max_scaler.normalize_state_batch(obs)
+            else:
+                logging.warning("You're given environment %s isn't supported for normalization" % self.env.spec._env_name)
+
         values = self.Q(obs).gather(1, actions)
         loss_val = self.loss(values, expected_values)
         loss_val.backward()
@@ -157,6 +180,10 @@ class DQN(object):
                 next_obs, reward, done, _ = self.env.step(action)
                 # reward clipping
                 # reward = min(max(-1., reward), 1.)
+
+                # reward shaping
+                #reward -= 1
+                #reward = min(max(0., reward), 1.)
 
                 episode_reward += reward
 
