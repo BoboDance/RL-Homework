@@ -12,7 +12,7 @@ from Challenge_2.LSPI.BasisFunctions.RadialBasisFunction import RadialBasisFunct
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import create_initial_samples
 
-seed = 1
+seed = 2
 np.random.seed(seed)
 
 # env = gym.make("Pendulum-v0")
@@ -26,7 +26,7 @@ dim_action = env.action_space.shape[0]
 
 
 # discrete_actions = np.arange(env.action_space.n)
-discrete_actions = np.linspace(-10, 10, 5)
+discrete_actions = np.linspace(-5, 5, 3)
 # discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 5)
 print("Used discrete actions: ", discrete_actions)
 
@@ -49,19 +49,19 @@ gamma = 0.99  # discount
 theta = 1e-5  # convergence criterion
 
 # sample hyperparameter
-max_episodes = 10000
+max_episodes = 20000
 replay_memory_size = 10000
 initial_samples = 10000
-minibatch_size = 1024
+minibatch_size = 10000
 optimize_after_steps = 1
 
-n_features = 30  # current best: 20 with beta .8
+n_features = 100  # current best: RBF with 20 features and beta .8
 
 # RBFS base function
 beta = .8  # parameter for width of gaussians
 
 # Fourier base function
-width = 1  # width of fourier features
+width = 2.5  # width of fourier features
 
 do_render = True
 normalize_state = False
@@ -100,8 +100,8 @@ def LSTDQ_iteration(samples, policy, precondition_value=.01, use_optimized=False
         phi_next[~done, :] = policy.basis_function(sel_next_obs, best_action)
 
     if not use_optimized:
-        A = (phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value)
-        b = (phi.T @ reward)
+        A = (phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value) / minibatch_size
+        b = (phi.T @ reward) / minibatch_size
 
         # a_mat, b_vec, phi_sa, phi_sprime = loop_it(samples, precondition_value)
         rank_A = np.linalg.matrix_rank(A)
@@ -165,12 +165,23 @@ def loop_it(samples, precondition_value):
     return a_mat, b_vec, np.array(phi), np.array(phi_next)
 
 
+# max_episodes = 50
+
+# for i in range(30):
+
+# print("-" * 100)
+# print(f"Test run {i} started.")
+# Fourier base function
+# width = np.random.uniform(.01, 10)  # width of fourier features
+# n_features = np.random.randint(10, 50)
+# print(f"Fourier width: {width}, n_features {n_features}")
+
 memory = ReplayMemory(replay_memory_size, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
 create_initial_samples(env, memory, initial_samples, discrete_actions, normalize=normalize_state)
 
-low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
-high = np.array(list(env.observation_space.high[:3]) + [5, 5])
+low = np.array(list(env.observation_space.low[:3]) + [-2.5, -30])
+high = np.array(list(env.observation_space.high[:3]) + [2.5, 30])
 
 # low = env.observation_space.low
 # high = env.observation_space.high
@@ -180,11 +191,10 @@ high = np.array(list(env.observation_space.high[:3]) + [5, 5])
 # means = np.random.uniform(low, high, size=(n_features, dim_obs))
 # means = np.array([np.linspace(low[i], high[i], n_features) for i in range(dim_obs)]).T
 # means = np.array([[1, 1, 1, 1, 1], [2, 2, 2, 2, 2], [3, 3, 3, 3, 3], [4, 4, 4, 4, 4]])
-means = np.array(np.meshgrid(*tuple([np.linspace(low[i], high[i], 2) for i in range(dim_obs)]))).T.reshape(-1, dim_obs)
-basis_function = RadialBasisFunction(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
+# means = np.array(np.meshgrid(*tuple([np.linspace(low[i], high[i], 2) for i in range(dim_obs)]))).T.reshape(-1, dim_obs)
+# basis_function = RadialBasisFunction(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
 
-# frequency = np.fft.rfftfreq(n_features, d=width)
-# basis_function = FourierBasis(input_dim=dim_obs, frequency=frequency, n_actions=len(discrete_actions))
+basis_function = FourierBasis(input_dim=dim_obs, n_features=n_features, n_actions=len(discrete_actions))
 policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), eps=eps_start)
 
 delta = np.inf
@@ -232,8 +242,29 @@ while delta >= theta and episodes <= max_episodes:
         if importance_weights:
             raise NotImplementedError()
         else:
-            samples = memory.sample(minibatch_size)
-            new_weights = LSTDQ_iteration(samples, policy)
+            # samples = memory.sample(minibatch_size)
+            new_weights = LSTDQ_iteration(memory.memory, policy)
 
         delta = np.linalg.norm(new_weights - policy.w)
+        print(delta)
         policy.w = new_weights
+
+obs = env.reset()
+episode_reward = 0
+episode_steps = 0
+
+done = False
+
+while not done:
+    episode_steps += 1
+
+    action_idx = policy.choose_action(obs)
+    action = discrete_actions[action_idx]
+
+    next_obs, reward, done, _ = env.step(action)
+    episode_reward += reward
+
+    if done:
+        print("Avg reward: {:.10f} -- episode steps: {:4d} -- episode reward: {:5.5f}".format(reward / episode_steps,
+                                                                                              episode_steps,
+                                                                                              episode_reward))
