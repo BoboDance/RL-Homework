@@ -10,7 +10,7 @@ from Challenge_2.LSPI.BasisFunctions.FourierBasis import FourierBasis
 from Challenge_2.LSPI.Policy import Policy
 from Challenge_2.LSPI.BasisFunctions.RadialBasisFunction import RadialBasisFunction
 from Challenge_2.Common.ReplayMemory import ReplayMemory
-from Challenge_2.Common.Util import create_initial_samples
+from Challenge_2.Common.Util import create_initial_samples, normalize_state
 
 seed = 2
 np.random.seed(seed)
@@ -64,7 +64,7 @@ beta = .8  # parameter for width of gaussians
 width = 2.5  # width of fourier features
 
 do_render = True
-normalize_state = False
+normalize = True
 
 
 def LSTDQ_iteration(samples, policy, precondition_value=.01, use_optimized=False):
@@ -178,7 +178,7 @@ def loop_it(samples, precondition_value):
 
 memory = ReplayMemory(replay_memory_size, transition_size)
 # The amount of random samples gathered before the learning starts (should be <= capacity of replay memory)
-create_initial_samples(env, memory, initial_samples, discrete_actions, normalize=normalize_state)
+create_initial_samples(env, memory, initial_samples, discrete_actions, normalize=normalize)
 
 low = np.array(list(env.observation_space.low[:3]) + [-2.5, -30])
 high = np.array(list(env.observation_space.high[:3]) + [2.5, 30])
@@ -210,6 +210,9 @@ while delta >= theta and episodes <= max_episodes:
 
     total_steps += 1
     episode_steps += 1
+
+    if normalize:
+        obs = normalize_state(env, obs)
 
     action_idx = policy.choose_action(obs)
     action = discrete_actions[action_idx]

@@ -1,4 +1,6 @@
+import gym
 import numpy as np
+import quanser_robots
 
 from Challenge_2.LSPI.BasisFunctions.BasisFunction import BasisFunction
 
@@ -9,9 +11,17 @@ class FourierBasis(BasisFunction):
         :param n_features: frequency of Fourier features
         """
         super().__init__(input_dim, n_actions)
-        # self.frequency = frequency
+
+        # best so far: mutlivariant init and
+        # self.shift = np.random.uniform(-np.pi, np.pi, n_features)
+
+        # env = gym.make("CartpoleStabShort-v0")
+        # low = np.array(list(env.observation_space.low[:3]) + [-2.5, -30])
+        # high = np.array(list(env.observation_space.high[:3]) + [2.5, 30])
+
         self.n_features = n_features
         self.frequency = np.random.normal(0, 1, size=(n_features, input_dim))
+        # self.frequency = np.random.multivariate_normal(np.zeros(input_dim), np.diag(high) / 3, size=n_features)
         self.bandwidth = 5
         self.shift = np.random.uniform(-np.pi, np.pi, n_features)
         # self.shift = np.random.uniform(0, 2 * np.pi, n_features)
