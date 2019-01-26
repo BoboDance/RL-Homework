@@ -55,3 +55,36 @@ def normalize_state(env, observation):
         high = env.observation_space.high
 
     return (observation - low) / (high - low)
+
+
+def evaluate(env, policy_fun, episodes=100, max_steps=10000, render=0, seed=1):
+    print("Evaluating the learned policy")
+
+    env.seed(seed)
+    rewards = np.empty(episodes)
+
+    for episode in range(0, episodes):
+        print("\rEpisode {:4d}/{:4d}".format(episode, episodes), end="")
+        total_reward = 0
+        obs = env.reset()
+        steps = 0
+        done = False
+        while steps <= max_steps and not done:
+            action = policy_fun(obs)
+
+            obs, reward, done, _ = env.step(action)
+
+            total_reward += reward
+            steps += 1
+
+            if episode < render:
+                env.render()
+                if steps % 25 == 0:
+                    print("\rEpisode {:4d}/{:4d} > {:4d} steps".format(episode, episodes, steps), end="")
+
+        rewards[episode] = total_reward
+
+    print("\rDone.")
+    print("Stats: Episodes {}, avg: {}, std: {}".format(episodes, rewards.mean(), rewards.std()))
+
+    return rewards.mean()

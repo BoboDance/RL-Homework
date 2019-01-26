@@ -12,7 +12,7 @@ import copy
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import create_initial_samples
 from Challenge_2.DQN.DQNModel import DQNModel
-from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr, save_model, load_model, evaluate
+from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr, save_model, load_model
 from Challenge_2.Common.MinMaxScaler import MinMaxScaler
 import logging
 

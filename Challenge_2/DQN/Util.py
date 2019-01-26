@@ -49,39 +49,14 @@ def get_best_action_and_value(Q, observation, discrete_actions):
     return np.array([discrete_actions[values.argmax(1).item()]]), values.max(1)[0].item()
 
 
-def evaluate(env, Q, episodes=100, max_steps=10000, render=0, seed=1):
-    print("Evaluating the learned policy")
-    Q.eval()
+def get_policy_fun(Q):
+    def policy(obs):
+        Q.eval()
+        action_idx = get_best_action(Q, obs)
+        return Q.discrete_actions[action_idx]
 
-    env.seed(seed)
-    rewards = np.empty(episodes)
+    return policy
 
-    for episode in range(0, episodes):
-        print("\rEpisode {:4d}/{:4d}".format(episode, episodes), end="")
-        total_reward = 0
-        obs = env.reset()
-        steps = 0
-        done = False
-        while steps <= max_steps and not done:
-            action_idx = get_best_action(Q, obs)
-            action = Q.discrete_actions[action_idx]
-
-            obs, reward, done, _ = env.step(action)
-
-            total_reward += reward
-            steps += 1
-
-            if episode < render:
-                env.render()
-                if steps % 25 == 0:
-                    print("\rEpisode {:4d}/{:4d} > {:4d} steps".format(episode, episodes, steps), end="")
-
-        rewards[episode] = total_reward
-
-    print("\rDone.")
-    print("Stats: Episodes {}, avg: {}, std: {}".format(episodes, rewards.mean(), rewards.std()))
-
-    return rewards.mean()
 
 class CartpoleReplayMemoryFigure():
     def __init__(self, replay_memory: ReplayMemory, discrete_actions):

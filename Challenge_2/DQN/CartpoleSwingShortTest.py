@@ -3,10 +3,10 @@ import numpy as np
 import gym
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR
 
+from Challenge_2.Common.Util import evaluate
 from Challenge_2.DQN.DQN import DQN
 from Challenge_2.DQN.DQNModel import DQNModel
-from Challenge_2.DQN.Util import evaluate
-from challenge1 import load_model
+from Challenge_2.DQN.Util import get_policy_fun
 from torch import nn
 
 seed = 1
@@ -54,7 +54,7 @@ trained_episodes = dqn.train()
 # load the best weights again
 Q.load_state_dict(torch.load("./checkpoints/best_weights.pth"))
 
-eval_reward_mean = evaluate(env, Q, episodes=100, render=5)
+eval_reward_mean = evaluate(env, get_policy_fun(Q), episodes=100, render=5)
 #save_model(env, Q, trained_episodes, eval_reward_mean)
 
 env.close()
