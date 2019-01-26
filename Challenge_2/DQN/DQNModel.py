@@ -20,26 +20,7 @@ class DQNModel(torch.nn.Module):
         self.n_outputs = len(discrete_actions)
         self.n_inputs = env.observation_space.shape[0]
 
-        # network architecture specification
-        hidden = 30
-
-        act = nn.ReLU()
-
-        # self.model = nn.Sequential(
-        #     nn.Linear(self.n_inputs, hidden),
-        #     act,
-        #     nn.Linear(hidden, hidden),
-        #     act,
-        #     nn.Linear(hidden, hidden),
-        #     act,
-        #     nn.Linear(hidden, self.n_outputs),
-        # )
-
-        self.model = nn.Sequential(
-            nn.Linear(self.n_inputs, hidden),
-            act,
-            nn.Linear(hidden, self.n_outputs),
-        )
+        self.model = self.get_model()
 
         # initialize the weights
         self.apply(init_weights)
@@ -53,6 +34,14 @@ class DQNModel(torch.nn.Module):
             self.optimizer = optim.SGD(self.parameters(), lr=lr, momentum=0.9)
         else:
             self.optimizer = None
+
+    def get_model(self):
+        """
+        Returns a model which specifies the architecture of the network
+        """
+        return nn.Sequential(
+            nn.Linear(self.n_inputs, self.n_outputs)
+        )
 
     def forward(self, inputs):
         """
