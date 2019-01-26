@@ -217,6 +217,8 @@ while delta >= theta and episodes <= max_episodes:
     action = discrete_actions[action_idx]
 
     next_obs, reward, done, _ = env.step(action)
+    # reward = min(max(-1., reward), 1.)
+    episode_reward += reward
 
     if done:
         obs = env.reset()
@@ -224,7 +226,7 @@ while delta >= theta and episodes <= max_episodes:
         print(
             "Episode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- episode steps: {:4d} "
             "-- episode reward: {:5.5f} -- delta: {:6.10f} -- epsilon {:.10f}".format(
-                episodes, total_steps, reward / episode_steps, episode_steps, episode_reward, delta, policy.eps))
+                episodes, total_steps, episode_reward / episode_steps, episode_steps, episode_reward, delta, policy.eps))
         episode_steps = 0
         episode_reward = 0
 
@@ -241,9 +243,6 @@ while delta >= theta and episodes <= max_episodes:
             delta = np.linalg.norm(new_weights - policy.w)
             print("Delta: {}".format(delta))
             policy.w = new_weights
-
-    # reward = min(max(-1., reward), 1.)
-    episode_reward += reward
 
     # memory.push((*obs, *action_idx, reward, *next_obs, done))
 
@@ -270,6 +269,6 @@ while not done:
     episode_reward += reward
 
     if done:
-        print("Avg reward: {:.10f} -- episode steps: {:4d} -- episode reward: {:5.5f}".format(reward / episode_steps,
+        print("Avg reward: {:.10f} -- episode steps: {:4d} -- episode reward: {:5.5f}".format(episode_reward / episode_steps,
                                                                                               episode_steps,
                                                                                               episode_reward))
