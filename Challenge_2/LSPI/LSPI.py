@@ -50,10 +50,9 @@ theta = 1e-5  # convergence criterion
 
 # sample hyperparameter
 max_episodes = 20000
-replay_memory_size = 10000
-initial_samples = 10000
-minibatch_size = 10000
-optimize_after_steps = 1
+replay_memory_size = 25000
+initial_samples = 25000
+optimize_after_episodes = 3
 
 n_features = 100  # current best: RBF with 20 features and beta .8
 
@@ -67,7 +66,7 @@ do_render = True
 normalize = True
 
 
-def LSTDQ_iteration(samples, policy, precondition_value=.01, use_optimized=False):
+def LSTDQ_iteration(samples, policy, precondition_value=.0001, use_optimized=False):
     """
     Compute Q value function of current policy via LSTDQ iteration.
     If a matrix has full rank: scipy.linalg solver
@@ -100,8 +99,8 @@ def LSTDQ_iteration(samples, policy, precondition_value=.01, use_optimized=False
         phi_next[~done, :] = policy.basis_function(sel_next_obs, best_action)
 
     if not use_optimized:
-        A = (phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value) / minibatch_size
-        b = (phi.T @ reward) / minibatch_size
+        A = (phi.T @ (phi - gamma * phi_next) + np.identity(k) * precondition_value)
+        b = (phi.T @ reward)
 
         # a_mat, b_vec, phi_sa, phi_sprime = loop_it(samples, precondition_value)
         rank_A = np.linalg.matrix_rank(A)
@@ -119,7 +118,7 @@ def LSTDQ_iteration(samples, policy, precondition_value=.01, use_optimized=False
             p = phi[i].reshape(-1, 1)
             pn = phi_next[i].reshape(-1, 1)
 
-            top = B @ (p @ (p - gamma * pn).T) @ B.T
+            top = B @ (p @ (p - gamma * pn).T) @ B
             bottom = 1 + (p - gamma * pn).T @ B @ p
             B -= top / bottom
             b += p @ reward[i]
@@ -232,6 +231,17 @@ while delta >= theta and episodes <= max_episodes:
         # reduce random action prob each episode
         policy.eps = eps_end + (eps_start - eps_end) * math.exp(-1. * episodes / eps_decay)
 
+        if episodes % optimize_after_episodes == 0:
+            if importance_weights:
+                raise NotImplementedError()
+            else:
+                # samples = memory.sample(minibatch_size)
+                new_weights = LSTDQ_iteration(memory.memory, policy)
+
+            delta = np.linalg.norm(new_weights - policy.w)
+            print("Delta: {}".format(delta))
+            policy.w = new_weights
+
     # reward = min(max(-1., reward), 1.)
     episode_reward += reward
 
@@ -240,17 +250,6 @@ while delta >= theta and episodes <= max_episodes:
     obs = next_obs
     if do_render and episode_steps % 12 == 0:
         env.render()
-
-    if total_steps % optimize_after_steps == 0:
-        if importance_weights:
-            raise NotImplementedError()
-        else:
-            # samples = memory.sample(minibatch_size)
-            new_weights = LSTDQ_iteration(memory.memory, policy)
-
-        delta = np.linalg.norm(new_weights - policy.w)
-        print(delta)
-        policy.w = new_weights
 
 obs = env.reset()
 episode_reward = 0
@@ -261,10 +260,13 @@ done = False
 while not done:
     episode_steps += 1
 
+    if normalize:
+        obs = normalize_state(env, obs)
+
     action_idx = policy.choose_action(obs)
     action = discrete_actions[action_idx]
 
-    next_obs, reward, done, _ = env.step(action)
+    obs, reward, done, _ = env.step(action)
     episode_reward += reward
 
     if done:
