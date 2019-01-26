@@ -20,7 +20,8 @@ class DQN(object):
 
     def __init__(self, env, Q: DQNModel, memory_size, initial_memory_count, minibatch_size,
                  target_model_update_steps, gamma, eps_start, eps_end, eps_decay, max_episodes,
-                 max_steps_per_episode, lr_scheduler = None, loss = nn.SmoothL1Loss(), normalize=False):
+                 max_steps_per_episode, lr_scheduler=None, loss=nn.SmoothL1Loss(), normalize=False,
+                 anti_sucide=False, edge_fear_threshold=0.3):
         """
         Initializes the DQN wrapper.
 
@@ -39,6 +40,9 @@ class DQN(object):
         :param lr_scheduler: the learning rate scheduler
         :param loss: the loss used for the optimization step
         :param normalize: boolean which enables or disables state normalization into feature range of [0,1]
+        :param  anti_sucide: technique which applies reward shaping to avoid that the agent crashes against the wall
+        :param edge_fear_threshold: threshold when the anti-sucicide technique is triggered.
+                Only effective is anti-sucide is True
         """
 
         self.env = env
@@ -56,6 +60,8 @@ class DQN(object):
         self.lr_scheduler = lr_scheduler
         self.loss = loss
         self.normalize = normalize
+        self.anti_sucide = anti_sucide
+        self.edge_fear_threshold = edge_fear_threshold
 
         # save the current best episode reward
         self.best_episode_reward = None
@@ -186,6 +192,11 @@ class DQN(object):
                 #reward = min(max(0., reward), 1.)
 
                 episode_reward += reward
+
+                if self.anti_sucide:
+                    if np.abs(obs[0]) > self.edge_fear_threshold:
+                        print("-> edge area")
+                        reward = -np.abs(obs[0])
 
                 # save the observed step in our replay memory
                 self.memory.push((*obs, *action_idx, reward, *next_obs, done))

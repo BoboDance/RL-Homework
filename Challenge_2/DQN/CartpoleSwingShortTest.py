@@ -19,20 +19,22 @@ env.seed(seed)
 # Golden Hyperparameters
 min_action = -5
 max_action = 5
-nb_bins = 9
+nb_bins = 7
 lr = 1e-4
 memory_size = int(1e6)
 gamma = 0.99
 eps_start = 1
 eps_end = 0.01
-eps_decay = 1e5 # they divided epsilon by 1.01 after every episode
+eps_decay = 1e5  # they divided epsilon by 1.01 after every episode
 max_episodes = 300
-max_episode_length = 2000
-minibatch_size = 500
+max_episode_length = 1e4
+minibatch_size = 1000
 optimizer = "adam"
 lr_scheduler = None
 loss = nn.SmoothL1Loss()
 normalize = False
+anti_sucide = True
+edge_fear_threshold = 0.3
 
 discrete_actions = np.linspace(min_action, max_action, nb_bins)
 

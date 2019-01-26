@@ -21,9 +21,15 @@ class DQNModel(torch.nn.Module):
         self.n_inputs = env.observation_space.shape[0]
 
         # network architecture specification
-        hidden = 30
+        hidden = 32
 
         act = nn.ReLU()
+
+        self.model = nn.Sequential(
+            nn.Linear(self.n_inputs, hidden),
+            act,
+            nn.Linear(hidden, self.n_outputs),
+        )
 
         # self.model = nn.Sequential(
         #     nn.Linear(self.n_inputs, hidden),
@@ -34,12 +40,6 @@ class DQNModel(torch.nn.Module):
         #     act,
         #     nn.Linear(hidden, self.n_outputs),
         # )
-
-        self.model = nn.Sequential(
-            nn.Linear(self.n_inputs, hidden),
-            act,
-            nn.Linear(hidden, self.n_outputs),
-        )
 
         # initialize the weights
         self.apply(init_weights)
