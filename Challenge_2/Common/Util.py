@@ -5,7 +5,7 @@ from Challenge_2.Common.ReplayMemory import ReplayMemory
 
 
 def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, discrete_actions: np.ndarray,
-                           normalize: bool = False) -> None:
+                           normalize: bool = False, low = None, high = None) -> None:
     """
     Create initial data set and push to replay memory
     :param env: gym env to work with
@@ -13,23 +13,23 @@ def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, d
     :param n_samples: number of samples
     :param discrete_actions: valid actions to take
     :param normalize: normalize observations
+    :param low: manual low limit for observation normalization
+    :param high: manual high limit for observation normalization
     :return: None
     """
     last_observation = env.reset()
     if normalize:
-        last_observation = normalize_state(env, last_observation)
+        last_observation = normalize_state(env, last_observation, low=low, high=high)
 
     samples_ctr = 0
     while samples_ctr < n_samples:
         # choose a random action
         action_idx = np.random.choice(range(len(discrete_actions)), 1)
         action = discrete_actions[action_idx]
-
         # do the step
         observation, reward, done, _ = env.step(action)
-
         if normalize:
-            observation = normalize_state(env, observation)
+            observation = normalize_state(env, observation, low=low, high=high)
 
         memory.push((*last_observation, *action_idx, reward, *observation, done))
 
@@ -39,23 +39,24 @@ def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, d
         if done:
             last_observation = env.reset()
             if normalize:
-                last_observation = normalize_state(env, last_observation)
+                last_observation = normalize_state(env, last_observation, low=low, high=high)
 
 
-def normalize_state(env, observation):
+def normalize_state(env, observation, low=None, high=None):
     """
-    Normlize state given max of env
+    Normalize a given observation using the observation space boundaries from the environment or manual limits.
+
     :param env: gym env to work with
     :param observation: state observation
-    :return:
+    :param low: manual value for the lower observation space limit
+    :param high: manual value for the higher observation space limit
+    :return: the normalized observation value
     """
-    if env.spec.id == "CartpoleStabShort-v0":
-        low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
-        high = np.array(list(env.observation_space.high[:3]) + [5, 5])
-        # low = np.array([-1, -.3, -.96, .5, 4.1])
-        # high = np.array([1, .3, -1, -.5, -4.1])
-    else:
+
+    if low is None:
         low = env.observation_space.low
+
+    if high is None:
         high = env.observation_space.high
 
     return (observation - low) / (high - low)

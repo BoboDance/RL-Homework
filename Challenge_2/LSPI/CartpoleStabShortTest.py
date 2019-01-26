@@ -37,8 +37,8 @@ n_features = 100
 
 # Fourier base function
 basis_function = FourierBasis(input_dim=dim_obs, n_features=n_features, n_actions=len(discrete_actions))
-low = np.array(list(env.observation_space.low[:3]) + [-2.5, -30])
-high = np.array(list(env.observation_space.high[:3]) + [2.5, 30])
+low = np.array(list(env.observation_space.low[:3]) + [-4, -20])
+high = np.array(list(env.observation_space.high[:3]) + [4, 20])
 
 policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), eps=0)
 
@@ -49,5 +49,5 @@ lspi = LSPI(env=env, policy=policy, discrete_actions=discrete_actions, normalize
 lspi.train(policy_step_episodes=1, do_render=False)
 # policy = pickle.load(open("policy.pkl", "rb"))
 
-mean_reward = evaluate(env, get_policy_fun(env, policy, normalize, discrete_actions), episodes=10)
+mean_reward = evaluate(env, get_policy_fun(env, policy, discrete_actions, normalize, low, high), episodes=10)
 pickle.dump(policy, open("policy_{:.4f}.pkl".format(mean_reward), "wb"))
