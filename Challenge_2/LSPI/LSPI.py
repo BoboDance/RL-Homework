@@ -53,7 +53,8 @@ class LSPI(object):
         self.memory = ReplayMemory(samples_count, self.transition_size)
         print("Creating samples..", end="")
         sys.stdout.flush()
-        create_initial_samples(env, self.memory, samples_count, discrete_actions, normalize=normalize)
+        create_initial_samples(env, self.memory, samples_count, discrete_actions,
+                               normalize=normalize, low=self.low, high=self.high)
         print("done.")
 
         self.policy = policy
@@ -177,7 +178,7 @@ class LSPI(object):
                 episode_steps += 1
 
                 if self.normalize:
-                    obs = normalize_state(self.env, obs)
+                    obs = normalize_state(self.env, obs, low=self.low, high=self.high)
 
                 action_idx = self.policy.choose_action(obs)
                 action = self.discrete_actions[action_idx]
