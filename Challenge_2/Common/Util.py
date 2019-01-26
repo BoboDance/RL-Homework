@@ -24,8 +24,10 @@ def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, d
         # choose a random action
         action_idx = np.random.choice(range(len(discrete_actions)), 1)
         action = discrete_actions[action_idx]
+
         # do the step
         observation, reward, done, _ = env.step(action)
+
         if normalize:
             observation = normalize_state(env, observation)
 
@@ -50,6 +52,8 @@ def normalize_state(env, observation):
     if env.spec.id == "CartpoleStabShort-v0":
         low = np.array(list(env.observation_space.low[:3]) + [-5, -5])
         high = np.array(list(env.observation_space.high[:3]) + [5, 5])
+        # low = np.array([-1, -.3, -.96, .5, 4.1])
+        # high = np.array([1, .3, -1, -.5, -4.1])
     else:
         low = env.observation_space.low
         high = env.observation_space.high

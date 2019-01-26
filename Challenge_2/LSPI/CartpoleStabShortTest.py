@@ -32,7 +32,7 @@ n_features = 100
 # means = np.array([np.linspace(low[i], high[i], n_features) for i in range(dim_obs)]).T
 # means = np.array([[1, 1, 1, 1, 1], [2, 2, 2, 2, 2], [3, 3, 3, 3, 3], [4, 4, 4, 4, 4]])
 # means = np.array(np.meshgrid(*tuple([np.linspace(low[i], high[i], 2) for i in range(dim_obs)]))).T.reshape(-1, dim_obs)
-beta = .8  # parameter for width of gaussians
+# beta = .8  # parameter for width of gaussians
 # basis_function = RadialBasisFunction(input_dim=dim_obs, means=means, n_actions=len(discrete_actions), beta=beta)
 
 # Fourier base function
@@ -44,7 +44,8 @@ policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), 
 
 normalize = True
 
-lspi = LSPI(env, policy, discrete_actions, normalize, low, high, 0.99, 1e-5, 25000)
+lspi = LSPI(env=env, policy=policy, discrete_actions=discrete_actions, normalize=normalize, low=low, high=high,
+            gamma=0.99, theta=1e-5, samples_count=25000)
 lspi.train(policy_step_episodes=1, do_render=False)
 # policy = pickle.load(open("policy.pkl", "rb"))
 

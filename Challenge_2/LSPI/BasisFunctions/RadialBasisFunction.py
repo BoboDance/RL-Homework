@@ -25,6 +25,12 @@ class RadialBasisFunction(BasisFunction):
         return (len(self.means) + 1) * actions
 
     def evaluate(self, state, action):
+        """
+        evaluate RBF in loopy manner to validate matrix computation
+        :param state:
+        :param action:
+        :return:
+        """
         phi = np.zeros((self.size(),))
         offset = int((len(self.means) + 1) * action)
 
@@ -35,5 +41,11 @@ class RadialBasisFunction(BasisFunction):
         return phi
 
     def calc_features_loopy(self, observations, mean):
+        """
+        evaluate RBF for one observation in loopy manner to validate matrix computation
+        :param observations:
+        :param mean:
+        :return:
+        """
         diff = (mean - observations) / self.beta
         return np.exp(-.5 * np.sum(diff ** 2))
