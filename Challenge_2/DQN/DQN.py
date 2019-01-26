@@ -166,7 +166,7 @@ class DQN(object):
 
         return loss_val.item()
 
-    def train(self, render_episodes_mod=None):
+    def train(self, render_episodes_mod=None, save_best = True):
         episode = 0
         total_steps = 0
 
@@ -243,7 +243,7 @@ class DQN(object):
                     self.writer.add_scalar("first_best_value", get_best_values(self.Q, np.atleast_2d(obs))[0], episode)
 
                     # check if episode reward is better than best model so far
-                    if self.best_episode_reward is None or episode_reward > self.best_episode_reward:
+                    if save_best and (self.best_episode_reward is None or episode_reward > self.best_episode_reward):
                         self.best_episode_reward = episode_reward
                         print("new best model with reward {:5.5f}".format(self.best_episode_reward))
                         torch.save(self.Q.state_dict(), "checkpoints/best_weights.pth")

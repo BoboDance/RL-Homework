@@ -11,6 +11,7 @@ from Challenge_2.LSPI.Policy import Policy
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import create_initial_samples, normalize_state
 
+
 class LSPI(object):
 
     def __init__(self, env, policy: Policy, discrete_actions, normalize, low, high, gamma, theta, samples_count):
@@ -51,7 +52,7 @@ class LSPI(object):
 
         # use the replay memory to store our samples
         self.memory = ReplayMemory(samples_count, self.transition_size)
-        print("Creating samples..", end="")
+        print("Creating samples...", end="")
         sys.stdout.flush()
         create_initial_samples(env, self.memory, samples_count, discrete_actions,
                                normalize=normalize, low=self.low, high=self.high)
@@ -67,6 +68,8 @@ class LSPI(object):
         :param samples: data samples
         :param policy: policy to work with
         :param precondition_value: Helps to ensure few samples give a matrix of full rank, choose 0 if not desired
+        :param use_optimized: use optimized version which does not compute inverse of A, however it is slower,
+         due to a necessary loop.
         :return:
         """
 
@@ -90,7 +93,9 @@ class LSPI(object):
             A = (phi.T @ (phi - self.gamma * phi_next) + np.identity(k) * precondition_value)
             b = (phi.T @ reward)
 
-            # a_mat, b_vec, phi_sa, phi_sprime = loop_it(samples, precondition_value)
+            # this is just to verify the matrix computations are correct and compared against a slower loop approach
+            # a_mat, b_vec, phi_sa, phi_sprime = LSTDQ_iteration_validation(samples, precondition_value)
+
             rank_A = np.linalg.matrix_rank(A)
 
             if rank_A == k:
@@ -100,6 +105,10 @@ class LSPI(object):
                 w = scipy.linalg.lstsq(A, b)[0]
 
         else:
+            # B is the approximate inverse of the A matrix from above
+            # This avoids computing the inverse of A, but introduces a necessary loop,
+            # because each updated is dependend on the previous B.
+            # Therefor, we do not reconded using this.
             B = (1 / precondition_value) * np.identity(k)
             b = 0
             for i in range(len(phi)):
@@ -115,8 +124,13 @@ class LSPI(object):
 
         return w.reshape((-1,))
 
-
-    def loop_it(self, samples, precondition_value):
+    def LSTDQ_iteration_validation(self, samples, precondition_value):
+        """
+        loopy version of the above matrix LSTDQ to check for correctness of computation.
+        :param samples: data samples
+        :param precondition_value: Helps to ensure few samples give a matrix of full rank, choose 0 if not desired
+        :return: a_mat, b_vec, phi, phi_next
+        """
         k = self.policy.basis_function.size()
 
         a_mat = np.zeros((k, k))
@@ -151,7 +165,7 @@ class LSPI(object):
 
         return a_mat, b_vec, np.array(phi), np.array(phi_next)
 
-    def train(self, policy_step_episodes = 3, do_render = True, max_policy_steps = 100):
+    def train(self, policy_step_episodes=3, do_render=True, max_policy_steps=100):
         """
         Execute LSTDQ_iteration multiple times and display intermediate results, if wanted.
 
@@ -218,7 +232,7 @@ class LSPI(object):
                 delta = np.linalg.norm(new_weights - self.policy.w)
                 self.policy.w = new_weights
 
-                print("Policy ({}) delta: {}".format(policy_step, delta))
+                print(f"Policy ({policy_step}) delta: {delta}")
 
                 policy_step += 1
 

@@ -5,7 +5,7 @@ from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR
 
 from Challenge_2.Common.Util import evaluate
 from Challenge_2.DQN.DQN import DQN
-from Challenge_2.DQN.DQNModel import DQNModel
+from Challenge_2.DQN.DQNSwingShortModel import DQNSwingShortModel
 from Challenge_2.DQN.Util import get_policy_fun
 from torch import nn
 
@@ -38,7 +38,7 @@ edge_fear_threshold = 0.3
 
 discrete_actions = np.linspace(min_action, max_action, nb_bins)
 
-Q = DQNModel(env, discrete_actions, optimizer="adam", lr=lr)
+Q = DQNSwingShortModel(env, discrete_actions, optimizer="adam", lr=lr)
 
 # test for dividing lr by 2 every 50 episodes - start_lr = 1e-3 - noramlize=False
 # Stats: Episodes 100, avg: 932.2933493737411, std: 22.219861482005673
