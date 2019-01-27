@@ -29,7 +29,7 @@ The [first implementation](http://papers.nips.cc/paper/3182-random-features-for-
 ![img](http://latex.codecogs.com/svg.latex?f%28%5Cmathbf%7Bx%7D%29%5Cequiv%5Cleft%5B%5Csin%5Cleft%28%5Cfrac%7B%5Comega_%7B1%7D%5ET%5Cmathbf%7Bx%7D%7D%7Bv%7D%2B%5Cphi%5E%7B%281%29%7D%5Cright%29%2C%5Cldots%2C%5Csin%5Cleft%28%5Cfrac%7B%5Comega_%7BD%7D%5ET%5Cmathbf%7Bx%7D%7D%7Bv%7D%2B%5Cphi%5E%7B%28D%29%7D%5Cright%29%5Cright%5D)
 <!--$f(\mathbf{x})\equiv\left[\sin\left(\frac{\omega_{1}^T\mathbf{x}}{v} + \phi^{(1)}\right),\ldots,\sin\left(\frac{\omega_{D}^T\mathbf{x}}{v} + \phi^{(D)}\right)\right]$-->
 with
-![img](http://latex.codecogs.com/svg.latex?%5Comega%5Csim%5Cmathcal%7BN%7D%280%2C1%29%3Bb%5CsimU%5B0%2C2%5Cpi%29%3B%5Cphi%5CsimU%5B-%5Cpi%2C%5Cpi%29)
+![img](http://latex.codecogs.com/svg.latex?%5Comega%5Csim%5Cmathcal%7BN%7D%280%2C1%29%3B+b%5Csim%5C%7B%7DU%5B0%2C2%5Cpi%29%3B%5Cphi%5Csim%5C%7B%7DU%5B-%5Cpi%2C%5Cpi%29)
 <!--$\omega \sim \mathcal{N}(0,1); b \sim U[0,2\pi); \phi \sim U[-\pi,\pi)$
 p(\omega) = (2\pi)^{-\frac{D}{2}} e^{\frac{\lVert\omega\rVert_2^2}{2}} -->
 
