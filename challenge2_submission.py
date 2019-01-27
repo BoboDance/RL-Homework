@@ -35,10 +35,14 @@ import pickle
 
 import gym
 import numpy as np
+import torch
 
+from Challenge_2.DQN.DQN import DQN
+from Challenge_2.DQN.DQNSwingShortModel import DQNSwingShortModel
 from Challenge_2.LSPI.BasisFunctions.FourierBasis import FourierBasis
 from Challenge_2.LSPI.LSPI import LSPI
 from Challenge_2.LSPI.Policy import Policy
+import torch.nn as nn
 
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
@@ -58,7 +62,21 @@ def load_dqn_policy():
 
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([3.1415])
+
+    # this is required in order to determine input and output shapes
+    env = gym.make("CartpoleStabShort-v0")
+
+    # discrete actions
+    min_action = -5
+    max_action = 5
+    nb_bins = 7
+    discrete_actions = np.linspace(min_action, max_action, nb_bins)
+
+    Q = DQNSwingShortModel(env, discrete_actions, optimizer=None, lr=0)
+    Q.load_state_dict(torch.load("./checkpoints/Policies/best_weights.pth"))
+
+    from Challenge_2.DQN.Util import get_policy_fun
+    return get_policy_fun(env, Q, normalize=False)
 
 
 def train_dqn_policy(env):
@@ -70,7 +88,65 @@ def train_dqn_policy(env):
     :param env: gym.Env
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([2.7183])
+
+    seed = 1
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    env = gym.make("CartpoleSwingShort-v0")
+    env.seed(seed)
+
+    # hyperparameter selection
+
+    # discrete actions
+    min_action = -5
+    max_action = 5
+    nb_bins = 7
+    discrete_actions = np.linspace(min_action, max_action, nb_bins)
+
+    # epsilon greed parameters for exp decay
+    eps_start = 1
+    eps_end = 0.0
+    eps_decay = 5e4
+
+    # usual basic hyperparameters
+    lr = 1e-4
+    memory_size = int(1e6)
+    gamma = 0.999
+    max_episodes = 100
+    max_episode_length = 1e4
+    minibatch_size = 1024
+    target_model_update_steps = 5000
+    optimizer = "rmsprop"
+    # loss = nn.SmoothL1Loss()
+    loss = nn.MSELoss()
+
+    normalize = False
+
+    lr_scheduler = None
+    # lr_scheduler = StepLR(Q.optimizer, max_episode_length, 0.5)  # None
+    # lr_scheduler = CosineAnnealingLR(Q.optimizer, 10) #T_max=max_episode_length)
+
+    anti_sucide = False
+    edge_fear_threshold = .3
+    use_tensorboard = False
+
+    Q = DQNSwingShortModel(env, discrete_actions, optimizer=optimizer, lr=lr)
+
+    dqn = DQN(env, Q, memory_size=memory_size, initial_memory_count=minibatch_size, minibatch_size=minibatch_size,
+              target_model_update_steps=target_model_update_steps, gamma=gamma,
+              eps_start=eps_start, eps_end=eps_end, eps_decay=eps_decay, max_episodes=max_episodes,
+              max_steps_per_episode=max_episode_length, lr_scheduler=lr_scheduler, loss=loss, normalize=normalize,
+              anti_suicide=anti_sucide, edge_fear_threshold=edge_fear_threshold, use_tensorboard=use_tensorboard)
+
+    dqn.train()
+
+    # load best model from this training run
+    # this is a different path from above, no test in here, this ensures, we do not just have the last Q
+    Q.load_state_dict(torch.load("./checkpoints/best_weights.pth"))
+
+    from Challenge_2.DQN.Util import get_policy_fun
+    return get_policy_fun(env, Q, normalize=False)
 
 
 def load_lspi_policy():
@@ -82,6 +158,8 @@ def load_lspi_policy():
 
     :return: function pi: s -> a
     """
+
+    # this is required in order to normalize the inputs
     env = gym.make("CartpoleStabShort-v0")
 
     # Our discrete actions
