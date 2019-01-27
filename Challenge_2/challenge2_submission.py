@@ -71,7 +71,7 @@ def load_dqn_policy():
     """
 
     # this is required in order to determine input and output shapes
-    env = gym.make("CartpoleStabShort-v0")
+    env = gym.make("CartpoleSwingShort-v0")
 
     # discrete actions
     min_action = -5
@@ -80,7 +80,7 @@ def load_dqn_policy():
     discrete_actions = np.linspace(min_action, max_action, nb_bins)
 
     Q = DQNSwingShortModel(env, discrete_actions, optimizer=None, lr=0)
-    Q.load_state_dict(torch.load("./Challenge_2/DQN/Policies/best_weights.pth"))
+    Q.load_state_dict(torch.load("./DQN/Policies/best_weights.pth"))
 
     from Challenge_2.DQN.Util import get_policy_fun
     return get_policy_fun(env, Q, normalize=False)
