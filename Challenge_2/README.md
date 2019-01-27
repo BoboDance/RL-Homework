@@ -126,6 +126,7 @@ This loss shows an increasing variance towards the end.
 
 ##### Total episode reward development
 ![DQN_total_reward](./Supplementary/plots/total_rwd_DQN_swingup.png)
+
 As can be seen in the plot of the total reward, the learning is quite unstable mostly because the agent ends the episode
 too early. This is in our opinion a problem of the environment and a suboptimal formulation of the reward.
 
@@ -134,10 +135,8 @@ too early. This is in our opinion a problem of the environment and a suboptimal 
 
 You can notice a general trend in increase of the average reward per step.
 
-
-
+#### Visualization of progress during training
 The following description refers to one episode where the agent acts according to the extracted policy.
-
 In the beginning, the agent tries to swing up the pole quite slowly:
 
 ![swing_start](./Supplementary/swing_start.gif)
