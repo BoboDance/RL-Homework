@@ -38,7 +38,7 @@ import numpy as np
 import torch
 
 from Challenge_2.DQN.DQN import DQN
-from Challenge_2.DQN.DQNSwingShortModel import DQNSwingShortModel
+from Challenge_2.DQN.Models.DQNSwingShortModel import DQNSwingShortModel
 from Challenge_2.LSPI.BasisFunctions.FourierBasis import FourierBasis
 from Challenge_2.LSPI.LSPI import LSPI
 from Challenge_2.LSPI.Policy import Policy
@@ -47,10 +47,14 @@ import torch.nn as nn
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
     authors="Fabian Otto; Johannes Czech; Jannis Weil",
-    description="Explain what your code does and how. "
-                "Keep this description short "
-                "as it is not meant to be a replacement for docstrings "
-                "but rather a quick summary to help the grader.")
+    description="LSPI: We use min-max normalizing and fourier features,"
+                "we hard set the numpy seed because our features depend on it. "
+                "Otherwise we would need way more samples, but like this we only need 25k"
+                "and 5 iteration until convergence."
+                "DQN: we use MSE loss instead of the SmoothL1Loss, this yielded into better results. "
+                "The best intermediate policy is saved and loaded after finished training."
+                "We did not manage to get the swing up solved by 100%, but ended up with helicopter policy."
+                "On the pendulum-v0 our DQN works fine and we see improvment by chaning the reward ")
 
 
 def load_dqn_policy():
@@ -73,7 +77,7 @@ def load_dqn_policy():
     discrete_actions = np.linspace(min_action, max_action, nb_bins)
 
     Q = DQNSwingShortModel(env, discrete_actions, optimizer=None, lr=0)
-    Q.load_state_dict(torch.load("./checkpoints/Policies/best_weights.pth"))
+    Q.load_state_dict(torch.load("./Challenge_2/DQN/Policies/best_weights.pth"))
 
     from Challenge_2.DQN.Util import get_policy_fun
     return get_policy_fun(env, Q, normalize=False)
@@ -90,11 +94,12 @@ def train_dqn_policy(env):
     """
 
     seed = 1
+    # these seeds are required for initializing the DQN, etc.
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env = gym.make("CartpoleSwingShort-v0")
-    env.seed(seed)
+    # We used the same seed one the env, if you want to reproduce the exact results uncomment that.
+    # env.seed(seed)
 
     # hyperparameter selection
 
@@ -131,19 +136,22 @@ def train_dqn_policy(env):
     edge_fear_threshold = .3
     use_tensorboard = False
 
+    save_path = "./DQN/checkpoints/best_weights.pth"
+
     Q = DQNSwingShortModel(env, discrete_actions, optimizer=optimizer, lr=lr)
 
     dqn = DQN(env, Q, memory_size=memory_size, initial_memory_count=minibatch_size, minibatch_size=minibatch_size,
               target_model_update_steps=target_model_update_steps, gamma=gamma,
               eps_start=eps_start, eps_end=eps_end, eps_decay=eps_decay, max_episodes=max_episodes,
               max_steps_per_episode=max_episode_length, lr_scheduler=lr_scheduler, loss=loss, normalize=normalize,
-              anti_suicide=anti_sucide, edge_fear_threshold=edge_fear_threshold, use_tensorboard=use_tensorboard)
+              anti_suicide=anti_sucide, edge_fear_threshold=edge_fear_threshold, use_tensorboard=use_tensorboard,
+              full_episode=True, save_path=save_path)
 
     dqn.train()
 
     # load best model from this training run
-    # this is a different path from above, no test in here, this ensures, we do not just have the last Q
-    Q.load_state_dict(torch.load("./checkpoints/best_weights.pth"))
+    # this is a different path from above, this ensures, we do not just have the last DQN model, but the best
+    Q.load_state_dict(torch.load(save_path))
 
     from Challenge_2.DQN.Util import get_policy_fun
     return get_policy_fun(env, Q, normalize=False)
@@ -216,7 +224,6 @@ def train_lspi_policy(env):
 def main():
     import gym
     from gym.wrappers.monitor import Monitor
-    import quanser_robots
 
     def evaluate(env, policy, num_evlas=25):
         ep_returns = []

@@ -39,7 +39,7 @@ Even though we observed slightly lower $\dot \theta$ in the samples, increasing 
 #### Issues
 As mentioned above finding an appropriate feature function was the hardest part. The final result we found was, honestly, slightly lucky. Implementing the LSPI itself was straitforward and as long as we used the normal LSTDQ-model, matrix computations were possible. However, the optimized LSTDQ version was not fast. Even though the optimized version avoids computing the inverse of $A$, it depends on the approximate inverse of $A$, which is computed iteratively from the previous sample and therefore makes it necessary to use loops in the computation. Consequently, the higher performance matrix computations in C cannot be used. 
 Additionally, as before mentioned, normalization played a key role for good results, without it we often experienced that LSPI is not converging.
-On big remaining issued is that our policy cannot be exactly reproduced with a different seed. As a change of the seed does not only change the samples but also the $\omega$ and $\phi$ parameters of the fourier features. However, we get more stable results over multiple seeds when we are using more samples.
+On big remaining issue is that our policy cannot be exactly reproduced with a different seed, as a change of the seed does not only change the samples but also the $\omega$ and $\phi$ parameters of the fourier features. However, we get more stable results over multiple seeds when we are using more training samples.
 > [Fabian] Add example comparions with 25k, 50k and 100k samples??
 ### Results
 
@@ -56,20 +56,29 @@ DQN was tested out on the `CartpoleSwingShort-v0` environment form the [Quanser 
 
 The implementation can be found in the python module `Challenge_2.DQN`.
 
-* Exponetially decreasing epsilon for exploration starting from 100% random actions and ending with 1% random actions.
 #### Model type (experiments with different architectures)
 
-It seems that more shallow network architecture work better. (1- 3 hidden layers with small amount of hidden nodes: 32-64
-Fancy techniques such a Batch-Normalization-Layers lead to worse results.
+As suggested in the paper, we use neural networks for our models. We tried using deep networks, but according to early experiments it seems like shallow network architectures work better in our case. We experimented with different networks using 1 to 3 hidden layers with a small amount of hidden notes between 15 and 64. We also tried different activation functions but setteled down with ReLU, as we were able to achieve very good results on the pendulum with it. Fancy techniques such a Batch-Normalization-Layers lead to worse results.
 
-#### Replay Memory
-Our replay memory stores
-`self.memory.push((*obs, *action_idx, reward, *next_obs, done))`
+#### Replay Memory and Exploration
+Our replay memory stores each observed sample up to the specified capacity, then it starts to overwrite old samples.
+<!--`self.memory.push((*obs, *action_idx, reward, *next_obs, done))` -->
+We choose the actions during the online-learning process based on an epsilon-greedy policy. For the training process, we implemented an exponetially decreasing epsilon starting from 100% random actions and ending with 1% random actions. This encourages exploration at the beginning and sticks to the learned policy at the end.
+For the hyperparameters it appeared to be useful to use a rather large memory size (e.g. 1 million) and a high `minibatch_size` (e.g. 1024). This might be to avoid a high correlation between the training samples.
 
-* More steps before updating target Q for better stability
-* Lower actions for stability (e.g. `[-5, +5]` instead of `[-24, +24]` ) ortherwise the agent learns a sucidal policy by crashing to the wall very quickly
-* Is easier with reward shaping (e.g. punishing when the agent comes close to the border). This indicates that the environment `CartpoleSwingShort-v0` is designed suboptimally by enabling suicidal policies as a local optimum.
+#### Stability
+One major problem we encountered with DQN is the stability of the learned policy. We often saw quite good policies being directly followed by policies where the cart just drives to one of the borders of the track as fast as it can.
 
+We came up with the following strategies to improve the stability of the learned model:
+
+* Use more steps before updating the target Q model.
+* Use actions with lower values. E.g. `[-5, +5]` instead of `[-24, +24]`. When using high values, the agent often learns a sucidal policy where it crashes into the wall very quickly.
+* Use reward shaping (e.g. punishing when the agent comes close to the border). **As this is not allowed for the challenge, we disabled this featue for the submission** and did no further investigations. However, early experiments suggest that it is much easier to learn a good policy with reward shaping. This indicates that the environment `CartpoleSwingShort-v0` is designed suboptimally by enabling suicidal policies as a local optimum.
+
+* #### Learning Rate Schedule
+   We tried different learning rate schedules like `StepLR` which reduces the learning rate by a given factor at each timestep, as well as `CosineAnnealingLR` which smoothly lowers the learning rate. Although these learning schedules are often beneficial in the supervised case we didn't notice any improvements when using them in this RL-problem.
+
+Using all these techniques, we are still not able to achieve a totally stable policy for `CartpoleSwingShort-v0`, meaning that it does not change much in further training episodes (except for directly running into the wall, this policy is quite stable). However, we can still extract the policies from the learning process which performed well.
 
 ### Results
 
@@ -83,9 +92,11 @@ Learning
 -->
 
 #### Pendulum-v0
-We tested the pendulum environment first to make sure that our implementation of DQN itself works. We were able to achieve a very good policy 
-* Pendulum-v0: DQN learns a very good policy quite fast
-  [GIF] 
+We tested the `Pendulum-v0` environment first to make sure that our implementation of DQN itself works. We were able to achieve a very good policy with an average reward of about -135 in a short period of training time (100 episodes):
+![pendulum](./Supplementary/pendulum.gif)
 
-* Swingup: Propeller policy
-  [GIF]
+#### CartpoleSwingShort-v0
+For the cartpole swingup, we achieve a "propeller policy" for which the cart stays inside the boundaries of the track and spins the pole in circles. Using this strategy, the policy gets an average reward of **????**.
+![stab](./Supplementary/stab.gif)
+
+Clearly, this policy is not optimal. We experimented a lot and were able to create single runs with higher reward (~ 13k) but we were not able to reproduce these results with a single model. This could be caused by the fact that the update frequency of the target Q network is too low (under the length of one episode) and therefore the performance of a single training episode depends on multiple targets. ==Unfortunately, using higher update frequencies did not work????==

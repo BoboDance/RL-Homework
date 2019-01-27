@@ -4,7 +4,7 @@ import gym
 
 from Challenge_2.Common.Util import evaluate
 from Challenge_2.DQN.DQN import DQN
-from Challenge_2.DQN.DQNPendulumModel import DQNPendulumModel
+from Challenge_2.DQN.Models.DQNPendulumModel import DQNPendulumModel
 from Challenge_2.DQN.Util import get_policy_fun
 
 seed = 1

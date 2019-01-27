@@ -31,7 +31,7 @@ The learning rate is reduced by factor of 2 every 50 epochs.
 All available sample 10,000 sample for Pendulum-v0 are used.
 Training both networks takes about 3 minutes.
 After training the network weights are stored and can be reloaded via `load_model = True` in 
-[challenge1.py](../challenge1.py#L36).
+[challenge1.py](challenge1.py#L36).
 
 ![dynamics state last](./Export/Pendulum/NN/Pendulum-v0_Dynamics.png)
 ![dynamics state last](./Export/Pendulum/NN/Pendulum-v0_Reward.png)
@@ -109,7 +109,7 @@ This gives better result on lower quality dynamics and reward models without uti
 
  # Qube-v0
  
- For changing to Qube-v0 you must set `env_name = 'Qube-v0'` in [challenge1_checker.py](../challenge1_checker.py#L18).
+ For changing to Qube-v0 you must set `env_name = 'Qube-v0'` in [challenge1_checker.py](challenge1_checker.py#L18).
   
  ![pendulum 0](./Export/Qube/qube-v0.gif)
 

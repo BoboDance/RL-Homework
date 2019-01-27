@@ -1,19 +1,14 @@
 import math
 
-import quanser_robots
-import gym
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import StepLR
 import copy
 
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import create_initial_samples, normalize_state
-from Challenge_2.DQN.DQNModel import DQNModel
-from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr, save_model, load_model
-from Challenge_2.Common.MinMaxScaler import MinMaxScaler
-import logging
+from Challenge_2.DQN.Models.DQNModel import DQNModel
+from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr
 
 
 class DQN(object):
@@ -21,7 +16,8 @@ class DQN(object):
     def __init__(self, env, Q: DQNModel, memory_size, initial_memory_count, minibatch_size,
                  target_model_update_steps, gamma, eps_start, eps_end, eps_decay, max_episodes,
                  max_steps_per_episode, lr_scheduler=None, loss=nn.SmoothL1Loss(), normalize=False, low=None,
-                 high=None, anti_suicide=False, edge_fear_threshold=0.3, use_tensorboard=False):
+                 high=None, anti_suicide=False, edge_fear_threshold=0.3, use_tensorboard=False, full_episode=False,
+                 save_path="./checkpoints/best_weights.pth"):
         """
         Initializes the DQN wrapper.
 
@@ -46,6 +42,8 @@ class DQN(object):
         :param edge_fear_threshold: threshold when the anti-sucicide technique is triggered.
                 Only effective is anti-sucide is True
         :param use_tensorboard: Boolean which enables the usage of tensorboard logging
+        :param full_episode: whether the initial sampling should do a full episode (needed for monitor to work..)
+        :param save_path: path to save the best model to
         """
 
         self.env = env
@@ -67,6 +65,7 @@ class DQN(object):
         self.anti_suicide = anti_suicide
         self.edge_fear_threshold = edge_fear_threshold
         self.use_tensorboard = use_tensorboard
+        self.save_path = save_path
 
         # save the current best episode reward
         self.best_episode_reward = None
@@ -91,7 +90,7 @@ class DQN(object):
 
         self.memory = ReplayMemory(memory_size, self.transition_size)
         create_initial_samples(env, self.memory, initial_memory_count, self.discrete_actions,
-                               normalize=normalize, low=low, high=high)
+                               normalize=normalize, low=low, high=high, full_episode=full_episode)
 
         # create the target Q network which will only be evaluated and not trained
         self.target_Q = copy.deepcopy(self.Q)
@@ -111,7 +110,7 @@ class DQN(object):
         # TODO: Move total steps somewhere else (no self..)
         # compute decaying eps_threshold to encourage exploration at the beginning
         return self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * total_steps / self.eps_decay)
-        #return self.eps
+        # return self.eps
 
     def choose_action_eps(self, observation, total_steps):
         eps_threshold = self.get_eps(total_steps)
@@ -154,7 +153,7 @@ class DQN(object):
 
         values = self.Q(obs).gather(1, actions)
         loss_val = self.loss(values, expected_values)
-        loss_val.backward()
+        loss_val.mean().backward()
 
         torch.nn.utils.clip_grad_norm_(self.Q.parameters(), 1)
 
@@ -162,7 +161,7 @@ class DQN(object):
 
         return loss_val.item()
 
-    def train(self, render_episodes_mod=None, save_best = True):
+    def train(self, render_episodes_mod=None, save_best=True):
         episode = 0
         total_steps = 0
 
@@ -184,8 +183,8 @@ class DQN(object):
                 # reward = min(max(-1., reward), 1.)
 
                 # reward shaping
-                #reward -= 1
-                #reward = min(max(0., reward), 1.)
+                # reward -= 1
+                # reward = min(max(0., reward), 1.)
 
                 episode_reward += reward
 
@@ -231,13 +230,14 @@ class DQN(object):
                     print(
                         "\rEpisode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
                         "-- training loss: {:10.5f} -- lr: {:0.8f} -- eps: {:0.8f}"
-                        .format(episode, total_steps, avg_reward, episode_steps, episode_reward, episode_loss,
-                                get_current_lr(self.Q.optimizer), self.get_eps(total_steps)))
+                            .format(episode, total_steps, avg_reward, episode_steps, episode_reward, episode_loss,
+                                    get_current_lr(self.Q.optimizer), self.get_eps(total_steps)))
 
                     if self.use_tensorboard:
                         self.writer.add_scalar("avg_reward", avg_reward, episode)
                         self.writer.add_scalar("total_reward", episode_reward, episode)
-                        self.writer.add_scalar("first_best_value", get_best_values(self.Q, np.atleast_2d(obs))[0], episode)
+                        self.writer.add_scalar("first_best_value", get_best_values(self.Q, np.atleast_2d(obs))[0],
+                                               episode)
 
                     self.Q.eval()
 
@@ -245,7 +245,7 @@ class DQN(object):
                     if save_best and (self.best_episode_reward is None or episode_reward > self.best_episode_reward):
                         self.best_episode_reward = episode_reward
                         print("new best model with reward {:5.5f}".format(self.best_episode_reward))
-                        torch.save(self.Q.state_dict(), "checkpoints/best_weights.pth")
+                        torch.save(self.Q.state_dict(), self.save_path)
 
                     episode_steps = 0
                     episode_loss = 0

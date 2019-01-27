@@ -5,7 +5,7 @@ import os
 
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import normalize_state
-from Challenge_2.DQN import DQNModel
+from Challenge_2.DQN.Models import DQNModel
 
 
 def get_current_lr(optimizer):
@@ -63,7 +63,7 @@ def get_policy_fun(env, Q, normalize, low=None, high=None):
     return policy
 
 
-class CartpoleReplayMemoryFigure():
+class CartpoleReplayMemoryFigure(object):
     def __init__(self, replay_memory: ReplayMemory, discrete_actions):
         self.fig, self.ax = plt.subplots(3, 2)
         self.replay_memory = replay_memory
@@ -97,7 +97,7 @@ class CartpoleReplayMemoryFigure():
         plt.draw()
         plt.pause(0.001)
 
-class DQNStatsFigure():
+class DQNStatsFigure(object):
     def __init__(self):
         self.fig, self.ax = plt.subplots(3, 2)
 
@@ -130,3 +130,4 @@ class DQNStatsFigure():
         self.fig.tight_layout()
         plt.draw()
         plt.pause(0.001)
+

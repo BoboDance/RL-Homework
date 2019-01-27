@@ -5,7 +5,7 @@ interface.
 
 import gym
 from gym.wrappers.monitor import Monitor
-from challenge1 import get_model, get_policy
+from Challenge_1.challenge1 import get_model, get_policy
 import quanser_robots
 import numpy as np
 import logging
