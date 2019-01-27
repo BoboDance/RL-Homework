@@ -23,7 +23,8 @@ During our tests, the Fourier features worked significantly better and we were n
 One reason for this is, in our opinion, the large hyperparameter space for RBFs. It is necessary to tune the RBF centers as well as the length scales. 
 We tested two types similar types of Fourier features. 
 The [first implementation](http://papers.nips.cc/paper/3182-random-features-for-large-scale-kernel-machines.pdf)
-$f(\mathbf{x}) \equiv \sqrt{\frac{D}{2}}[\cos(\omega_1^T\mathbf{x}+b_1),\ldots,\cos(\omega_D^T\mathbf{x}+b_D)]$
+![img](http://latex.codecogs.com/svg.latex?f%28%5Cmathbf%7Bx%7D%29+%5Cequiv+%5Csqrt%7B%5Cfrac%7BD%7D%7B2%7D%7D%5B%5Ccos%28%5Comega_1%5ET%5Cmathbf%7Bx%7D%2Bb_1%29%2C%5Cldots%2C%5Ccos%28%5Comega_D%5ET%5Cmathbf%7Bx%7D%2Bb_D%29%5D)
+<!--$f(\mathbf{x}) \equiv \sqrt{\frac{D}{2}}[\cos(\omega_1^T\mathbf{x}+b_1),\ldots,\cos(\omega_D^T\mathbf{x}+b_D)]$-->
  performed in our experience worse than the [second](http://papers.nips.cc/paper/7233-towards-generalization-and-simplicity-in-continuous-control.pdf)
 $f(\mathbf{x}) \equiv \left[\sin\left(\frac{\omega_{1}^T\mathbf{x}}{v} + \phi^{(1)}\right),\ldots,\sin\left(\frac{\omega_{D}^T\mathbf{x}}{v} + \phi^{(D)}\right)\right]$
 with
