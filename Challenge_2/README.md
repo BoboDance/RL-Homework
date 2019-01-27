@@ -121,6 +121,9 @@ For the cartpole swingup, we achieve a "propeller policy" for which the cart sta
 We achieve a total reward of `10385.86 +/- 264.80` evaluated over 100 episodes with a maximum episode length of 10k steps.
 The policy was obtained in `episode 56` during training.
 
+##### Histogram of the samples during a training run
+![swing_up_histogram](./Supplementary/plots/histogram_of_swingup.png)
+
 ##### Loss development
 ![DQN_loss_swingup](./Supplementary/plots/loss_DQN_swingup.png)
 
