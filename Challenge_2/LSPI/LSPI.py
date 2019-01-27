@@ -14,7 +14,7 @@ from Challenge_2.Common.Util import create_initial_samples, normalize_state
 
 class LSPI(object):
 
-    def __init__(self, env, policy: Policy, discrete_actions, normalize, low, high, gamma, theta, samples_count):
+    def __init__(self, env, policy: Policy, discrete_actions, normalize, low, high, gamma, theta, samples_count, full_episode = False):
         """
         Initialize an LSPI container which can be used to find good weights for the given policy.
 
@@ -27,7 +27,9 @@ class LSPI(object):
         :param gamma: discount factor
         :param theta: convergence criterion for training
         :param samples_count: the number of samples to train on
+        :param full_episode: whether the initial sampling should do a full episode (needed for monitor to work..)
         """
+
         self.env = env
         self.normalize = normalize
         self.gamma = gamma
@@ -55,7 +57,7 @@ class LSPI(object):
         print("Creating samples...", end="")
         sys.stdout.flush()
         create_initial_samples(env, self.memory, samples_count, discrete_actions,
-                               normalize=normalize, low=self.low, high=self.high)
+                               normalize=normalize, low=self.low, high=self.high, full_episode=full_episode)
         print("done.")
 
         self.policy = policy
@@ -67,10 +69,10 @@ class LSPI(object):
         else: Least squares solver
         :param samples: data samples
         :param policy: policy to work with
-        :param precondition_value: Helps to ensure few samples give a matrix of full rank, choose 0 if not desired
-        :param use_optimized: use optimized version which does not compute inverse of A, however it is slower,
-         due to a necessary loop.
-        :return:
+        :param precondition_value: helps to ensure few samples give a matrix of full rank, choose 0 if not desired
+        :param use_optimized: whether to use the "optimized" version to compute the next weights. Does not compute
+        inverse of A, but it is slower due to a necessary loop.
+        :return: the next weights of the policy
         """
 
         k = policy.basis_function.size()
@@ -172,8 +174,8 @@ class LSPI(object):
         :param policy_step_episodes: the number of episodes which are simulated between policy update steps
         :param do_render: whethter to render the simulated episodes
         :param max_policy_steps: the maximum number of policy update steps
-        :return:
         """
+
         delta = np.inf
         episodes = 0
         total_steps = 0
@@ -202,11 +204,7 @@ class LSPI(object):
                 if do_render and episode_steps % 12 == 0:
                     self.env.render()
 
-                # reward = min(max(-1., reward), 1.)
                 episode_reward += reward
-
-                # TODO include?
-                # memory.push((*obs, *action_idx, reward, *next_obs, done))
 
                 obs = next_obs
 
@@ -215,19 +213,14 @@ class LSPI(object):
                     episodes += 1
                     print(
                         "Episode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- episode steps: {:4d} "
-                        "-- episode reward: {:5.5f} -- delta: {:6.10f} -- epsilon {:.10f}".format(
-                            episodes, total_steps, episode_reward / episode_steps, episode_steps, episode_reward, delta,
-                            self.policy.eps))
+                        "-- episode reward: {:5.5f} -- delta: {:6.10f}".format(episodes, total_steps,
+                                episode_reward / episode_steps, episode_steps, episode_reward, delta))
+
                     episode_steps = 0
                     episode_reward = 0
 
-                    # reduce random action prob each episode
-                    # self.policy.eps = eps_end + (eps_start - eps_end) * math.exp(-1. * episodes / eps_decay)
-
             if policy_step_episodes == 0 or (done and episodes % policy_step_episodes == 0):
                 # update the current policy
-
-                # samples = memory.sample(minibatch_size)
                 new_weights = self.LSTDQ_iteration(self.memory.memory, self.policy)
                 delta = np.linalg.norm(new_weights - self.policy.w)
                 self.policy.w = new_weights

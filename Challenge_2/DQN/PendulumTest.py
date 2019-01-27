@@ -22,7 +22,7 @@ dqn = DQN(env, Q, 10000, 2000, 128, 30, 0.9999, 1, 0.1, 5000, 100, 5000)
 trained_episodes = dqn.train(save_best=False)
 # load_model(env, Q, "./checkpoints/Q_Pendulum-v0_100_-133.66.pth.tar")
 
-eval_reward_mean = evaluate(env, get_policy_fun(Q), episodes=50, render=1)
+eval_reward_mean = evaluate(env, get_policy_fun(env, Q, False), episodes=50, render=1)
 # save_model(env, Q, trained_episodes, eval_reward_mean)
 
 env.close()

@@ -21,8 +21,6 @@ class MinMaxScaler:
         :param state: Pytorch tensor which defines the state
         :return: Normalized version of the state in which all entries are within the range [0,1]
         """
-        # [None, :] promites the tensor to 2 dimensions:
-        # https://stackoverflow.com/questions/51097719/add-substract-between-matrix-and-vector-in-pytorch
         return (state - self.min_state) / (self.max_state - self.min_state)
 
     def normalize_state_batch(self, state: torch.Tensor) -> torch.Tensor:

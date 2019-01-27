@@ -5,7 +5,7 @@ from Challenge_2.Common.ReplayMemory import ReplayMemory
 
 
 def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, discrete_actions: np.ndarray,
-                           normalize: bool = False, low = None, high = None) -> None:
+                           normalize: bool = False, low = None, high = None, full_episode = False) -> None:
     """
     Create initial data set and push to replay memory
     :param env: gym env to work with
@@ -15,6 +15,7 @@ def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, d
     :param normalize: normalize observations
     :param low: manual low limit for observation normalization
     :param high: manual high limit for observation normalization
+    :param full_episode: whether to continue the simulation until the episode has ended (does not save additional samples)
     :return: None
     """
     last_observation = env.reset()
@@ -22,6 +23,7 @@ def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, d
         last_observation = normalize_state(env, last_observation, low=low, high=high)
 
     samples_ctr = 0
+    done = False
     while samples_ctr < n_samples:
         # choose a random action
         action_idx = np.random.choice(range(len(discrete_actions)), 1)
@@ -40,6 +42,11 @@ def create_initial_samples(env: gym.Env, memory: ReplayMemory, n_samples: int, d
             last_observation = env.reset()
             if normalize:
                 last_observation = normalize_state(env, last_observation, low=low, high=high)
+
+    if full_episode:
+        while not done:
+            # just do random actions until the episode is done
+            _, _, done, _ = env.step(env.action_space.sample())
 
 
 def normalize_state(env, observation, low=None, high=None):
