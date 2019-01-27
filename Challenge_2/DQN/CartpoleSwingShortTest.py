@@ -52,13 +52,13 @@ dqn = DQN(env, Q, memory_size=memory_size, initial_memory_count=minibatch_size, 
           max_steps_per_episode=max_episode_length, lr_scheduler=lr_scheduler, loss=loss, normalize=normalize,
           anti_suicide=anti_suicide, use_tensorboard=use_tensorboard)
 
-# trained_episodes = dqn.train()
+trained_episodes = dqn.train()
 # load_model(env, Q, "./checkpoints/Q_Pendulum-v0_100_-133.66.pth.tar")
 
 # load the best weights again
 Q.load_state_dict(torch.load("./checkpoints/best_weights.pth"))
 
-eval_reward_mean = evaluate(env, get_policy_fun(Q), episodes=10, render=1) #5)
+eval_reward_mean = evaluate(env, get_policy_fun(Q), episodes=100, render=3)
 #save_model(env, Q, trained_episodes, eval_reward_mean)
 
 env.close()
