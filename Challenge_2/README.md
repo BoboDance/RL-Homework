@@ -93,7 +93,7 @@ We used tensorboard logging for our metrics during training, but because `tensor
 ### Results
 
 #### Pendulum-v0
-We tested the `Pendulum-v0` environment first to make sure that our implementation of DQN itself works. We were able to achieve a very good policy with an average reward of about -135 in a short period of training time (100 episodes):
+We tested the `Pendulum-v0` environment first to make sure that our implementation of DQN itself works. We were able to achieve a very good policy with an average reward of `-133.6028 +/- 71.4909` over 100 episodes after training for 40 episodes:
 
 ##### Loss development
 ![DQN_loss_pendel](./Supplementary/plots/loss_DQN_pendel.png)
