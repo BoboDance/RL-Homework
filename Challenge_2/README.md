@@ -114,7 +114,7 @@ The following animation shows the final policy on some episodes.
 ![pendulum](./Supplementary/pendulum.gif)
 
 #### CartpoleSwingShort-v0
-For the cartpole swingup, we achieve a "propeller policy" for which the cart stays inside the boundaries of the track and spins the pole in circles. Using this strategy, the policy gets an average reward of **????**.
+For the cartpole swingup, we achieve a "propeller policy" for which the cart stays inside the boundaries of the track and spins the pole in circles.
 
 We achieve a total reward of `10385.86 +/- 264.80` evaluated over 100 episodes with a maximum episode length of 10k steps.
 The policy was obtained in `episode 56` during training.
