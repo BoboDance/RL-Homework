@@ -22,14 +22,16 @@ Finding a good feature function is the key challenge of LSPI. The algorithm itse
 During our tests, the Fourier features worked significantly better and we were not able to learn a consitent policy with RBF features. 
 One reason for this is, in our opinion, the large hyperparameter space for RBFs. It is necessary to tune the RBF centers as well as the length scales. 
 We tested two types similar types of Fourier features. 
-The [first implementation](http://papers.nips.cc/paper/3182-random-features-for-large-scale-kernel-machines.pdf)
-![img](http://latex.codecogs.com/svg.latex?f%28%5Cmathbf%7Bx%7D%29+%5Cequiv+%5Csqrt%7B%5Cfrac%7BD%7D%7B2%7D%7D%5B%5Ccos%28%5Comega_1%5ET%5Cmathbf%7Bx%7D%2Bb_1%29%2C%5Cldots%2C%5Ccos%28%5Comega_D%5ET%5Cmathbf%7Bx%7D%2Bb_D%29%5D)
+The [first implementation](http://papers.nips.cc/paper/3182-random-features-for-large-scale-kernel-machines.pdf)  
+![img](http://latex.codecogs.com/svg.latex?f%28%5Cmathbf%7Bx%7D%29%5Cequiv%5Csqrt%7B%5Cfrac%7BD%7D%7B2%7D%7D%5B%5Ccos%28%5Comega_1%5ET%5Cmathbf%7Bx%7D%2Bb_1%29%2C%5Cldots%2C%5Ccos%28%5Comega_D%5ET%5Cmathbf%7Bx%7D%2Bb_D%29%5D)
 <!--$f(\mathbf{x}) \equiv \sqrt{\frac{D}{2}}[\cos(\omega_1^T\mathbf{x}+b_1),\ldots,\cos(\omega_D^T\mathbf{x}+b_D)]$-->
- performed in our experience worse than the [second](http://papers.nips.cc/paper/7233-towards-generalization-and-simplicity-in-continuous-control.pdf)
-$f(\mathbf{x}) \equiv \left[\sin\left(\frac{\omega_{1}^T\mathbf{x}}{v} + \phi^{(1)}\right),\ldots,\sin\left(\frac{\omega_{D}^T\mathbf{x}}{v} + \phi^{(D)}\right)\right]$
+ performed in our experience worse than the [second](http://papers.nips.cc/paper/7233-towards-generalization-and-simplicity-in-continuous-control.pdf)  
+![img](http://latex.codecogs.com/svg.latex?f%28%5Cmathbf%7Bx%7D%29%5Cequiv%5Cleft%5B%5Csin%5Cleft%28%5Cfrac%7B%5Comega_%7B1%7D%5ET%5Cmathbf%7Bx%7D%7D%7Bv%7D%2Bphi%5E%7B%281%29%7D%5Cright%29%2C%5Cldots%2C%5Csin%5Cleft%28%5Cfrac%7B%5Comega_%7BD%7D%5ET%5Cmathbf%7Bx%7D%7D%7Bv%7D%2B%5Cphi%5E%7B%28D%29%7D%5Cright%29%5Cright%5D)
+<!--$f(\mathbf{x})\equiv\left[\sin\left(\frac{\omega_{1}^T\mathbf{x}}{v} + \phi^{(1)}\right),\ldots,\sin\left(\frac{\omega_{D}^T\mathbf{x}}{v} + \phi^{(D)}\right)\right]$-->
 with
-$\omega \sim \mathcal{N}(0,1); b \sim U[0,2\pi); \phi \sim U[-\pi,\pi)$
-<!-- p(\omega) = (2\pi)^{-\frac{D}{2}} e^{\frac{\lVert\omega\rVert_2^2}{2}} -->
+![img](http://latex.codecogs.com/svg.latex?%5Comega+%5Csim+%5Cmathcal%7BN%7D%280%2C1%29%3B+b+%5Csim+U%5B0%2C2%5Cpi%29%3B+%5Cphi+%5Csim+U%5B-%5Cpi%2C%5Cpi%29)
+<!--$\omega \sim \mathcal{N}(0,1); b \sim U[0,2\pi); \phi \sim U[-\pi,\pi)$
+p(\omega) = (2\pi)^{-\frac{D}{2}} e^{\frac{\lVert\omega\rVert_2^2}{2}} -->
 
 Fourier features have the advantage that they approximate the RBF kernel as described in the above papers while also limiting the need for a lot of hyperparameter tuning. Besides the amount of features $D$ and the band width $v$ in the second version, the hyperparameters are "fixed". 
 Further, we found that combining the second fourier features with min-max normalization (`Challenge2.Common.MinMaxScaler`) was improving the results siginificanlty from approximately 500 reward to 10,000 reward for the `CartpoleStabShort-v0` environment. In order to normalize $\dot x$ and $\dot \theta$, which have infinte state boundaries, we selected empirically choosen max and min values (based on samples), [-4,4] for $\dot x$ and [-20,20]  for $\dot \theta$.
