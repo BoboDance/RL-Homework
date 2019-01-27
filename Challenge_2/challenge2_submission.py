@@ -47,14 +47,17 @@ import torch.nn as nn
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
     authors="Fabian Otto; Johannes Czech; Jannis Weil",
-    description="LSPI: We use min-max normalizing and fourier features,"
+    description="LSPI: We use min-max scaling and fourier features,"
                 "we hard set the numpy seed because our features depend on it. "
                 "Otherwise we would need way more samples, but like this we only need 25k"
                 "and 5 iteration until convergence."
-                "DQN: we use MSE loss instead of the SmoothL1Loss, this yielded into better results. "
+                "DQN: We use MSE loss instead of the SmoothL1Loss, this yielded into better results. "
                 "The best intermediate policy is saved and loaded after finished training."
                 "We did not manage to get the swing up solved by 100%, but ended up with helicopter policy."
-                "On the pendulum-v0 our DQN works fine and we see improvment by chaning the reward ")
+                "On the pendulum-v0 our DQN works fine and we see improvement by changing the reward."
+                "With the help of reward shaping by punishing the agent when it gets close to the boarder we achieved"
+                "a higher total reward. But because changing the reward isn't allowed we deactivated it for the final"
+                "submission. For more details please take a look at the README.md")
 
 
 def load_dqn_policy():
@@ -177,7 +180,7 @@ def load_lspi_policy():
     low = np.array(list(env.observation_space.low[:3]) + [-4, -20])
     high = np.array(list(env.observation_space.high[:3]) + [4, 20])
 
-    policy = pickle.load(open("./Challenge_2/LSPI/Policies/CartpoleStabShort-v0-20k.pkl", "rb"))
+    policy = pickle.load(open("./LSPI/Policies/CartpoleStabShort-v0-20k.pkl", "rb"))
 
     from Challenge_2.LSPI.Util import get_policy_fun
     return get_policy_fun(env, policy, discrete_actions, True, low, high)
