@@ -54,7 +54,7 @@ trained_episodes = dqn.train()
 # load the best weights again
 Q.load_state_dict(torch.load("./checkpoints/best_weights.pth"))
 
-eval_reward_mean = evaluate(env, get_policy_fun(Q), episodes=100, render=5)
+eval_reward_mean = evaluate(env, get_policy_fun(env, Q, normalize), episodes=100, render=5)
 #save_model(env, Q, trained_episodes, eval_reward_mean)
 
 env.close()
