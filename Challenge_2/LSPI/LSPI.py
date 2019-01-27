@@ -14,7 +14,8 @@ from Challenge_2.Common.Util import create_initial_samples, normalize_state
 
 class LSPI(object):
 
-    def __init__(self, env, policy: Policy, discrete_actions, normalize, low, high, gamma, theta, samples_count, full_episode = False):
+    def __init__(self, env: gym.Env, policy: Policy, discrete_actions: np.ndarray, normalize: bool, low: np.ndarray, high: np.ndarray,
+                 gamma: float, theta: float, samples_count: int, full_episode: bool = False):
         """
         Initialize an LSPI container which can be used to find good weights for the given policy.
 
@@ -62,7 +63,8 @@ class LSPI(object):
 
         self.policy = policy
 
-    def LSTDQ_iteration(self, samples, policy, precondition_value=.0001, use_optimized=False):
+    def LSTDQ_iteration(self, samples: np.ndarray, policy: Policy, precondition_value: float = .0001,
+                        use_optimized: bool = False):
         """
         Compute Q value function of current policy via LSTDQ iteration.
         If a matrix has full rank: scipy.linalg solver
@@ -126,7 +128,7 @@ class LSPI(object):
 
         return w.reshape((-1,))
 
-    def LSTDQ_iteration_validation(self, samples, precondition_value):
+    def LSTDQ_iteration_validation(self, samples: np.ndarray, precondition_value: float):
         """
         loopy version of the above matrix LSTDQ to check for correctness of computation.
         :param samples: data samples
@@ -167,7 +169,7 @@ class LSPI(object):
 
         return a_mat, b_vec, np.array(phi), np.array(phi_next)
 
-    def train(self, policy_step_episodes=3, do_render=True, max_policy_steps=100):
+    def train(self, policy_step_episodes: int = 3, do_render: bool = True, max_policy_steps: int = 100):
         """
         Execute LSTDQ_iteration multiple times and display intermediate results, if wanted.
 

@@ -98,7 +98,14 @@ class DQN(object):
         self.target_Q.load_state_dict(self.Q.state_dict())
         self.target_Q.eval()
 
-    def get_expected_values(self, transitions, model):
+    def get_expected_values(self, transitions: np.ndarray, model: DQNModel) -> np.ndarray:
+        """
+        Return the expected value of a batch.
+
+        :param transitions: Transition matrix. First dimension number of batches. 2nd dimension is size of replay memory
+        :param model: Current NN model
+        :return: expected value for given transitions
+        """
         y = transitions[:, self.REWARD_INDEX].reshape(-1, 1)
         not_done_filter = ~transitions[:, self.DONE_INDEX].astype(bool)
         next_obs = transitions[not_done_filter, self.NEXT_OBS_INDEX:self.NEXT_OBS_INDEX + self.dim_obs]
@@ -106,13 +113,22 @@ class DQN(object):
 
         return y
 
-    def get_eps(self, total_steps):
-        # TODO: Move total steps somewhere else (no self..)
+    def get_eps(self, total_steps: int) -> float:
+        """
+        Returns the current epsilon value which describes how many random actions are done.
+        :param total_steps: Current amount of steps taken in total over several episodes.
+        :return:
+        """
         # compute decaying eps_threshold to encourage exploration at the beginning
         return self.eps_end + (self.eps_start - self.eps_end) * math.exp(-1. * total_steps / self.eps_decay)
-        # return self.eps
 
-    def choose_action_eps(self, observation, total_steps):
+    def choose_action_eps(self, observation: np.ndarray, total_steps: int) -> int:
+        """
+        Chooses an action either randomly or based on the q-value.
+        :param observation: Current environment state
+        :param total_steps: Current amount of steps taken in total over several episodes.
+        :return: Index of the bin of the chosen action
+        """
         eps_threshold = self.get_eps(total_steps)
 
         # choose epsilon-greedy action
@@ -127,7 +143,12 @@ class DQN(object):
 
         return action_idx
 
-    def optimize(self):
+    def optimize(self) -> float:
+        """
+        Runs the optimization step for updating the model weights
+        :return: The loss value
+        """
+
         if self.lr_scheduler is not None:
             self.lr_scheduler.step()
 
@@ -161,7 +182,14 @@ class DQN(object):
 
         return loss_val.item()
 
-    def train(self, render_episodes_mod=None, save_best=True):
+    def train(self, render_episodes_mod: int = None, save_best: bool = True):
+        """
+        Runs the full training loop over several episodes. The best model weights are saved each time progress was made.
+        :param render_episodes_mod: Number of episodes when a new run will be rendered
+        :param save_best: Defines if the best model policy shall be saved during training.
+        Saved in checkpoints/best_weights.pth
+        :return: The final episode reached after training
+        """
         episode = 0
         total_steps = 0
 
@@ -179,12 +207,6 @@ class DQN(object):
                 action = self.discrete_actions[action_idx]
 
                 next_obs, reward, done, _ = self.env.step(action)
-                # reward clipping
-                # reward = min(max(-1., reward), 1.)
-
-                # reward shaping
-                # reward -= 1
-                # reward = min(max(0., reward), 1.)
 
                 episode_reward += reward
 
@@ -224,8 +246,6 @@ class DQN(object):
                 if done or episode_steps >= self.max_steps_per_episode:
                     obs = self.env.reset()
                     episode += 1
-                    # decrease the epsilon value
-                    # self.eps /= 1.01
 
                     print(
                         "\rEpisode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
@@ -250,8 +270,6 @@ class DQN(object):
                     episode_steps = 0
                     episode_loss = 0
                     episode_reward = 0
-
-                    # fig.draw()
 
         except(KeyboardInterrupt):
             print("Interrupted.")

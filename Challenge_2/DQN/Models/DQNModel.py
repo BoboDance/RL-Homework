@@ -1,10 +1,16 @@
 import torch
 import torch.nn as nn
 from torch import optim
+import gym
 import numpy as np
 
 
 def init_weights(m):
+    """
+    Initiliazes the weights of the model by using kaiming normal initialization.
+    :param m: Handle for the model
+    :return:
+    """
     if isinstance(m, nn.Linear):
         nn.init.kaiming_normal_(m.weight.data)
         m.bias.data.fill_(0)
@@ -12,10 +18,17 @@ def init_weights(m):
 
 class DQNModel(torch.nn.Module):
 
-    def __init__(self, env, discrete_actions, scaling=None, lr=1e-3, optimizer='adam'):
+    def __init__(self, env: gym.Env, discrete_actions: np.ndarray, lr: float = 1e-3, optimizer: str = 'adam'):
+        """
+        Constructor
+        :param env: Gym environment object
+        :param discrete_actions: Numpy array which stores the values for the action bins
+        :param lr: Learning rate to use
+        :param optimizer: Optimizer to use
+        """
+
         super(DQNModel, self).__init__()
 
-        self.scaling = scaling
         self.discrete_actions = discrete_actions
         self.n_outputs = len(discrete_actions)
         self.n_inputs = env.observation_space.shape[0]
@@ -57,12 +70,14 @@ class DQNModel(torch.nn.Module):
 
         out = self.model(inputs)
 
-        if self.scaling is not None:
-            out = torch.from_numpy(self.scaling).float() * torch.tanh(out)
-
         return out.float()
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """
+        Runs forward pass in the current model given input data X
+        :param X: Input data as numpy array
+        :return: Output value of the model as numpy as array
+        """
         self.eval()
         X = torch.from_numpy(X)
         with torch.no_grad():
