@@ -34,13 +34,13 @@ Fourier features have the advantage that they approximate the RBF kernel as desc
 Further, we found that combining the second fourier features with min-max normalization (`Challenge2.Common.MinMaxScaler`) was improving the results siginificanlty from approximately 500 reward to 10,000 reward for the `CartpoleStabShort-v0` environment. In order to normalize $\dot x$ and $\dot \theta$, which have infinte state boundaries, we selected empirically choosen max and min values (based on samples), [-4,4] for $\dot x$ and [-20,20]  for $\dot \theta$.
 Even though we observed slightly lower $\dot \theta$ in the samples, increasing the range helped, we assume some extreme cases were simply not covered by the random inital actions.
 
-![LSTDQ](https://ai2-s2-public.s3.amazonaws.com/figures/2017-08-08/3b2a39c3806996aaaf57bbe99bd67de0e2c529af/19-Figure7-1.png)
+![lstdq](./Supplementary/LSTDQ.gif)
 
 #### Issues
 As mentioned above finding an appropriate feature function was the hardest part. The final result we found was, honestly, slightly lucky. Implementing the LSPI itself was straitforward and as long as we used the normal LSTDQ-model, matrix computations were possible. However, the optimized LSTDQ version was not fast. Even though the optimized version avoids computing the inverse of $A$, it depends on the approximate inverse of $A$, which is computed iteratively from the previous sample and therefore makes it necessary to use loops in the computation. Consequently, the higher performance matrix computations in C cannot be used. 
 Additionally, as before mentioned, normalization played a key role for good results, without it we often experienced that LSPI is not converging.
 On big remaining issue is that our policy cannot be exactly reproduced with a different seed, as a change of the seed does not only change the samples but also the $\omega$ and $\phi$ parameters of the fourier features. However, we get more stable results over multiple seeds when we are using more training samples.
-> [Fabian] Add example comparions with 25k, 50k and 100k samples??
+
 ### Results
 
 Using the above setting we achieve a reward of 19,999.95 over 10,000 steps and 25 different seeds for the test run.
