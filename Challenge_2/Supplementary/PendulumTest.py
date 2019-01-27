@@ -18,7 +18,7 @@ discrete_actions = np.array([-2, 2])
 
 Q = DQNPendulumModel(env, discrete_actions, optimizer="adam", lr=1e-3)
 
-dqn = DQN(env, Q, 10000, 2000, 128, 30, 0.9999, 1, 0.1, 5000, 100, 5000)
+dqn = DQN(env, Q, 10000, 2000, 128, 30, 0.9999, 1, 0.1, 5000, 100, 5000, use_tensorboard=True)
 trained_episodes = dqn.train(save_best=False)
 # load_model(env, Q, "./checkpoints/Q_Pendulum-v0_100_-133.66.pth.tar")
 
