@@ -4,6 +4,7 @@ import torch
 import os
 
 from Challenge_2.Common.ReplayMemory import ReplayMemory
+from Challenge_2.Common.Util import normalize_state
 from Challenge_2.DQN import DQNModel
 
 
@@ -49,8 +50,12 @@ def get_best_action_and_value(Q, observation, discrete_actions):
     return np.array([discrete_actions[values.argmax(1).item()]]), values.max(1)[0].item()
 
 
-def get_policy_fun(Q):
+def get_policy_fun(env, Q, normalize, low=None, high=None):
     def policy(obs):
+
+        if normalize:
+            obs = normalize_state(env, obs, low=low, high=high)
+
         Q.eval()
         action_idx = get_best_action(Q, obs)
         return Q.discrete_actions[action_idx]

@@ -10,7 +10,7 @@ from torch.optim.lr_scheduler import StepLR
 import copy
 
 from Challenge_2.Common.ReplayMemory import ReplayMemory
-from Challenge_2.Common.Util import create_initial_samples
+from Challenge_2.Common.Util import create_initial_samples, normalize_state
 from Challenge_2.DQN.DQNModel import DQNModel
 from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_lr, save_model, load_model
 from Challenge_2.Common.MinMaxScaler import MinMaxScaler
@@ -20,8 +20,8 @@ class DQN(object):
 
     def __init__(self, env, Q: DQNModel, memory_size, initial_memory_count, minibatch_size,
                  target_model_update_steps, gamma, eps_start, eps_end, eps_decay, max_episodes,
-                 max_steps_per_episode, lr_scheduler=None, loss=nn.SmoothL1Loss(), normalize=False,
-                 anti_sucide=False, edge_fear_threshold=0.3):
+                 max_steps_per_episode, lr_scheduler=None, loss=nn.SmoothL1Loss(), normalize=False, low = None,
+                 high = None, anti_sucide=False, edge_fear_threshold=0.3):
         """
         Initializes the DQN wrapper.
 
@@ -40,7 +40,9 @@ class DQN(object):
         :param lr_scheduler: the learning rate scheduler
         :param loss: the loss used for the optimization step
         :param normalize: boolean which enables or disables state normalization into feature range of [0,1]
-        :param  anti_sucide: technique which applies reward shaping to avoid that the agent crashes against the wall
+        :param low: manual upper limit for the observation space
+        :param high: manual lower limit for the observation space
+        :param anti_sucide: technique which applies reward shaping to avoid that the agent crashes against the wall
         :param edge_fear_threshold: threshold when the anti-sucicide technique is triggered.
                 Only effective is anti-sucide is True
         """
@@ -54,12 +56,13 @@ class DQN(object):
         self.eps_start = eps_start
         self.eps_end = eps_end
         self.eps_decay = eps_decay
-        #self.eps = eps_start
         self.max_episodes = max_episodes
         self.max_steps_per_episode = max_steps_per_episode
         self.lr_scheduler = lr_scheduler
         self.loss = loss
         self.normalize = normalize
+        self.low = low
+        self.high = high
         self.anti_sucide = anti_sucide
         self.edge_fear_threshold = edge_fear_threshold
 
@@ -82,7 +85,8 @@ class DQN(object):
         self.DONE_INDEX = -1
 
         self.memory = ReplayMemory(memory_size, self.transition_size)
-        create_initial_samples(env, self.memory, initial_memory_count, self.discrete_actions)
+        create_initial_samples(env, self.memory, initial_memory_count, self.discrete_actions,
+                               normalize=normalize, low=low, high=high)
 
         # create the target Q network which will only be evaluated and not trained
         self.target_Q = copy.deepcopy(self.Q)
@@ -111,6 +115,10 @@ class DQN(object):
         if np.random.uniform() <= eps_threshold:
             action_idx = np.random.choice(range(len(self.discrete_actions)), 1)
         else:
+            # choose the best action
+            if self.normalize:
+                observation = normalize_state(self.env, observation, low=self.low, high=self.high)
+
             action_idx = get_best_action(self.Q, observation)
 
         return action_idx
@@ -138,23 +146,6 @@ class DQN(object):
 
         # convert observation from numpy into pytorch tensor format for fwd and bwd propagation
         obs = torch.from_numpy(obs)
-        # define the minimum maximum state representation for min/max scaling
-        if self.normalize:
-            if self.env.spec._env_name in ["CartpoleStabShort", "CartpoleSwingShort"]:
-                min_state = self.env.observation_space.low
-                max_state = self.env.observation_space.high
-                # set the minimum and maximum for x_dot and theta_dot manually because
-                # they are set to infinity by default
-                min_state[3] = -3
-                max_state[3] = 3
-                min_state[4] = -80
-                max_state[4] = 80
-                min_state = torch.from_numpy(min_state).double()
-                max_state = torch.from_numpy(max_state).double()
-                min_max_scaler = MinMaxScaler(min_state, max_state)
-                obs = min_max_scaler.normalize_state_batch(obs)
-            else:
-                logging.warning("You're given environment %s isn't supported for normalization" % self.env.spec._env_name)
 
         values = self.Q(obs).gather(1, actions)
         loss_val = self.loss(values, expected_values)
@@ -204,7 +195,7 @@ class DQN(object):
                 # remember last observation
                 obs = next_obs
 
-                if render_episodes_mod is not None and episode % render_episodes_mod == 0:
+                if render_episodes_mod is not None and episode > 0 and episode % render_episodes_mod == 0:
                     self.env.render()
 
                 loss = self.optimize()

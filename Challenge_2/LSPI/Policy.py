@@ -14,7 +14,7 @@ class Policy:
         :param basis_function: Basisfunction object which returns phi upon call
         :param n_actions: ndarray of actions
         :param weights: inital weights, if not provided sample uniform weights
-        :param eps: eps-greedy policy parameter
+        :param eps: eps-greedy policy parameter (useful for exploration in online learning)
         :param tie_breaker:
         """
 
