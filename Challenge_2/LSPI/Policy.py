@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 
 from Challenge_2.LSPI.BasisFunctions.BasisFunction import BasisFunction
@@ -38,9 +40,20 @@ class Policy:
         return phi @ self.w
 
     def calc_q_value(self, state, action):
+        """
+        Q calc in loop version for validation
+        :param state:
+        :param action:
+        :return:
+        """
         return self.w.dot(self.basis_function.evaluate(state, action))
 
     def best_action(self, state):
+        """
+        best action selection in loop version for validation
+        :param state:
+        :return:
+        """
         q_values = [self.calc_q_value(state, action)
                     for action in range(self.n_actions)]
 
@@ -56,7 +69,12 @@ class Policy:
 
         return best_actions[0]
 
-    def get_best_action(self, observation):
+    def get_best_action(self, observation: np.ndarray) -> Any:
+        """
+        select best action based on current Q estimate
+        :param observation: data samples, to compute best action for
+        :return:
+        """
 
         observation = np.atleast_2d(observation)
 
@@ -75,7 +93,7 @@ class Policy:
 
     def choose_action(self, observation: np.ndarray) -> np.ndarray:
         """
-        Choose an action to take, either take action with highest Q or select random action with prob eps
+        Choose an action to take, either take action with highest Q value or select random action with prob eps
         :param observation: ndarray [batch_size x state_dim]
         :return: action index
         """

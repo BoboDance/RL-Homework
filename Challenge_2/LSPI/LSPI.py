@@ -54,7 +54,7 @@ class LSPI(object):
 
         # use the replay memory to store our samples
         self.memory = ReplayMemory(samples_count, self.transition_size)
-        print("Creating samples..", end="")
+        print("Creating samples...", end="")
         sys.stdout.flush()
         create_initial_samples(env, self.memory, samples_count, discrete_actions,
                                normalize=normalize, low=self.low, high=self.high, full_episode=full_episode)
@@ -70,7 +70,8 @@ class LSPI(object):
         :param samples: data samples
         :param policy: policy to work with
         :param precondition_value: helps to ensure few samples give a matrix of full rank, choose 0 if not desired
-        :param use_optimized: whether to use the "optimized" version to compute the next weights
+        :param use_optimized: whether to use the "optimized" version to compute the next weights. Does not compute
+        inverse of A, but it is slower due to a necessary loop.
         :return: the next weights of the policy
         """
 
@@ -94,6 +95,9 @@ class LSPI(object):
             A = (phi.T @ (phi - self.gamma * phi_next) + np.identity(k) * precondition_value)
             b = (phi.T @ reward)
 
+            # this is just to verify the matrix computations are correct and compared against a slower loop approach
+            # a_mat, b_vec, phi_sa, phi_sprime = LSTDQ_iteration_validation(samples, precondition_value)
+
             rank_A = np.linalg.matrix_rank(A)
 
             if rank_A == k:
@@ -103,6 +107,10 @@ class LSPI(object):
                 w = scipy.linalg.lstsq(A, b)[0]
 
         else:
+            # B is the approximate inverse of the A matrix from above
+            # This avoids computing the inverse of A, but introduces a necessary loop,
+            # because each updated is dependend on the previous B.
+            # Therefor, we do not reconded using this.
             B = (1 / precondition_value) * np.identity(k)
             b = 0
             for i in range(len(phi)):
@@ -118,7 +126,48 @@ class LSPI(object):
 
         return w.reshape((-1,))
 
-    def train(self, policy_step_episodes = 3, do_render = True, max_policy_steps = 100):
+    def LSTDQ_iteration_validation(self, samples, precondition_value):
+        """
+        loopy version of the above matrix LSTDQ to check for correctness of computation.
+        :param samples: data samples
+        :param precondition_value: Helps to ensure few samples give a matrix of full rank, choose 0 if not desired
+        :return: a_mat, b_vec, phi, phi_next
+        """
+        k = self.policy.basis_function.size()
+
+        a_mat = np.zeros((k, k))
+        np.fill_diagonal(a_mat, precondition_value)
+
+        b_vec = np.zeros((k, 1))
+
+        phi = []
+        phi_next = []
+
+        for sample in samples:
+
+            obs = sample[0: self.ACTION_IDX]
+            action_idx = sample[self.ACTION_IDX]
+            reward = sample[self.REWARD_IDX: self.NEXT_OBS_IDX]
+            next_obs = sample[self.NEXT_OBS_IDX: self.DONE_IDX]
+            done = sample[self.DONE_IDX].astype(np.bool)
+
+            phi_sa = (self.policy.basis_function.evaluate(obs, action_idx).reshape((-1, 1)))
+
+            if not done:
+                best_action = self.policy.best_action(next_obs)
+                phi_sprime = (self.policy.basis_function.evaluate(next_obs, best_action).reshape((-1, 1)))
+            else:
+                phi_sprime = np.zeros((k, 1))
+
+            phi.append(phi_sa)
+            phi_next.append(phi_sprime)
+
+            a_mat += phi_sa.dot((phi_sa - self.gamma * phi_sprime).T)
+            b_vec += phi_sa * reward
+
+        return a_mat, b_vec, np.array(phi), np.array(phi_next)
+
+    def train(self, policy_step_episodes=3, do_render=True, max_policy_steps=100):
         """
         Execute LSTDQ_iteration multiple times and display intermediate results, if wanted.
 
@@ -176,7 +225,7 @@ class LSPI(object):
                 delta = np.linalg.norm(new_weights - self.policy.w)
                 self.policy.w = new_weights
 
-                print("Policy ({}) delta: {}".format(policy_step, delta))
+                print(f"Policy ({policy_step}) delta: {delta}")
 
                 policy_step += 1
 
