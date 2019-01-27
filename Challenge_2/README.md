@@ -34,7 +34,7 @@ Fourier features have the advantage that they approximate the RBF kernel as desc
 Further, we found that combining the second fourier features with min-max normalization (`Challenge2.Common.MinMaxScaler`) was improving the results siginificanlty from approximately 500 reward to 10,000 reward for the `CartpoleStabShort-v0` environment. In order to normalize $\dot x$ and $\dot \theta$, which have infinte state boundaries, we selected empirically choosen max and min values (based on samples), [-4,4] for $\dot x$ and [-20,20]  for $\dot \theta$.
 Even though we observed slightly lower $\dot \theta$ in the samples, increasing the range helped, we assume some extreme cases were simply not covered by the random inital actions.
 
-![lstdq](./Supplementary/LSTDQ.gif)
+![lstdq](./Supplementary/LSTDQ.png)
 
 #### Issues
 As mentioned above finding an appropriate feature function was the hardest part. The final result we found was, honestly, slightly lucky. Implementing the LSPI itself was straitforward and as long as we used the normal LSTDQ-model, matrix computations were possible. However, the optimized LSTDQ version was not fast. Even though the optimized version avoids computing the inverse of $A$, it depends on the approximate inverse of $A$, which is computed iteratively from the previous sample and therefore makes it necessary to use loops in the computation. Consequently, the higher performance matrix computations in C cannot be used. 
@@ -44,7 +44,8 @@ On big remaining issue is that our policy cannot be exactly reproduced with a di
 ### Results
 
 Using the above setting we achieve a reward of 19,999.95 over 10,000 steps and 25 different seeds for the test run.
-  [GIF]
+
+![stab](./Supplementary/stab.gif)
 
 ## Deep Q-Learning (DQN)
 
@@ -93,10 +94,24 @@ Learning
 
 #### Pendulum-v0
 We tested the `Pendulum-v0` environment first to make sure that our implementation of DQN itself works. We were able to achieve a very good policy with an average reward of about -135 in a short period of training time (100 episodes):
+
 ![pendulum](./Supplementary/pendulum.gif)
 
 #### CartpoleSwingShort-v0
 For the cartpole swingup, we achieve a "propeller policy" for which the cart stays inside the boundaries of the track and spins the pole in circles. Using this strategy, the policy gets an average reward of **????**.
-![stab](./Supplementary/stab.gif)
+
+In the beginning, the agent tries to swing up the pole quite slowly:
+
+![swing_start](./Supplementary/swing_start.gif)
+
+After about 3000 steps the agent tries to stabilize the pole:
+
+![swing_almost_stable](./Supplementary/swing_almost_stable.gif)
+
+But starts doing a propeller quickly after it failed:
+
+![swing_propeller](./Supplementary/swing_propeller.gif)
+
+ 
 
 Clearly, this policy is not optimal. We experimented a lot and were able to create single runs with higher reward (~ 13k) but we were not able to reproduce these results with a single model. This could be caused by the fact that the update frequency of the target Q network is too low (under the length of one episode) and therefore the performance of a single training episode depends on multiple targets. ==Unfortunately, using higher update frequencies did not work????==
