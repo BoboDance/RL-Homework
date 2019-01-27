@@ -113,7 +113,7 @@ evaluation/
 training/
 
 # challenge 2
-# dqn_eval/
-# dqn_train/
-# lspi_eval/
-# lspi_train/
+dqn_eval/
+dqn_train/
+lspi_eval/
+lspi_train/
