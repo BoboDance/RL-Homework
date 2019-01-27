@@ -46,6 +46,8 @@ On big remaining issue is that our policy cannot be exactly reproduced with a di
 
 Using the above setting we achieve a reward of 19,999.95 over 10,000 steps and 25 different seeds for the test run.
 
+The following animation visualizes the learning process (episodes are shortened). One can see, that the agent is able to stabilize the pole better for each policy update and can balance it without moving in the end.
+
 ![stab](./Supplementary/stab.gif)
 
 ## Deep Q-Learning (DQN)
@@ -96,10 +98,14 @@ Learning
 #### Pendulum-v0
 We tested the `Pendulum-v0` environment first to make sure that our implementation of DQN itself works. We were able to achieve a very good policy with an average reward of about -135 in a short period of training time (100 episodes):
 
+The following animation shows the final policy on some episodes.
+
 ![pendulum](./Supplementary/pendulum.gif)
 
 #### CartpoleSwingShort-v0
 For the cartpole swingup, we achieve a "propeller policy" for which the cart stays inside the boundaries of the track and spins the pole in circles. Using this strategy, the policy gets an average reward of **????**.
+
+The following description refers to one episode where the agent acts according to the extracted policy.
 
 In the beginning, the agent tries to swing up the pole quite slowly:
 
@@ -112,7 +118,5 @@ After about 3000 steps the agent tries to stabilize the pole:
 But starts doing a propeller quickly after it failed:
 
 ![swing_propeller](./Supplementary/swing_propeller.gif)
-
- 
 
 Clearly, this policy is not optimal. We experimented a lot and were able to create single runs with higher reward (~ 13k) but we were not able to reproduce these results with a single model. This could be caused by the fact that the update frequency of the target Q network is too low (under the length of one episode) and therefore the performance of a single training episode depends on multiple targets. ==Unfortunately, using higher update frequencies did not work????==
