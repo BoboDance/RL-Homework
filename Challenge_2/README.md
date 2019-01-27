@@ -64,7 +64,7 @@ The implementation can be found in the python module `Challenge_2.DQN`.
 
 #### Model type (experiments with different architectures)
 
-As suggested in the paper, we use neural networks for our models. We tried using deep networks, but according to early experiments it seems like shallow network architectures work better in our case. We experimented with different networks using 1 to 3 hidden layers with a small amount of hidden notes between 15 and 64. We also tried different activation functions but setteled down with ReLU, as we were able to achieve very good results on the pendulum with it. Fancy techniques such a Batch-Normalization-Layers lead to worse results.
+As suggested in the paper, we use neural networks for our models. We tried using deep networks, but according to early experiments it seems like shallow network architectures work better in our case. We experimented with different networks using 1 to 3 hidden layers with a small amount of hidden notes between 15 and 128. We also tried different activation functions but setteled down with ReLU, as we were able to achieve very good results on the pendulum with it. Classical techniques applied in supervised such a Batch-Normalization-Layers lead to worse results.
 
 #### Replay Memory and Exploration
 Our replay memory stores each observed sample up to the specified capacity, then it starts to overwrite old samples.
@@ -80,25 +80,34 @@ We came up with the following strategies to improve the stability of the learned
 * Use more steps before updating the target Q model.
 * Use actions with lower values. E.g. `[-5, +5]` instead of `[-24, +24]`. When using high values, the agent often learns a sucidal policy where it crashes into the wall very quickly.
 * Use reward shaping (e.g. punishing when the agent comes close to the border). **As this is not allowed for the challenge, we disabled this featue for the submission** and did no further investigations. However, early experiments suggest that it is much easier to learn a good policy with reward shaping. This indicates that the environment `CartpoleSwingShort-v0` is designed suboptimally by enabling suicidal policies as a local optimum.
+* We make use of gradient clipping = 1 in order to avoid numerical instabilities
 
 * #### Learning Rate Schedule
    We tried different learning rate schedules like `StepLR` which reduces the learning rate by a given factor at each timestep, as well as `CosineAnnealingLR` which smoothly lowers the learning rate. Although these learning schedules are often beneficial in the supervised case we didn't notice any improvements when using them in this RL-problem.
 
 Using all these techniques, we are still not able to achieve a totally stable policy for `CartpoleSwingShort-v0`, meaning that it does not change much in further training episodes (except for directly running into the wall, this policy is quite stable). However, we can still extract the policies from the learning process which performed well.
 
+### Notes
+We used tensorboard logging for our metrics during training, but because `tensorboardX` is not part of the defined python environment we deactivated it in the final submission.
+
 ### Results
-
-Learning
-[Plot of loss curve]
-
-[Plot of average reward development]
-
-<!-- Haben wir eine policy für den Stab task???? 
-    Jannis: Nicht dass ich wüsste, das hatte ich nur irgendwann mal ausprobiert und es hatte damals ok geklappt. Aber war lange nicht so gut wie unser LSPI.
--->
 
 #### Pendulum-v0
 We tested the `Pendulum-v0` environment first to make sure that our implementation of DQN itself works. We were able to achieve a very good policy with an average reward of about -135 in a short period of training time (100 episodes):
+
+##### Loss development
+![DQN_loss_pendel](./Supplementary/plots/loss_DQN_pendel.png)
+
+The loss development shows a general downward trend.
+
+##### Total episode reward development
+![DQN_total_reward](./Supplementary/plots/total_rwd_DQN_pendel.png)
+
+##### Average reward per step development
+![DQN_total_reward_pendel](./Supplementary/plots/avg_rwd_DQN_pendel.png)
+
+The development of the reward looks quite smooth and the shape of the plot is identical between average and total reward.
+
 
 The following animation shows the final policy on some episodes.
 
@@ -106,6 +115,26 @@ The following animation shows the final policy on some episodes.
 
 #### CartpoleSwingShort-v0
 For the cartpole swingup, we achieve a "propeller policy" for which the cart stays inside the boundaries of the track and spins the pole in circles. Using this strategy, the policy gets an average reward of **????**.
+
+We achieve a total reward of `10385.86 +/- 264.80` evaluated over 100 episodes with a maximum episode length of 10k steps.
+The policy was obtained in `episode 56` during training.
+
+##### Loss development
+![DQN_loss_swingup](./Supplementary/plots/loss_DQN_swingup.png)
+
+This loss shows an increasing variance towards the end.
+
+##### Total episode reward development
+![DQN_total_reward](./Supplementary/plots/total_rwd_DQN_swingup.png)
+As can be seen in the plot of the total reward, the learning is quite unstable mostly because the agent ends the episode
+too early. This is in our opinion a problem of the environment and a suboptimal formulation of the reward.
+
+##### Average reward per step development
+![DQN_avg_reward](./Supplementary/plots/avg_rwd_DQN_swingup.png)
+
+You can notice a general trend in increase of the average reward per step.
+
+
 
 The following description refers to one episode where the agent acts according to the extracted policy.
 
@@ -121,4 +150,16 @@ But starts doing a propeller quickly after it failed:
 
 ![swing_propeller](./Supplementary/swing_propeller.gif)
 
-Clearly, this policy is not optimal. We experimented a lot and were able to create single runs with higher reward (~ 13k) but we were not able to reproduce these results with a single model. This could be caused by the fact that the update frequency of the target Q network is too low (under the length of one episode) and therefore the performance of a single training episode depends on multiple targets. ==Unfortunately, using higher update frequencies did not work????==
+<!--Clearly, this policy is not optimal. We experimented a lot and were able to create single runs with higher reward (~ 13k) but we were not able to reproduce these results with a single model. This could be caused by the fact that the update frequency of the target Q network is too low (under the length of one episode) and therefore the performance of a single training episode depends on multiple targets. ==Unfortunately, using higher update frequencies did not work????==-->
+
+##### Total episode reward development by using reward shaping
+![DQN_anti_suicide](./Supplementary/plots/anti_sucide_total_reward.png)
+
+With the use of our proposed reward shaping the agent is able to overcome bad policies that quickly crashes the wall and maintains a general total reward > 10k.
+This results that suggest by improving the reward formulation of the environment further one might be able to solve cartpole-swing up with vanilla DQN. 
+
+
+> I’ve taken to imagining deep RL as a demon that’s deliberately misinterpreting your reward and actively searching for the laziest possible local optima. It’s a bit ridiculous, but I’ve found it’s actually a productive mindset to have.
+>> -- Irpan, Alex (https://www.alexirpan.com/2018/02/14/rl-hard.html)
+
+![this_is_fine](./Supplementary/this_is_fine.png)
