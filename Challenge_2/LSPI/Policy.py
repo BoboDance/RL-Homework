@@ -5,14 +5,14 @@ from Challenge_2.LSPI.BasisFunctions.BasisFunction import BasisFunction
 
 class Policy:
 
-    def __init__(self, basis_function: BasisFunction, n_actions: int, weights: np.ndarray = None, eps: float = 1,
+    def __init__(self, basis_function: BasisFunction, n_actions: int, weights: np.ndarray = None, eps: float = 0,
                  tie_breaker: str = "first"):
         """
 
         :param basis_function: Basisfunction object which returns phi upon call
         :param n_actions: ndarray of actions
         :param weights: inital weights, if not provided sample uniform weights
-        :param eps: eps-greedy policy parameter
+        :param eps: eps-greedy policy parameter (useful for exploration in online learning)
         :param tie_breaker:
         """
 

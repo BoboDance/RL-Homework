@@ -11,9 +11,10 @@ from Challenge_2.LSPI.Policy import Policy
 from Challenge_2.Common.ReplayMemory import ReplayMemory
 from Challenge_2.Common.Util import create_initial_samples, normalize_state
 
+
 class LSPI(object):
 
-    def __init__(self, env, policy: Policy, discrete_actions, normalize, low, high, gamma, theta, samples_count):
+    def __init__(self, env, policy: Policy, discrete_actions, normalize, low, high, gamma, theta, samples_count, full_episode = False):
         """
         Initialize an LSPI container which can be used to find good weights for the given policy.
 
@@ -26,7 +27,9 @@ class LSPI(object):
         :param gamma: discount factor
         :param theta: convergence criterion for training
         :param samples_count: the number of samples to train on
+        :param full_episode: whether the initial sampling should do a full episode (needed for monitor to work..)
         """
+
         self.env = env
         self.normalize = normalize
         self.gamma = gamma
@@ -54,7 +57,7 @@ class LSPI(object):
         print("Creating samples..", end="")
         sys.stdout.flush()
         create_initial_samples(env, self.memory, samples_count, discrete_actions,
-                               normalize=normalize, low=self.low, high=self.high)
+                               normalize=normalize, low=self.low, high=self.high, full_episode=full_episode)
         print("done.")
 
         self.policy = policy
@@ -66,8 +69,9 @@ class LSPI(object):
         else: Least squares solver
         :param samples: data samples
         :param policy: policy to work with
-        :param precondition_value: Helps to ensure few samples give a matrix of full rank, choose 0 if not desired
-        :return:
+        :param precondition_value: helps to ensure few samples give a matrix of full rank, choose 0 if not desired
+        :param use_optimized: whether to use the "optimized" version to compute the next weights
+        :return: the next weights of the policy
         """
 
         k = policy.basis_function.size()
@@ -90,7 +94,6 @@ class LSPI(object):
             A = (phi.T @ (phi - self.gamma * phi_next) + np.identity(k) * precondition_value)
             b = (phi.T @ reward)
 
-            # a_mat, b_vec, phi_sa, phi_sprime = loop_it(samples, precondition_value)
             rank_A = np.linalg.matrix_rank(A)
 
             if rank_A == k:
@@ -115,42 +118,6 @@ class LSPI(object):
 
         return w.reshape((-1,))
 
-
-    def loop_it(self, samples, precondition_value):
-        k = self.policy.basis_function.size()
-
-        a_mat = np.zeros((k, k))
-        np.fill_diagonal(a_mat, precondition_value)
-
-        b_vec = np.zeros((k, 1))
-
-        phi = []
-        phi_next = []
-
-        for sample in samples:
-
-            obs = sample[0: self.ACTION_IDX]
-            action_idx = sample[self.ACTION_IDX]
-            reward = sample[self.REWARD_IDX: self.NEXT_OBS_IDX]
-            next_obs = sample[self.NEXT_OBS_IDX: self.DONE_IDX]
-            done = sample[self.DONE_IDX].astype(np.bool)
-
-            phi_sa = (self.policy.basis_function.evaluate(obs, action_idx).reshape((-1, 1)))
-
-            if not done:
-                best_action = self.policy.best_action(next_obs)
-                phi_sprime = (self.policy.basis_function.evaluate(next_obs, best_action).reshape((-1, 1)))
-            else:
-                phi_sprime = np.zeros((k, 1))
-
-            phi.append(phi_sa)
-            phi_next.append(phi_sprime)
-
-            a_mat += phi_sa.dot((phi_sa - self.gamma * phi_sprime).T)
-            b_vec += phi_sa * reward
-
-        return a_mat, b_vec, np.array(phi), np.array(phi_next)
-
     def train(self, policy_step_episodes = 3, do_render = True, max_policy_steps = 100):
         """
         Execute LSTDQ_iteration multiple times and display intermediate results, if wanted.
@@ -158,8 +125,8 @@ class LSPI(object):
         :param policy_step_episodes: the number of episodes which are simulated between policy update steps
         :param do_render: whethter to render the simulated episodes
         :param max_policy_steps: the maximum number of policy update steps
-        :return:
         """
+
         delta = np.inf
         episodes = 0
         total_steps = 0
@@ -188,11 +155,7 @@ class LSPI(object):
                 if do_render and episode_steps % 12 == 0:
                     self.env.render()
 
-                # reward = min(max(-1., reward), 1.)
                 episode_reward += reward
-
-                # TODO include?
-                # memory.push((*obs, *action_idx, reward, *next_obs, done))
 
                 obs = next_obs
 
@@ -201,19 +164,14 @@ class LSPI(object):
                     episodes += 1
                     print(
                         "Episode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- episode steps: {:4d} "
-                        "-- episode reward: {:5.5f} -- delta: {:6.10f} -- epsilon {:.10f}".format(
-                            episodes, total_steps, episode_reward / episode_steps, episode_steps, episode_reward, delta,
-                            self.policy.eps))
+                        "-- episode reward: {:5.5f} -- delta: {:6.10f}".format(episodes, total_steps,
+                                episode_reward / episode_steps, episode_steps, episode_reward, delta))
+
                     episode_steps = 0
                     episode_reward = 0
 
-                    # reduce random action prob each episode
-                    # self.policy.eps = eps_end + (eps_start - eps_end) * math.exp(-1. * episodes / eps_decay)
-
             if policy_step_episodes == 0 or (done and episodes % policy_step_episodes == 0):
                 # update the current policy
-
-                # samples = memory.sample(minibatch_size)
                 new_weights = self.LSTDQ_iteration(self.memory.memory, self.policy)
                 delta = np.linalg.norm(new_weights - self.policy.w)
                 self.policy.w = new_weights

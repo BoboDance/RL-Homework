@@ -31,8 +31,14 @@ Learning progress and learning algorithms will be checked to confirm
 correctness and fairness of implementation. Supplementary material
 will be manually analyzed to identify outstanding submissions.
 """
+import pickle
 
+import gym
 import numpy as np
+
+from Challenge_2.LSPI.BasisFunctions.FourierBasis import FourierBasis
+from Challenge_2.LSPI.LSPI import LSPI
+from Challenge_2.LSPI.Policy import Policy
 
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
@@ -76,7 +82,19 @@ def load_lspi_policy():
 
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([1.6180])
+    env = gym.make("CartpoleStabShort-v0")
+
+    # Our discrete actions
+    discrete_actions = np.linspace(-5, 5, 3)
+
+    # Normalization of the observation space
+    low = np.array(list(env.observation_space.low[:3]) + [-4, -20])
+    high = np.array(list(env.observation_space.high[:3]) + [4, 20])
+
+    policy = pickle.load(open("./Challenge_2/LSPI/Policies/CartpoleStabShort-v0-20k.pkl", "rb"))
+
+    from Challenge_2.LSPI.Util import get_policy_fun
+    return get_policy_fun(env, policy, discrete_actions, True, low, high)
 
 
 def train_lspi_policy(env):
@@ -88,7 +106,32 @@ def train_lspi_policy(env):
     :param env: gym.Env
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([0.5772])
+
+    # Set the seed to get the same features and training samples (our features are generated randomly)
+    # Note: As the seed influences the features, more features/samples may be needed for different seeds
+    seed = 2
+    np.random.seed(seed)
+    # env.seed(seed)
+    dim_obs = env.observation_space.shape[0]
+
+    # Our discrete actions
+    discrete_actions = np.linspace(-5, 5, 3)
+
+    # Normalization of the observation space
+    low = np.array(list(env.observation_space.low[:3]) + [-4, -20])
+    high = np.array(list(env.observation_space.high[:3]) + [4, 20])
+
+    # Create a policy using the fourier base function
+    basis_function = FourierBasis(input_dim=dim_obs, n_features=100, n_actions=len(discrete_actions))
+    policy = Policy(basis_function=basis_function, n_actions=len(discrete_actions), eps=0)
+
+    # Start training using LSPI
+    lspi = LSPI(env, policy, discrete_actions, True, low, high, 0.99, 1e-5, 25000, full_episode=True)
+    lspi.train(policy_step_episodes=1, do_render=False)
+
+    from Challenge_2.LSPI.Util import get_policy_fun
+
+    return get_policy_fun(env, policy, discrete_actions, True, low, high)
 
 
 # ==== Example evaluation
