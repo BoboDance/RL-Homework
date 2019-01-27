@@ -54,7 +54,7 @@ info = dict(
                 "DQN: we use MSE loss instead of the SmoothL1Loss, this yielded into better results. "
                 "The best intermediate policy is saved and loaded after finished training."
                 "We did not manage to get the swing up solved by 100%, but ended up with helicopter policy."
-                "On the pendulum-v0 our DQN works fine and we see improvment by chaning the reward ")
+                "On the pendulum-v0 our DQN works fine and we see improvment by chaning the reward.")
 
 
 def load_dqn_policy():
@@ -136,7 +136,7 @@ def train_dqn_policy(env):
     edge_fear_threshold = .3
     use_tensorboard = False
 
-    save_path = "./DQN/checkpoints/best_weights.pth"
+    save_path = "./Challenge_2/DQN/checkpoints/best_weights.pth"
 
     Q = DQNSwingShortModel(env, discrete_actions, optimizer=optimizer, lr=lr)
 
@@ -252,25 +252,25 @@ def main():
         print(np.mean(ret_all), np.std(ret_all))
         env.close()
 
-    # DQN I: Check learned policy
-    env = Monitor(gym.make('CartpoleSwingShort-v0'), 'dqn_eval')
-    policy = load_dqn_policy()
-    check(env, policy)
+    # # DQN I: Check learned policy
+    # env = Monitor(gym.make('CartpoleSwingShort-v0'), 'dqn_eval')
+    # policy = load_dqn_policy()
+    # check(env, policy)
 
     # DQN II: Check learning procedure
     env = Monitor(gym.make('CartpoleSwingShort-v0'), 'dqn_train', video_callable=False)
     policy = train_dqn_policy(env)
     check(env, policy)
 
-    # LSPI I: Check learned policy
-    env = Monitor(gym.make('CartpoleStabShort-v0'), 'lspi_eval')
-    policy = load_lspi_policy()
-    check(env, policy)
-
-    # LSPI II: Check learning procedure
-    env = Monitor(gym.make('CartpoleStabShort-v0'), 'lspi_train', video_callable=False)
-    policy = train_lspi_policy(env)
-    check(env, policy)
+    # # LSPI I: Check learned policy
+    # env = Monitor(gym.make('CartpoleStabShort-v0'), 'lspi_eval')
+    # policy = load_lspi_policy()
+    # check(env, policy)
+    #
+    # # LSPI II: Check learning procedure
+    # env = Monitor(gym.make('CartpoleStabShort-v0'), 'lspi_train', video_callable=False)
+    # policy = train_lspi_policy(env)
+    # check(env, policy)
 
 
 if __name__ == '__main__':
