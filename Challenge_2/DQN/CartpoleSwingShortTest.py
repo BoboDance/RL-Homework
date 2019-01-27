@@ -19,7 +19,7 @@ env.seed(seed)
 # Golden Hyperparameters
 min_action = -5
 max_action = 5
-nb_bins = 5
+nb_bins = 9
 lr = 1e-4
 memory_size = int(1e6)
 gamma = 0.99
@@ -36,6 +36,7 @@ loss = nn.SmoothL1Loss()
 normalize = False
 anti_sucide = False
 edge_fear_threshold = 0.3
+use_tensorboard = False
 
 discrete_actions = np.linspace(min_action, max_action, nb_bins)
 
@@ -49,7 +50,8 @@ Q = DQNSwingShortModel(env, discrete_actions, optimizer=optimizer, lr=lr)
 dqn = DQN(env, Q, memory_size=memory_size, initial_memory_count=minibatch_size, minibatch_size=minibatch_size,
           target_model_update_steps=target_model_update_steps, gamma=gamma,
           eps_start=eps_start, eps_end=eps_end, eps_decay=eps_decay, max_episodes=max_episodes,
-          max_steps_per_episode=max_episode_length, lr_scheduler=lr_scheduler, loss=loss, normalize=normalize)
+          max_steps_per_episode=max_episode_length, lr_scheduler=lr_scheduler, loss=loss, normalize=normalize,
+          anti_suicide=anti_suicide, use_tensorboard=use_tensorboard)
 
 trained_episodes = dqn.train()
 # load_model(env, Q, "./checkpoints/Q_Pendulum-v0_100_-133.66.pth.tar")
@@ -57,7 +59,7 @@ trained_episodes = dqn.train()
 # load the best weights again
 Q.load_state_dict(torch.load("./checkpoints/best_weights.pth"))
 
-eval_reward_mean = evaluate(env, get_policy_fun(env, Q, normalize), episodes=100, render=5)
+eval_reward_mean = evaluate(env, get_policy_fun(Q), episodes=100, render=3)
 #save_model(env, Q, trained_episodes, eval_reward_mean)
 
 env.close()

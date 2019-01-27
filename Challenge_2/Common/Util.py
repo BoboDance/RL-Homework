@@ -74,6 +74,7 @@ def evaluate(env, policy_fun, episodes=100, max_steps=10000, render=0, seed=1):
 
     env.seed(seed)
     rewards = np.empty(episodes)
+    epiode_length = np.zeros(episodes)
 
     for episode in range(0, episodes):
         print("\rEpisode {:4d}/{:4d}".format(episode, episodes), end="")
@@ -95,8 +96,10 @@ def evaluate(env, policy_fun, episodes=100, max_steps=10000, render=0, seed=1):
                     print("\rEpisode {:4d}/{:4d} > {:4d} steps".format(episode, episodes, steps), end="")
 
         rewards[episode] = total_reward
+        epiode_length[episode] = steps
 
     print("\rDone.")
-    print("Stats: Episodes {}, avg: {}, std: {}".format(episodes, rewards.mean(), rewards.std()))
+    print("Statistics: {} Episodes, Total Reward: {:.4f} +/-  {:.4f}".format(episodes, rewards.mean(), rewards.std()))
+    print("Episode Length: {:.4f} +/- {:.4f}".format(epiode_length.mean(), epiode_length.std()))
 
     return rewards.mean()

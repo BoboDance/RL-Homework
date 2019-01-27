@@ -5,7 +5,6 @@ import gym
 import numpy as np
 import torch
 import torch.nn as nn
-from tensorboardX import SummaryWriter
 from torch.optim.lr_scheduler import StepLR
 import copy
 
@@ -16,12 +15,13 @@ from Challenge_2.DQN.Util import get_best_values, get_best_action, get_current_l
 from Challenge_2.Common.MinMaxScaler import MinMaxScaler
 import logging
 
+
 class DQN(object):
 
     def __init__(self, env, Q: DQNModel, memory_size, initial_memory_count, minibatch_size,
                  target_model_update_steps, gamma, eps_start, eps_end, eps_decay, max_episodes,
-                 max_steps_per_episode, lr_scheduler=None, loss=nn.SmoothL1Loss(), normalize=False, low = None,
-                 high = None, anti_sucide=False, edge_fear_threshold=0.3):
+                 max_steps_per_episode, lr_scheduler=None, loss=nn.SmoothL1Loss(), normalize=False, low=None,
+                 high=None, anti_suicide=False, edge_fear_threshold=0.3, use_tensorboard=False):
         """
         Initializes the DQN wrapper.
 
@@ -42,9 +42,10 @@ class DQN(object):
         :param normalize: boolean which enables or disables state normalization into feature range of [0,1]
         :param low: manual upper limit for the observation space
         :param high: manual lower limit for the observation space
-        :param anti_sucide: technique which applies reward shaping to avoid that the agent crashes against the wall
+        :param anti_suicide: technique which applies reward shaping to avoid that the agent crashes against the wall
         :param edge_fear_threshold: threshold when the anti-sucicide technique is triggered.
                 Only effective is anti-sucide is True
+        :param use_tensorboard: Boolean which enables the usage of tensorboard logging
         """
 
         self.env = env
@@ -63,14 +64,18 @@ class DQN(object):
         self.normalize = normalize
         self.low = low
         self.high = high
-        self.anti_sucide = anti_sucide
+        self.anti_suicide = anti_suicide
         self.edge_fear_threshold = edge_fear_threshold
+        self.use_tensorboard = use_tensorboard
 
         # save the current best episode reward
         self.best_episode_reward = None
 
-        # init tensorboard writer for better visualizations
-        self.writer = SummaryWriter()
+        if self.use_tensorboard:
+            from tensorboardX import SummaryWriter
+
+            # init tensorboard writer for better visualizations
+            self.writer = SummaryWriter()
 
         self.dim_obs = env.observation_space.shape[0]
         self.dim_action = env.action_space.shape[0]
@@ -184,7 +189,7 @@ class DQN(object):
 
                 episode_reward += reward
 
-                if self.anti_sucide:
+                if self.anti_suicide:
                     if np.abs(obs[0]) > self.edge_fear_threshold:
                         print("-> edge area")
                         reward = -np.abs(obs[0])
@@ -201,7 +206,8 @@ class DQN(object):
                 loss = self.optimize()
                 episode_loss += loss
 
-                self.writer.add_scalar("loss", loss, total_steps)
+                if self.use_tensorboard:
+                    self.writer.add_scalar("loss", loss, total_steps)
 
                 total_steps += 1
                 episode_steps += 1
@@ -228,10 +234,12 @@ class DQN(object):
                         .format(episode, total_steps, avg_reward, episode_steps, episode_reward, episode_loss,
                                 get_current_lr(self.Q.optimizer), self.get_eps(total_steps)))
 
-                    self.writer.add_scalar("avg_reward", avg_reward, episode)
-                    self.writer.add_scalar("total_reward", episode_reward, episode)
+                    if self.use_tensorboard:
+                        self.writer.add_scalar("avg_reward", avg_reward, episode)
+                        self.writer.add_scalar("total_reward", episode_reward, episode)
+                        self.writer.add_scalar("first_best_value", get_best_values(self.Q, np.atleast_2d(obs))[0], episode)
+
                     self.Q.eval()
-                    self.writer.add_scalar("first_best_value", get_best_values(self.Q, np.atleast_2d(obs))[0], episode)
 
                     # check if episode reward is better than best model so far
                     if save_best and (self.best_episode_reward is None or episode_reward > self.best_episode_reward):
