@@ -157,17 +157,18 @@ class REINFORCE:
                     self.writer.add_scalar("total_reward", episode_reward, episode)
 
                 # check if episode reward is better than best model so far
-                if save_best and (self.best_episode_reward is None or episode_reward > self.best_episode_reward):
+                if (self.best_episode_reward is None or episode_reward > self.best_episode_reward):
                     self.best_episode_reward = episode_reward
                     print("new best model with reward {:5.5f}".format(self.best_episode_reward))
-                    torch.save(self.model_policy.state_dict(), self.save_path)
+                    if save_best:
+                        torch.save(self.model_policy.state_dict(), self.save_path)
 
                 # optimize
                 self.optimizer.zero_grad()
                 episode_loss.backward()
                 self.optimizer.step()
 
-                if episode % render_episodes_mod == 0:
+                if render_episodes_mod is not None and episode % render_episodes_mod == 0:
                     print(
                         "\rEpisode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
                         "-- training loss: {:10.5f}".format(episode, total_steps, avg_reward, episode_steps,

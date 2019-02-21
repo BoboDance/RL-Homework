@@ -25,7 +25,7 @@ def init_weights(m):
 
 
 class REINFORCEModel(nn.Module):
-    def __init__(self, n_inputs=4, n_hidden_units=16, n_outputs=4):
+    def __init__(self, n_inputs=2, n_hidden_units=16, n_outputs=4):
         """
         Constructor
         :param env: Gym environment object
