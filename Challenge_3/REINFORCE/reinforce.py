@@ -12,18 +12,20 @@ from Challenge_3.REINFORCE.reinforce_model import REINFORCEModel
 import torch
 import numpy as np
 
+from Challenge_3.Util import normalize_state
+
 
 class REINFORCE:
 
     def __init__(self, env, model_policy: REINFORCEModel, discrete_actions, gamma, lr,
-                 normalize=False, low=None, high=None, use_tensorboard=False,
+                 normalize_observations=False, low=None, high=None, use_tensorboard=False,
                  save_path="./checkpoints/best_weights.pth"):
 
             self.env = env
             self.model_policy = model_policy
             self.discrete_actions = discrete_actions
             self.gamma = gamma
-            self.normalize = normalize
+            self.normalize_observations = normalize_observations
             self.low = low
             self.high = high
             self.use_tensorboard = use_tensorboard
@@ -68,6 +70,9 @@ class REINFORCE:
             while episode < max_episodes:
 
                 state = self.env.reset()
+                if self.normalize_observations:
+                    state = normalize_state(self.env, state)
+
                 episode_reward = 0
                 episode_steps = 0
                 self.saved_log_probs = []
@@ -78,12 +83,18 @@ class REINFORCE:
                     # Choose an action and remember its log probability
                     action_idx, log_prob = self.model_policy.choose_action_by_sampling(state)
                     action = np.array([self.discrete_actions[action_idx]])
-                    self.saved_log_probs.append(log_prob)
 
                     # Make a step in the environment
                     state, reward, done, _ = self.env.step(action)
+                    if self.normalize_observations:
+                        state = normalize_state(self.env, state)
+
+                    # Render the environment if we want to
                     if render_episodes_mod is not None and episode > 0 and episode % render_episodes_mod == 0:
                        self.env.render()
+
+                    # Store the log probability and the reward of the current step for the backward pass later
+                    self.saved_log_probs.append(log_prob)
                     self.rewards.append(reward)
 
                     episode_reward += reward
