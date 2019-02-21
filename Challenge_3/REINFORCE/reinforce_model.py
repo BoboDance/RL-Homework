@@ -25,51 +25,42 @@ def init_weights(m):
 
 
 class REINFORCEModel(nn.Module):
-    def __init__(self, n_inputs=2, n_hidden_units=16, n_outputs=4):
+    def __init__(self, env,  n_actions, n_hidden_units=16):
         """
         Constructor
+
         :param env: Gym environment object
-        :param discrete_actions: Numpy array which stores the values for the action bins
-        :param lr: Learning rate to use
-        :param optimizer: Optimizer to use
+        :param n_actions: Number of discrete actions (will specify output of the network)
+        :param n_hidden_units: Number of nodes in the hidden layer
         """
 
         super(REINFORCEModel, self).__init__()
-        self.n_inputs = n_inputs
-        self.n_outputs = n_outputs
+
+        self.n_inputs = env.observation_space.shape[0]
+        self.n_outputs = n_actions
         self.n_hidden_units = n_hidden_units
 
-        self.model = self.get_model()
-        # initialize the weights
-        self.apply(init_weights)
-        self.train()
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-    def get_model(self):
-        """
-        Returns a model which specifies the architecture of the network
-        """
-        return nn.Sequential(
+        self.model = nn.Sequential(
             nn.Linear(self.n_inputs, self.n_hidden_units),
-            #nn.Linear(self.n_inputs, self.n_outputs),
             nn.ReLU(),
             nn.Linear(self.n_hidden_units, self.n_outputs),
             nn.Softmax(1)
         )
+
+        # initialize the weights
+        self.apply(init_weights)
+
+        self.train()
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def forward(self, inputs):
         """
         Defines the forward pass of the network.
 
         :param inputs: Input array object which sufficiently represents the full state of the environment.
-        :return: reward, mu, sigma
+        :return: Softmax values for each action
         """
-        # if isinstance(inputs, np.ndarray):
-        #     inputs = torch.from_numpy(inputs)
-
-        # inputs = inputs.float()
         out = self.model(inputs)
-
         return out.float()
 
     def choose_action_by_sampling(self, observation):
