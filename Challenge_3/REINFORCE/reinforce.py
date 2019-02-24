@@ -1,29 +1,17 @@
-"""
-@file: reinforce
-Created on 20.02.19
-@project: RL-Homework
-@author: queensgambit
-
-Please describe what the content of this file is about
-"""
-from collections import deque
-
-from Challenge_3.REINFORCE.reinforce_model import REINFORCEModel
 import torch
 import numpy as np
 
+from Challenge_3 import Policy
 from Challenge_3.Util import normalize_state
 
 
 class REINFORCE:
-
-    def __init__(self, env, model_policy: REINFORCEModel, discrete_actions, gamma, lr,
+    def __init__(self, env, model_policy: Policy, gamma, lr,
                  normalize_observations=False, low=None, high=None, use_tensorboard=False,
                  save_path="./checkpoints/best_weights.pth"):
 
             self.env = env
             self.model_policy = model_policy
-            self.discrete_actions = discrete_actions
             self.gamma = gamma
             self.normalize_observations = normalize_observations
             self.low = low
@@ -48,8 +36,6 @@ class REINFORCE:
 
             self.dim_obs = env.observation_space.shape[0]
             self.dim_action = env.action_space.shape[0]
-
-            print("Used discrete actions: ", self.discrete_actions)
 
     def train(self, max_episodes = 100, max_episode_steps = 10000, render_episodes_mod: int = None, save_best: bool = True):
         """
@@ -81,8 +67,7 @@ class REINFORCE:
                 # Forward pass: Simulate one episode and save its stats
                 for episode_steps in range(0, max_episode_steps):
                     # Choose an action and remember its log probability
-                    action_idx, log_prob = self.model_policy.choose_action_by_sampling(state)
-                    action = np.array([self.discrete_actions[action_idx]])
+                    action, log_prob = self.model_policy.choose_action_by_sampling(state)
 
                     # Make a step in the environment
                     state, reward, done, _ = self.env.step(action)
@@ -123,7 +108,7 @@ class REINFORCE:
                 # Get our loss over the whole trajectory
                 for log_prob, R in zip(self.saved_log_probs, returns):
                     episode_loss.append(-log_prob * R)
-                episode_loss = torch.cat(episode_loss).sum()
+                episode_loss = torch.stack(episode_loss).sum()
 
                 # do the optimization step
                 self.optimizer.zero_grad()

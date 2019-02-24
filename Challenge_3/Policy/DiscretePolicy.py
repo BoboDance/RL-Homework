@@ -1,43 +1,26 @@
-"""
-@file: reinforce_model
-Created on 20.02.19
-@project: RL-Homework
-@author: queensgambit
-
-Please describe what the content of this file is about
-"""
-
-import numpy as np
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
-
-def init_weights(m):
-    """
-    Initializes the weights of the model by using kaiming normal initialization.
-    :param m: Handle for the model
-    :return:
-    """
-    if isinstance(m, nn.Linear):
-        nn.init.kaiming_normal_(m.weight.data)
-        m.bias.data.fill_(0)
+from Challenge_3.Util import init_weights
 
 
-class REINFORCEModel(nn.Module):
-    def __init__(self, env,  n_actions, n_hidden_units=16):
+class DiscretePolicy(nn.Module):
+    def __init__(self, env,  discrete_actions, n_hidden_units = 16):
         """
-        Constructor
+        Create a discrete policy which samples its actions from a categorical distribution corresponding to the given
+        discrete actions.
 
         :param env: Gym environment object
-        :param n_actions: Number of discrete actions (will specify output of the network)
+        :param discrete_actions: Number of discrete actions (will specify output of the network)
         :param n_hidden_units: Number of nodes in the hidden layer
         """
 
-        super(REINFORCEModel, self).__init__()
+        super(DiscretePolicy, self).__init__()
 
         self.n_inputs = env.observation_space.shape[0]
-        self.n_outputs = n_actions
+        self.discrete_actions = discrete_actions
+        self.n_outputs = self.discrete_actions.shape[0]
         self.n_hidden_units = n_hidden_units
 
         self.model = nn.Sequential(
@@ -47,7 +30,6 @@ class REINFORCEModel(nn.Module):
             nn.Softmax(1)
         )
 
-        # initialize the weights
         self.apply(init_weights)
 
         self.train()
@@ -65,10 +47,10 @@ class REINFORCEModel(nn.Module):
 
     def choose_action_by_sampling(self, observation):
         """
-        Calls
-        :param observation:
-        :return: action.item(): Class idx which was chosen
-                 distribution.log_prob(action): Confidence for choosing it
+        Sample a random action according to our current policy.
+
+        :param observation: the current observation
+        :return: the chosen action and the corresponding confidence
         """
         # convert the given observation into a torch tensor
         observation = torch.from_numpy(observation).float().unsqueeze(0).to(self.device)
@@ -76,6 +58,8 @@ class REINFORCEModel(nn.Module):
         probabilities = self.forward(observation).cpu()
         # define a categorical distribution and sample from it
         distribution = Categorical(probabilities)
-        action = distribution.sample()
+        sampled_action = distribution.sample()
 
-        return action.item(), distribution.log_prob(action)
+        log_prob = distribution.log_prob(sampled_action)
+        action = self.discrete_actions[sampled_action.detach().numpy()]
+        return action, log_prob

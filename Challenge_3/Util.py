@@ -3,6 +3,8 @@ import sys
 
 import gym
 import numpy as np
+from torch import nn
+
 
 def normalize_state(env, observation, low=None, high=None):
     """
@@ -71,3 +73,13 @@ def make_env_step_silent(env):
     env.close = lambda: {original_close, null_stdout.close()}
 
     return original_step
+
+
+def init_weights(m):
+    """
+    Initializes the weights of the given model by using kaiming normal initialization.
+    :param m: Handle for the model
+    """
+    if isinstance(m, nn.Linear):
+        nn.init.kaiming_normal_(m.weight.data)
+        m.bias.data.fill_(0)
