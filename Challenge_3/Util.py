@@ -1,3 +1,6 @@
+import os
+import sys
+
 import gym
 import numpy as np
 
@@ -20,6 +23,7 @@ def normalize_state(env, observation, low=None, high=None):
 
     return (observation - low) / (high - low)
 
+
 def print_random_policy_reward(env, episodes = 10):
     rewards = np.zeros(episodes)
 
@@ -41,3 +45,29 @@ def print_random_policy_reward(env, episodes = 10):
         rewards[episode] = episode_reward
 
     print("\rRandom policy: {:.4f} +/- {:.4f}".format(rewards.mean(), rewards.std()))
+
+
+def make_env_step_silent(env):
+    """
+    Makes the step function of the given environment silent.
+
+    :param env: The environment which is too verbose
+    :return: The old step function (can be used to make it verbose again)
+    """
+    original_step = env.step
+    original_stdout = sys.stdout
+    null_stdout = open(os.devnull, 'w')
+
+    def silent_step(action):
+        sys.stdout = null_stdout
+        values = original_step(action)
+        sys.stdout = original_stdout
+        return values
+
+    env.step = silent_step
+
+    # close access to devnull in the end
+    original_close = env.close
+    env.close = lambda: {original_close, null_stdout.close()}
+
+    return original_step
