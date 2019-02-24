@@ -89,6 +89,10 @@ class REINFORCE:
                     if self.normalize_observations:
                         state = normalize_state(self.env, state)
 
+                    # Hotfix because Levitation-v1 returns numpy array instead of single value
+                    if type(reward) is np.ndarray:
+                        reward = reward[0]
+
                     # Render the environment if we want to
                     if render_episodes_mod is not None and episode > 0 and episode % render_episodes_mod == 0:
                        self.env.render()
