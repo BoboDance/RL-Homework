@@ -19,9 +19,6 @@ class REINFORCE:
             self.use_tensorboard = use_tensorboard
             self.save_path = save_path
 
-            self.saved_log_probs = []
-
-            self.rewards = []
             self.optimizer = torch.optim.Adam(model_policy.parameters(), lr=lr)
             self.eps = np.finfo(np.float32).eps.item()
 
@@ -61,8 +58,10 @@ class REINFORCE:
 
                 episode_reward = 0
                 episode_steps = 0
-                self.saved_log_probs = []
-                self.rewards = []
+
+                saved_log_probs = []
+                saved_log_prob_derivations = []
+                saved_rewards = []
 
                 # Forward pass: Simulate one episode and save its stats
                 for episode_steps in range(0, max_episode_steps):
@@ -83,8 +82,16 @@ class REINFORCE:
                        self.env.render()
 
                     # Store the log probability and the reward of the current step for the backward pass later
-                    self.saved_log_probs.append(log_prob)
-                    self.rewards.append(reward)
+                    saved_log_probs.append(log_prob)
+                    saved_rewards.append(reward)
+
+                    # also get the derivative of the model parameters
+                    # self.optimizer.zero_grad()
+                    # log_prob.backward(retain_graph=True)
+                    # gradients = []
+                    # for param in self.model_policy.parameters():
+                    #     gradients.extend(param.grad.detach().numpy().flatten())
+                    # saved_log_prob_derivations.append(np.array(gradients))
 
                     episode_reward += reward
                     total_steps += 1
@@ -95,18 +102,25 @@ class REINFORCE:
                 episode += 1
                 avg_reward = episode_reward / episode_steps
 
+                # params = saved_log_prob_derivations[0].shape[0]
+                # fisher_information = np.zeros((params, params))
+                # for dev_log_pi in saved_log_prob_derivations:
+                #     fisher_information += dev_log_pi @ dev_log_pi.T
+                # fisher_information *= 1 / len(saved_log_prob_derivations)
+                # print(fisher_information)
+
                 # Backward pass: Calculate the return for each step in the simulated episode (backwards)
                 R = 0
                 episode_loss = []
                 returns = []
-                for r in self.rewards[::-1]:
+                for r in saved_rewards[::-1]:
                     R = r + self.gamma * R
                     returns.insert(0, R)
                 returns = torch.tensor(returns)
                 # Normalize the returns
                 returns = (returns - returns.mean()) / (returns.std() + self.eps)
                 # Get our loss over the whole trajectory
-                for log_prob, R in zip(self.saved_log_probs, returns):
+                for log_prob, R in zip(saved_log_probs, returns):
                     episode_loss.append(-log_prob * R)
                 episode_loss = torch.stack(episode_loss).sum()
 
