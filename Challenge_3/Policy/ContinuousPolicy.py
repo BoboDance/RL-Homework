@@ -5,7 +5,7 @@ from torch.distributions import Normal
 
 
 class ContinuousPolicy(nn.Module):
-    def __init__(self, env, n_hidden_units = 16):
+    def __init__(self, env, n_hidden_units=16):
         """
         Create a continuous policy which samples its actions using predicted a gaussian for a given observation.
 
@@ -21,7 +21,8 @@ class ContinuousPolicy(nn.Module):
 
         self.linear_input_to_hidden = nn.Linear(self.n_inputs, n_hidden_units)
         self.linear_hidden_to_mean = nn.Linear(n_hidden_units, self.n_actions)
-        self.linear_hidden_to_sigma = nn.Linear(n_hidden_units, self.n_actions)
+        # self.linear_hidden_to_sigma = nn.Linear(n_hidden_units, self.n_actions)
+        self.sigma = nn.Parameter(torch.zeros(self.n_actions))
 
         self.train()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -35,10 +36,10 @@ class ContinuousPolicy(nn.Module):
         """
         hidden = F.relu(self.linear_input_to_hidden(inputs))
         means = self.linear_hidden_to_mean(hidden)
-        sigma = self.linear_hidden_to_sigma(hidden)
-        sigma = F.softplus(sigma)
+        # sigma = self.linear_hidden_to_sigma(hidden)
+        # sigma = F.softplus(sigma)
 
-        return means, sigma
+        return means, F.softplus(self.sigma)
 
     def choose_action_by_sampling(self, observation):
         """
@@ -48,6 +49,7 @@ class ContinuousPolicy(nn.Module):
         :return: the chosen action and the corresponding confidence
         """
         # convert the given observation into a torch tensor
+        # print(observation)
         observation = torch.from_numpy(observation).float().unsqueeze(0).to(self.device)
         # get the probability distribution from the neural net
         means, sigma = self.forward(observation)
