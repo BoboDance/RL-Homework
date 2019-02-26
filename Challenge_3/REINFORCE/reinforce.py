@@ -54,7 +54,7 @@ class REINFORCE:
 
                 state = self.env.reset()
                 if self.normalize_observations:
-                    state = normalize_state(self.env, state)
+                    state = normalize_state(self.env, state, low=self.low, high=self.high)
 
                 episode_reward = 0
                 episode_steps = 0
@@ -71,7 +71,7 @@ class REINFORCE:
                     # Make a step in the environment
                     state, reward, done, _ = self.env.step(action)
                     if self.normalize_observations:
-                        state = normalize_state(self.env, state)
+                        state = normalize_state(self.env, state, low=self.low, high=self.high)
 
                     # Hotfix because Levitation-v1 returns numpy array instead of single value
                     if type(reward) is np.ndarray:
