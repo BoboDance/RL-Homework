@@ -1,5 +1,6 @@
 import os
 import sys
+import torch
 
 import gym
 import numpy as np
@@ -83,3 +84,19 @@ def init_weights(m):
     if isinstance(m, nn.Linear):
         nn.init.kaiming_normal_(m.weight.data)
         m.bias.data.fill_(0)
+
+
+def get_returns_torch(rewards, gamma, normalize=True):
+    returns = torch.zeros(rewards.shape)
+    accumulated_return = 0
+
+    i = len(rewards) - 1
+    for reward in rewards[::-1]:
+        accumulated_return = reward + gamma * accumulated_return
+        returns[i] = accumulated_return
+        i -= 1
+
+    if normalize:
+        returns = (returns - returns.mean()) / returns.std()
+
+    return returns
