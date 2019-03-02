@@ -1,5 +1,7 @@
 import os
 import sys
+from collections import deque
+
 import torch
 
 import gym
@@ -86,13 +88,14 @@ def init_weights(m):
         m.bias.data.fill_(0)
 
 
-def get_returns_torch(rewards, gamma, normalize=True):
+def get_returns_torch(rewards, gamma, dones, normalize=True):
     returns = torch.zeros(rewards.shape)
+    dones = (1 - dones)
     accumulated_return = 0
 
     i = len(rewards) - 1
     for reward in rewards[::-1]:
-        accumulated_return = reward + gamma * accumulated_return
+        accumulated_return = reward + gamma * accumulated_return * dones[i]
         returns[i] = accumulated_return
         i -= 1
 
@@ -100,3 +103,46 @@ def get_returns_torch(rewards, gamma, normalize=True):
         returns = (returns - returns.mean()) / returns.std()
 
     return returns
+
+
+def get_samples(env, policy, min_steps, max_episode_steps=1000000, normalize_observations=False, low=None, high=None):
+    memory = deque()
+
+    episode_rewards = deque()
+    total_episodes = 0
+    total_steps = 0
+    episode_steps = deque()
+    while True:
+        episode_reward = 0
+        episode_step = 0
+
+        state = env.reset()
+        if normalize_observations:
+            state = normalize_state(env, state, low=low, high=high)
+
+        # Sample one episode
+        for episode_step in range(1, max_episode_steps + 1):
+            action, log_confidence = policy.choose_action_by_sampling(state)
+
+            next_state, reward, done, _ = env.step(action)
+            if normalize_observations:
+                next_state = normalize_state(env, next_state, low=low, high=high)
+
+            memory.append([state, action, reward, done, log_confidence])
+
+            episode_reward += reward
+            state = next_state
+
+            if done:
+                break
+
+        total_episodes += 1
+        total_steps += episode_step
+        episode_rewards.append(episode_reward)
+        episode_steps.append(episode_step)
+
+        # Check whether we need more episodes to get above min_steps
+        if total_steps >= min_steps:
+            break
+
+    return total_episodes, total_steps, np.array(memory), np.array(episode_rewards), np.array(episode_steps)

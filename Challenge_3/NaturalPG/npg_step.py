@@ -45,11 +45,12 @@ def conjugate_gradient(actor, states, b, nsteps, residual_tol=1e-10):
 def optimization_step(actor, memory, gamma, critic=None, optimizer_critic=None):
     states = np.vstack(memory[:, 0])
     rewards = memory[:, 2]
+    dones = memory[:, 3]
     # create a single tensor out of the log confidence
     log_confidence = torch.stack(list(memory[:, 4]))
 
     # Get returns
-    returns = get_returns_torch(rewards, gamma, normalize=True)
+    returns = get_returns_torch(rewards, gamma, dones, normalize=True)
 
     # Train critic to improve the confidence weighting (we basically get the advantage)
     if critic is not None:

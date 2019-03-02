@@ -11,7 +11,8 @@ from Challenge_3.Util import make_env_step_silent
 
 env = gym.make("BallBalancerSim-v0")
 # env = gym.make("Pendulum-v0")
-# make_env_step_silent(env)
+make_env_step_silent(env)
+
 seed = 1
 if seed is not None:
     env.seed(seed)
@@ -19,12 +20,11 @@ if seed is not None:
     torch.manual_seed(seed)
 
 # print_random_policy_reward(env, episodes=30)
-
-actor = ContinuousPolicy(env, n_hidden_units=16)
+actor = ContinuousPolicy(env, n_hidden_units=32, state_dependent_sigma=False)
 # critic = ValueModel(env, n_hidden_units=64)
 critic = None
 
-naturalPG = NaturalPG(env, actor, gamma=0.99, critic=critic, use_tensorboard=False)
+naturalPG = NaturalPG(env, actor, gamma=0.99, min_steps=1500, critic=critic, use_tensorboard=True)
 naturalPG.train(max_episodes=2000)
 
 env.close()
