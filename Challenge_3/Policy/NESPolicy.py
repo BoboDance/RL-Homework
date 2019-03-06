@@ -31,6 +31,9 @@ class NESPolicy(nn.Module):
 
         self.apply(init_weights)
 
+        print("NN architecture:")
+        print(self.model)
+
         self.train()
 
     def forward(self, inputs):

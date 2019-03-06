@@ -7,6 +7,7 @@ import pickle
 
 import numpy as np
 import torch
+import pprint
 
 
 class NES(object):
@@ -15,20 +16,33 @@ class NES(object):
                  save_path=None, seed=None, normalize_reward=True):
 
         np.random.seed(seed)
-        self.weights = weights
-        self.reward_function = reward_func
         self.POPULATION_SIZE = population_size
         self.SIGMA = sigma
         self.LEARNING_RATE = learning_rate
+
+        # lr and exploration decay
         self.decay = decay
         self.sigma_decay = sigma_decay
-        self.pool = ThreadPool(threadcount)
+
+        # rendering
         self.render_test = render_test
+
+        # early stopping
         self.reward_goal = reward_goal
         self.consecutive_goal_stopping = consecutive_goal_stopping
         self.consecutive_goal_count = 0
+
+        # saving
         self.save_path = save_path
         self.normalize_reward = normalize_reward
+
+        print("Parameter Settings:")
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(self.__dict__)
+
+        self.pool = ThreadPool(threadcount)
+        self.weights = weights
+        self.reward_function = reward_func
 
     def mutate_weights(self, weights, population: list = [], no_mutation: bool = False):
         """

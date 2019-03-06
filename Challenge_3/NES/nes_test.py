@@ -14,19 +14,18 @@ from Challenge_3.Util import make_env_step_silent, get_reward
 quanser_robots
 gym_logger.setLevel(logging.CRITICAL)
 
-env = gym.make("BallBalancerSim-v0")
+env_name = "BallBalancerSim-v0"
+
+env = gym.make(env_name)
 # Disable cancerous outputs in order to see interesting stuff
 make_env_step_silent(env)
 
-model = NESPolicy(env, n_hidden_units=25)
-
-partial_func = partial(get_reward, model=model, env=env)
-global_parameters = list(model.parameters())
+print(f"Staring run for NES on {env_name}.")
 
 # general parameters
 population_size = 100
-sigma = .1
-lr = 1e-1
+sigma = .2
+lr = 1e-3
 
 # early stopping if goal is reached for n steps
 reward_goal = 700
@@ -41,6 +40,10 @@ normalize_rewards = True
 decay = .9999
 sigma_decay = 1.
 
+model = NESPolicy(env, n_hidden_units=6)
+
+partial_func = partial(get_reward, model=model, env=env)
+global_parameters = list(model.parameters())
 
 nes = NES(global_parameters, partial_func, population_size=population_size, sigma=sigma, learning_rate=lr,
           reward_goal=reward_goal, consecutive_goal_stopping=consecutive_goal_stopping, threadcount=thread_count,
