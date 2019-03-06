@@ -9,8 +9,7 @@ import numpy as np
 import torch
 
 
-class NES:
-
+class NES(object):
     def __init__(self, weights, reward_func, population_size=50, sigma=0.1, learning_rate=0.001, decay=1.0,
                  sigma_decay=1.0, threadcount=4, render_test=False, reward_goal=None, consecutive_goal_stopping=None,
                  save_path=None, seed=None, normalize_reward=True):
@@ -31,17 +30,17 @@ class NES:
         self.save_path = save_path
         self.normalize_reward = normalize_reward
 
-    def jitter_weights(self, weights, population: list = [], no_jitter: bool = False):
+    def mutate_weights(self, weights, population: list = [], no_mutation: bool = False):
         """
         Add some random jitter to params or  if
         :param weights: current set of weights
-        :param population: population which defines jitter base
-        :param no_jitter: add jitter or not, if false just get back weight vector
+        :param population: population which defines mutation base
+        :param no_mutation: add jitter or not, if false just get back weight vector
         :return: new_weights
         """
         new_weights = []
         for i, param in enumerate(weights):
-            if no_jitter:
+            if no_mutation:
                 new_weights.append(param.data)
             else:
                 jittered = torch.from_numpy(self.SIGMA * population[i]).float()
@@ -58,6 +57,7 @@ class NES:
         """
         for iteration in range(iterations):
 
+            # init pop randomly
             population = []
             for _ in range(self.POPULATION_SIZE):
                 x = []
@@ -65,14 +65,16 @@ class NES:
                     x.append(np.random.randn(*param.data.size()))
                 population.append(x)
 
+            # compute rewards/fitness for pop
             rewards = self.pool.map(self.reward_function,
-                                    [self.jitter_weights(copy.deepcopy(self.weights), population=pop) for pop in
+                                    [self.mutate_weights(copy.deepcopy(self.weights), population=pop) for pop in
                                      population])
             if np.std(rewards) != 0:
 
                 if self.normalize_reward:
                     rewards = (rewards - np.mean(rewards)) / np.std(rewards)
 
+                # weight update via natural gradient descent
                 for index, param in enumerate(self.weights):
                     A = np.array([p[index] for p in population])
                     rewards_pop = torch.from_numpy(np.dot(A.T, rewards).T).float()
@@ -82,15 +84,19 @@ class NES:
                     self.LEARNING_RATE *= self.decay
                     self.SIGMA *= self.sigma_decay
 
+            # compute reward for test run
             if (iteration + 1) % print_mod == 0:
                 test_reward, steps = self.reward_function(
-                    self.jitter_weights(copy.deepcopy(self.weights), no_jitter=True), render=self.render_test,
+                    self.mutate_weights(copy.deepcopy(self.weights), no_mutation=True), render=self.render_test,
                     return_steps=True)
+
                 print(f'Iteration: {iteration + 1:d} -- reward: {test_reward:f}, steps={steps}')
 
+                # save model weights
                 if self.save_path:
                     pickle.dump(self.weights, open(self.save_path, 'wb'))
 
+                # early stopping if threshold is crossed consecutive_goal_stopping times
                 if self.reward_goal and self.consecutive_goal_stopping:
                     if test_reward >= self.reward_goal:
                         self.consecutive_goal_count += 1
