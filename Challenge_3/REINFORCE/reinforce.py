@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from Challenge_3 import Policy
-from Challenge_3.Util import normalize_state
+from Challenge_3.Util import get_samples, get_returns_torch
 
 
 class REINFORCE:
@@ -34,10 +34,11 @@ class REINFORCE:
         self.dim_obs = env.observation_space.shape[0]
         self.dim_action = env.action_space.shape[0]
 
-    def train(self, max_episodes=100, max_episode_steps=10000, render_episodes_mod: int = None, save_best: bool = True):
+    def train(self, min_steps=20000, max_episodes=100, max_episode_steps=10000, render_episodes_mod: int = None, save_best: bool = True):
         """
         Runs the full training loop over several episodes. The best model weights are saved each time progress was made.
 
+        :param min_steps: The minimum amount of simulation steps before one update step.
         :param max_episodes: The maximum number of training episodes.
         :param max_episode_steps: The maximum amount of steps of a single episode.
         :param render_episodes_mod: Number of episodes when a new run will be rendered
@@ -48,81 +49,26 @@ class REINFORCE:
         episode = 0
         total_steps = 0
 
+        self.model_policy.train()
+
         # try-catch block to allow stopping the training process on KeyboardInterrupt
         try:
             while episode < max_episodes:
 
-                state = self.env.reset()
-                if self.normalize_observations:
-                    state = normalize_state(self.env, state, low=self.low, high=self.high)
+                sample_episodes, sample_steps, memory, episode_rewards, episode_steps = \
+                    get_samples(self.env, self.model_policy, min_steps=min_steps,
+                                normalize_observations=self.normalize_observations, low=self.low, high=self.high)
 
-                episode_reward = 0
-                episode_steps = 0
-
-                saved_log_probs = []
-                # saved_log_prob_derivations = []
-                saved_rewards = []
-
-                # Forward pass: Simulate one episode and save its stats
-                for episode_steps in range(0, max_episode_steps):
-                    # Choose an action and remember its log probability
-                    action, log_prob = self.model_policy.choose_action_by_sampling(state)
-
-                    # Make a step in the environment
-                    state, reward, done, _ = self.env.step(action)
-                    if self.normalize_observations:
-                        state = normalize_state(self.env, state, low=self.low, high=self.high)
-
-                    # Hotfix because Levitation-v1 returns numpy array instead of single value
-                    if type(reward) is np.ndarray:
-                        reward = reward[0]
-
-                    # Render the environment if we want to
-                    if render_episodes_mod is not None and episode > 0 and episode % render_episodes_mod == 0:
-                        self.env.render()
-
-                    # Store the log probability and the reward of the current step for the backward pass later
-                    saved_log_probs.append(log_prob)
-                    saved_rewards.append(reward)
-
-                    # also get the derivative of the model parameters
-                    # self.optimizer.zero_grad()
-                    # log_prob.backward(retain_graph=True)
-                    # gradients = []
-                    # for param in self.model_policy.parameters():
-                    #     gradients.extend(param.grad.detach().numpy().flatten())
-                    # saved_log_prob_derivations.append(np.array(gradients))
-
-                    episode_reward += reward
-                    total_steps += 1
-
-                    if done:
-                        break
-
-                episode += 1
-                avg_reward = episode_reward / episode_steps
-
-                # params = saved_log_prob_derivations[0].shape[0]
-                # fisher_information = np.zeros((params, params))
-                # for dev_log_pi in saved_log_prob_derivations:
-                #     fisher_information += dev_log_pi @ dev_log_pi.T
-                # fisher_information *= 1 / len(saved_log_prob_derivations)
-                # print(fisher_information)
+                episode += sample_episodes
+                total_steps += sample_steps
+                episode_reward = episode_rewards.mean()
+                episode_steps = episode_steps.mean()
 
                 # Backward pass: Calculate the return for each step in the simulated episode (backwards)
-                R = 0
-                episode_loss = []
-                returns = []
-                for r in saved_rewards[::-1]:
-                    R = r + self.gamma * R
-                    returns.insert(0, R)
-                returns = torch.Tensor(returns)
-                # Normalize the returns
-                # returns = (returns - returns.mean()) / (returns.std() + self.eps)
-                # Get our loss over the whole trajectory
-                for log_prob, R in zip(saved_log_probs, returns):
-                    episode_loss.append(-log_prob * R)
-                episode_loss = torch.stack(episode_loss).mean()
+                returns = get_returns_torch(memory[:, 2], self.gamma, memory[:, 3])
+                log_confidence = torch.stack(list(memory[:, 4]))
+                episode_loss = -log_confidence * returns
+                episode_loss = episode_loss.mean()
 
                 # do the optimization step
                 self.optimizer.zero_grad()
@@ -131,13 +77,13 @@ class REINFORCE:
 
                 # Output statistics and save the model if wanted
                 print(
-                    "\rEpisode {:5d} -- total steps: {:8d} > avg reward: {:.10f} -- steps: {:4d} -- reward: {:5.5f} "
-                    "-- training loss: {:10.5f}".format(episode, total_steps, avg_reward, episode_steps,
+                    "\rEpisode {:5d} -- total steps: {:8d} > avg steps: {:4f} -- avg reward: {:5.5f} "
+                    "-- training loss: {:10.5f}".format(episode, total_steps, episode_steps,
                                                         episode_reward, episode_loss.float()))
 
                 if self.use_tensorboard:
-                    self.writer.add_scalar("avg_reward", avg_reward, episode)
-                    self.writer.add_scalar("total_reward", episode_reward, episode)
+                    self.writer.add_scalar("avg_steps", episode_steps, episode)
+                    self.writer.add_scalar("avg_reward", episode_reward, episode)
                     self.writer.add_scalar("loss", episode_loss, total_steps)
 
                 # check if episode reward is better than best model so far

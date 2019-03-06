@@ -22,6 +22,8 @@ class ContinuousPolicy(nn.Module):
 
         self.linear_input_to_hidden = nn.Linear(self.n_inputs, n_hidden_units)
         self.linear_hidden_to_mean = nn.Linear(n_hidden_units, self.n_actions)
+        self.linear_hidden_to_mean.weight.data.mul_(0.1)
+        self.linear_hidden_to_mean.bias.data.mul_(0.0)
 
         self.state_dependent_sigma = state_dependent_sigma
         if self.state_dependent_sigma:

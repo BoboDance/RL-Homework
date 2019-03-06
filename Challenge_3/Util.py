@@ -128,6 +128,10 @@ def get_samples(env, policy, min_steps, max_episode_steps=1000000, normalize_obs
             if normalize_observations:
                 next_state = normalize_state(env, next_state, low=low, high=high)
 
+            # Hotfix because Levitation-v1 returns numpy array instead of single value
+            if type(reward) is np.ndarray:
+                reward = reward[0]
+
             memory.append([state, action, reward, done, log_confidence])
 
             episode_reward += reward

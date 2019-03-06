@@ -7,14 +7,13 @@ from Challenge_3.REINFORCE.reinforce import REINFORCE
 from Challenge_3.Policy.DiscretePolicy import DiscretePolicy
 
 # env = gym.make("Pendulum-v0")
-# env = gym.make("Levitation-v1")
-env = gym.make("CartpoleStabShort-v0")
+env = gym.make("Levitation-v1")
+# env = gym.make("CartpoleStabShort-v0")
 
 # print_random_policy_reward(env, episodes=1)
-
 discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 5)
 # reinforce_model = DiscretePolicy(env, discrete_actions, n_hidden_units=16)
-reinforce_model = ContinuousPolicy(env, n_hidden_units=16)
+reinforce_model = ContinuousPolicy(env, n_hidden_units=8, state_dependent_sigma=True)
 low = env.observation_space.low
 low[1] = 0
 reinforce = REINFORCE(env, reinforce_model, 0.99, 1e-3, normalize_observations=False, low=low)
