@@ -57,7 +57,7 @@ class NES(object):
         """
         for iteration in range(iterations):
 
-            # init pop randomly
+            # init pop randomly, which specifies change in params
             population = []
             for _ in range(self.POPULATION_SIZE):
                 x = []

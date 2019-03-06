@@ -18,5 +18,5 @@ reinforce_model = ContinuousPolicy(env, n_hidden_units=10, state_dependent_sigma
 low = env.observation_space.low
 low[1] = 0
 
-reinforce = REINFORCE(env, reinforce_model, 0.99, 1e-3, normalize_observations=True, low=low)
+reinforce = REINFORCE(env, reinforce_model, 0.99, 5e-3, normalize_observations=False, low=low)
 reinforce.train(save_best=False, render_episodes_mod=100, max_episodes=100000)
