@@ -13,7 +13,7 @@ class NES:
 
     def __init__(self, weights, reward_func, population_size=50, sigma=0.1, learning_rate=0.001, decay=1.0,
                  sigma_decay=1.0, threadcount=4, render_test=False, reward_goal=None, consecutive_goal_stopping=None,
-                 save_path=None, seed=None):
+                 save_path=None, seed=None, normalize_reward=True):
 
         np.random.seed(seed)
         self.weights = weights
@@ -29,8 +29,16 @@ class NES:
         self.consecutive_goal_stopping = consecutive_goal_stopping
         self.consecutive_goal_count = 0
         self.save_path = save_path
+        self.normalize_reward = normalize_reward
 
-    def jitter_weights(self, weights, population=[], no_jitter=False):
+    def jitter_weights(self, weights, population: list = [], no_jitter: bool = False):
+        """
+        Add some random jitter to params or  if
+        :param weights: current set of weights
+        :param population: population which defines jitter base
+        :param no_jitter: add jitter or not, if false just get back weight vector
+        :return: new_weights
+        """
         new_weights = []
         for i, param in enumerate(weights):
             if no_jitter:
@@ -41,7 +49,13 @@ class NES:
 
         return new_weights
 
-    def run(self, iterations, print_step=10):
+    def run(self, iterations, print_mod=10):
+        """
+        run NES for iterations and print after mod steps
+        :param iterations: number of steps
+        :param print_mod: print frequency
+        :return:
+        """
         for iteration in range(iterations):
 
             population = []
@@ -56,21 +70,23 @@ class NES:
                                      population])
             if np.std(rewards) != 0:
 
-                normalized_rewards = (rewards - np.mean(rewards)) / np.std(rewards)
+                if self.normalize_reward:
+                    rewards = (rewards - np.mean(rewards)) / np.std(rewards)
 
                 for index, param in enumerate(self.weights):
                     A = np.array([p[index] for p in population])
-                    rewards_pop = torch.from_numpy(np.dot(A.T, normalized_rewards).T).float()
+                    rewards_pop = torch.from_numpy(np.dot(A.T, rewards).T).float()
                     param.data = param.data + self.LEARNING_RATE / (self.POPULATION_SIZE * self.SIGMA) * rewards_pop
 
+                    # lr decay and sigma decay
                     self.LEARNING_RATE *= self.decay
                     self.SIGMA *= self.sigma_decay
 
-            if (iteration + 1) % print_step == 0:
-                test_reward = self.reward_function(
-                    self.jitter_weights(copy.deepcopy(self.weights), no_jitter=True), render=self.render_test
-                )
-                print(f'Iteration: {iteration + 1:d} -- reward: {test_reward:f}')
+            if (iteration + 1) % print_mod == 0:
+                test_reward, steps = self.reward_function(
+                    self.jitter_weights(copy.deepcopy(self.weights), no_jitter=True), render=self.render_test,
+                    return_steps=True)
+                print(f'Iteration: {iteration + 1:d} -- reward: {test_reward:f}, steps={steps}')
 
                 if self.save_path:
                     pickle.dump(self.weights, open(self.save_path, 'wb'))

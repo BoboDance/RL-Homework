@@ -151,7 +151,7 @@ def get_samples(env, policy, min_steps, max_episode_steps=1000000, normalize_obs
     return total_episodes, total_steps, np.array(memory), np.array(episode_rewards), np.array(episode_steps)
 
 
-def get_reward(weights, model, env, render=False):
+def get_reward(weights, model, env, render=False, return_steps=False):
     cloned_model = copy.deepcopy(model)
     for i, param in enumerate(cloned_model.parameters()):
         try:
@@ -176,5 +176,7 @@ def get_reward(weights, model, env, render=False):
         total_reward += reward
         t += 1
 
-    # print(f"reward={total_reward} -- episode steps={t}")
+    if return_steps:
+        return total_reward, t
+
     return total_reward

@@ -2,7 +2,7 @@ from collections import deque
 
 import numpy as np
 import torch
-from Challenge_3.NaturalPG.npg_step import train_model, optimization_step
+from Challenge_3.NPG.npg_step import train_model, optimization_step
 from Challenge_3.Util import normalize_state, get_samples
 
 

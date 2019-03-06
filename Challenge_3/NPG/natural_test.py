@@ -4,8 +4,8 @@ import gym
 import numpy as np
 import quanser_robots
 
-from Challenge_3.NaturalPG.NaturalPG import NaturalPG
-from Challenge_3.NaturalPG.ValueModel import ValueModel
+from Challenge_3.NPG.NaturalPG import NaturalPG
+from Challenge_3.NPG.ValueModel import ValueModel
 from Challenge_3.Policy.ContinuousPolicy import ContinuousPolicy
 from Challenge_3.Util import make_env_step_silent
 

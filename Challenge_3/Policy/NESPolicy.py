@@ -13,7 +13,6 @@ class NESPolicy(nn.Module):
 
         :param env: Gym environment object for which this policy object is created
         :param n_hidden_units: Number of nodes in the hidden layer
-        :param state_dependent_sigma: Predict sigma together with the mean or use the same sigma for every observation
         """
 
         super(NESPolicy, self).__init__()

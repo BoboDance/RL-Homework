@@ -2,7 +2,7 @@ import torch
 
 import numpy as np
 
-from Challenge_3.NaturalPG.ValueModel import train_model
+from Challenge_3.NPG.ValueModel import train_model
 from Challenge_3.Util import get_returns_torch
 
 # The natural policy gradient step based on https://github.com/reinforcement-learning-kr/pg_travel
