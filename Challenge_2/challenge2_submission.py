@@ -255,25 +255,25 @@ def main():
         print(np.mean(ret_all), np.std(ret_all))
         env.close()
 
-    # DQN I: Check learned policy
-    env = Monitor(gym.make('CartpoleSwingShort-v0'), 'dqn_eval')
-    policy = load_dqn_policy()
-    check(env, policy)
-
-    # DQN II: Check learning procedure
-    env = Monitor(gym.make('CartpoleSwingShort-v0'), 'dqn_train', video_callable=False)
-    policy = train_dqn_policy(env)
-    check(env, policy)
+    # # DQN I: Check learned policy
+    # env = Monitor(gym.make('CartpoleSwingShort-v0'), 'dqn_eval')
+    # policy = load_dqn_policy()
+    # check(env, policy)
+    #
+    # # DQN II: Check learning procedure
+    # env = Monitor(gym.make('CartpoleSwingShort-v0'), 'dqn_train', video_callable=False)
+    # policy = train_dqn_policy(env)
+    # check(env, policy)
 
     # LSPI I: Check learned policy
-    env = Monitor(gym.make('CartpoleStabShort-v0'), 'lspi_eval')
+    env = Monitor(gym.make('CartpoleStabShort-v0'), 'lspi_eval', video_callable=None)
     policy = load_lspi_policy()
     check(env, policy)
 
-    # LSPI II: Check learning procedure
-    env = Monitor(gym.make('CartpoleStabShort-v0'), 'lspi_train', video_callable=False)
-    policy = train_lspi_policy(env)
-    check(env, policy)
+    # # LSPI II: Check learning procedure
+    # env = Monitor(gym.make('CartpoleStabShort-v0'), 'lspi_train', video_callable=False)
+    # policy = train_lspi_policy(env)
+    # check(env, policy)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,10 @@
+import copy
 import os
 import sys
 from collections import deque
 
-import torch
-
-import gym
 import numpy as np
+import torch
 from torch import nn
 
 
@@ -29,7 +28,7 @@ def normalize_state(env, observation, low=None, high=None):
     return (observation - low) / (high - low)
 
 
-def print_random_policy_reward(env, episodes = 10):
+def print_random_policy_reward(env, episodes=10):
     rewards = np.zeros(episodes)
 
     print("Calculating random policy rewards.. ", end='')
@@ -150,3 +149,32 @@ def get_samples(env, policy, min_steps, max_episode_steps=1000000, normalize_obs
             break
 
     return total_episodes, total_steps, np.array(memory), np.array(episode_rewards), np.array(episode_steps)
+
+
+def get_reward(weights, model, env, render=False):
+    cloned_model = copy.deepcopy(model)
+    for i, param in enumerate(cloned_model.parameters()):
+        try:
+            param.data.copy_(weights[i])
+        except:
+            param.data.copy_(weights[i].data)
+
+    state = env.reset()
+    done = False
+    total_reward = 0
+    t = 0
+    while not done:
+        if render:
+            env.render()
+        batch = torch.from_numpy(state[np.newaxis, ...]).float()
+
+        with torch.no_grad():
+            action = cloned_model(batch).numpy()[0]
+
+        # action = action.data[0]
+        state, reward, done, _ = env.step(action)
+        total_reward += reward
+        t += 1
+
+    # print(f"reward={total_reward} -- episode steps={t}")
+    return total_reward

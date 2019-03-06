@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 
+from Challenge_3.Util import init_weights
+
 
 class ContinuousPolicy(nn.Module):
     def __init__(self, env, n_hidden_units=16, state_dependent_sigma=False):
@@ -21,15 +23,16 @@ class ContinuousPolicy(nn.Module):
         self.action_space = env.action_space
 
         self.linear_input_to_hidden = nn.Linear(self.n_inputs, n_hidden_units)
+        self.hidden2 = nn.Linear(n_hidden_units, n_hidden_units)
         self.linear_hidden_to_mean = nn.Linear(n_hidden_units, self.n_actions)
-        self.linear_hidden_to_mean.weight.data.mul_(0.1)
-        self.linear_hidden_to_mean.bias.data.mul_(0.0)
 
         self.state_dependent_sigma = state_dependent_sigma
         if self.state_dependent_sigma:
             self.linear_hidden_to_sigma = nn.Linear(n_hidden_units, self.n_actions)
         else:
             self.sigma = nn.Parameter(torch.zeros(self.n_actions))
+
+        self.apply(init_weights)
 
         self.train()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -42,6 +45,8 @@ class ContinuousPolicy(nn.Module):
         :return: means and sigma_squared for each action
         """
         hidden = F.relu(self.linear_input_to_hidden(inputs))
+        hidden = F.relu(self.hidden2(hidden))
+
         means = self.linear_hidden_to_mean(hidden)
 
         if self.state_dependent_sigma:
