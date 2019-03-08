@@ -172,13 +172,58 @@ def get_samples(env, policy, min_steps, max_episode_steps=1000000, normalize_obs
     return total_episodes, total_steps, np.array(memory), np.array(episode_rewards), np.array(episode_steps)
 
 
+def eval_policy_fun(env, policy_fun, episodes, max_episode_steps=1000000, normalize_observations=False, low=None, high=None):
+    """
+    Gather samples from the environment.
+
+    :param env: The environment used for sampling
+    :param policy_fun: The policy which defines which actions will be used (only observation -> action)
+    :param episodes: Number of episodes for evaluation
+    :param max_episode_steps: The maximum amount of steps for a single sample episode
+    :param normalize_observations: Whether to normalize observations
+    :param low: The lower observation bound for normalization (use None to use the env.observation_space default)
+    :param high: The higher observation bound for normalization (use None to use the env.observation_space default)
+    :return: Statistics about the individual episodes
+    """
+
+    episode_rewards = deque()
+    total_episodes = 0
+    total_steps = 0
+    episode_steps = deque()
+    for episode in range(0, episodes):
+        episode_reward = 0
+        episode_step = 0
+
+        state = env.reset()
+        if normalize_observations:
+            state = normalize_state(env, state, low=low, high=high)
+
+        # Sample one episode
+        for episode_step in range(1, max_episode_steps + 1):
+            next_state, reward, done, _ = env.step(policy_fun(state))
+            if normalize_observations:
+                next_state = normalize_state(env, next_state, low=low, high=high)
+
+            # Hotfix because Levitation-v1 returns numpy array instead of single value
+            if type(reward) is np.ndarray:
+                reward = reward[0]
+
+            episode_reward += reward
+            state = next_state
+
+            if done:
+                break
+
+        total_episodes += 1
+        total_steps += episode_step
+        episode_rewards.append(episode_reward)
+        episode_steps.append(episode_step)
+
+    return total_episodes, total_steps, np.array(episode_rewards), np.array(episode_steps)
+
+
 def get_reward(weights, model, env, render=False, return_steps=False):
-    cloned_model = copy.deepcopy(model)
-    for i, param in enumerate(cloned_model.parameters()):
-        try:
-            param.data.copy_(weights[i])
-        except:
-            param.data.copy_(weights[i].data)
+    cloned_model = nes_load_model_weights(weights, model)
 
     state = env.reset()
     done = False
@@ -201,3 +246,13 @@ def get_reward(weights, model, env, render=False, return_steps=False):
         return total_reward, t
 
     return total_reward
+
+
+def nes_load_model_weights(weights, model):
+    cloned_model = copy.deepcopy(model)
+    for i, param in enumerate(cloned_model.parameters()):
+        try:
+            param.data.copy_(weights[i])
+        except:
+            param.data.copy_(weights[i].data)
+    return cloned_model
