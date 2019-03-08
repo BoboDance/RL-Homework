@@ -58,3 +58,25 @@ pickle.dump(final_weights, open(f"../checkpoints/reward-{reward}.pkl", 'wb'))
 
 print(f"Reward from final weights: {reward}")
 print(f"Time to completion: {end}")
+
+
+# Best setup so far.
+# NN architecture:
+# Sequential(
+#   (0): Linear(in_features=8, out_features=10, bias=True)
+#   (1): ReLU()
+#   (2): Linear(in_features=10, out_features=10, bias=True)
+#   (3): ReLU()
+#   (4): Linear(in_features=10, out_features=2, bias=True)
+# )
+# Parameter Settings:
+# {   'consecutive_goal_count': 0,
+#     'consecutive_goal_stopping': 20,
+#     'decay': 0.99,
+#     'lr': 0.05,
+#     'normalize_reward': True,
+#     'pop_size': 20,
+#     'render_test': False,
+#     'reward_goal': 700,
+#     'sigma': 1,
+#     'sigma_decay': 0.99}
