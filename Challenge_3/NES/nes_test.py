@@ -20,12 +20,12 @@ env = gym.make(env_name)
 # Disable cancerous outputs in order to see interesting stuff
 make_env_step_silent(env)
 
-print(f"Staring run for NES on {env_name}.")
+print(f"Starting run for NES on {env_name}.")
 
 # general parameters
-population_size = 100
+population_size = 20
 sigma = 1
-lr = 1e-1
+lr = 5e-2
 
 # early stopping if goal is reached for n steps
 reward_goal = 700
@@ -33,14 +33,14 @@ consecutive_goal_stopping = 20
 
 thread_count = 2
 render = False
-iterations = 100
+iterations = 10000
 normalize_rewards = True
 
 # decay for lr and exploration
 decay = .99
 sigma_decay = .99
 
-model = NESPolicy(env, n_hidden_units=50)
+model = NESPolicy(env, n_hidden_units=25)
 
 partial_func = partial(get_reward, model=model, env=env)
 global_parameters = list(model.parameters())
