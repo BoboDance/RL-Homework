@@ -1,3 +1,6 @@
+"""
+Natural policy gradient step -- modified on https://github.com/reinforcement-learning-kr/pg_travel
+"""
 import torch
 
 import numpy as np
@@ -5,7 +8,50 @@ import numpy as np
 from Challenge_3.NPG.ValueModel import train_model
 from Challenge_3.Util import get_returns_torch
 
-# The natural policy gradient step based on https://github.com/reinforcement-learning-kr/pg_travel
+
+def optimization_step(actor, memory, gamma, critic=None, optimizer_critic=None):
+    """
+    Single optimization step for the actor using the given samples. Also updates the critic, if available.
+
+    :param actor: The actor which contains our policy
+    :param memory: The memory containing samples which will be used for the gradient update step
+    :param gamma: The gamma used to calculate the returns from the memory
+    :param critic: The critic, can be trained optionally to feature a baseline
+    :param optimizer_critic: The optimizer of the critic, used for training
+    """
+    states = np.vstack(memory[:, 0])
+    rewards = memory[:, 2]
+    dones = memory[:, 3]
+    # create a single tensor out of the log confidence
+    log_confidence = torch.stack(list(memory[:, 4]))
+
+    # Get returns
+    returns = get_returns_torch(rewards, gamma, dones, normalize=True)
+
+    # Train critic to improve the confidence weighting (we basically get the advantage)
+    if critic is not None:
+        critic_loss = train_model(critic, states, returns, optimizer_critic)
+        returns = returns - critic(torch.Tensor(states))
+    else:
+        critic_loss = 0
+
+    # Get gradient of loss and hessian of kl
+    actor_loss = (returns * log_confidence).mean()
+    loss_grad = torch.autograd.grad(actor_loss, actor.parameters())
+    loss_grad = flat_grad(loss_grad)
+    step_dir = conjugate_gradient(actor, states, loss_grad.data, nsteps=10)
+
+    # Get step direction and step size
+    params = flat_params(actor)
+    # shs = 0.5 * (step_dir * fisher_vector_product(actor, states, step_dir)).sum(0, keepdim=True)
+    # step_size = 1 / torch.sqrt(shs / 0.01)[0]
+    step_size = 0.3
+    new_params = params + step_size * step_dir
+
+    # Update the actor
+    update_model(actor, new_params)
+
+    return actor_loss, critic_loss
 
 
 def fisher_vector_product(actor, states, p):
@@ -40,42 +86,6 @@ def conjugate_gradient(actor, states, b, nsteps, residual_tol=1e-10):
         if rdotr < residual_tol:
             break
     return x
-
-
-def optimization_step(actor, memory, gamma, critic=None, optimizer_critic=None):
-    states = np.vstack(memory[:, 0])
-    rewards = memory[:, 2]
-    dones = memory[:, 3]
-    # create a single tensor out of the log confidence
-    log_confidence = torch.stack(list(memory[:, 4]))
-
-    # Get returns
-    returns = get_returns_torch(rewards, gamma, dones, normalize=True)
-
-    # Train critic to improve the confidence weighting (we basically get the advantage)
-    if critic is not None:
-        critic_loss = train_model(critic, states, returns, optimizer_critic)
-        returns = returns - critic(torch.Tensor(states))
-    else:
-        critic_loss = 0
-
-    # Get gradient of loss and hessian of kl
-    actor_loss = (returns * log_confidence).mean()
-    loss_grad = torch.autograd.grad(actor_loss, actor.parameters())
-    loss_grad = flat_grad(loss_grad)
-    step_dir = conjugate_gradient(actor, states, loss_grad.data, nsteps=10)
-
-    # Get step direction and step size
-    params = flat_params(actor)
-    # shs = 0.5 * (step_dir * fisher_vector_product(actor, states, step_dir)).sum(0, keepdim=True)
-    # step_size = 1 / torch.sqrt(shs / 0.01)[0]
-    step_size = 0.3
-    new_params = params + step_size * step_dir
-
-    # Update the actor
-    update_model(actor, new_params)
-
-    return actor_loss, critic_loss
 
 
 def flat_grad(grads):
@@ -123,6 +133,5 @@ def kl_divergence(new_actor, old_actor, states):
     # kl divergence between old policy and new policy : D( pi_old || pi_new )
     # pi_old -> mu0, logstd0, std0 / pi_new -> mu, logstd, std
     # be careful of calculating KL-divergence. It is not symmetric metric
-    kl = logstd_old - logstd + (std_old.pow(2) + (mu_old - mu).pow(2)) / \
-         (2.0 * std.pow(2)) - 0.5
+    kl = logstd_old - logstd + (std_old.pow(2) + (mu_old - mu).pow(2)) / (2.0 * std.pow(2)) - 0.5
     return kl.sum(1, keepdim=True)

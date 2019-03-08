@@ -7,7 +7,25 @@ from Challenge_3.Util import normalize_state, get_samples
 
 
 class NaturalPG:
-    def __init__(self, env, actor, gamma, min_steps, critic=None, critic_lr = 0.005, normalize_observations=False, low=None, high=None, use_tensorboard=False):
+    """
+    Implementation of the natural policy gradient.
+    """
+
+    def __init__(self, env, actor, gamma, critic=None, critic_lr = 0.005, normalize_observations=False, low=None,
+                 high=None, use_tensorboard=False):
+        """
+        Initializes the learner.
+
+        :param env: The environment
+        :param actor: The actor which features the policy which should be learned
+        :param gamma: The discount factor for the episode reward
+        :param critic: The critic (may be none when you don't want to use a critic)
+        :param critic_lr: The learn rate of the critic
+        :param normalize_observations: Whether the observations should be normalized
+        :param low: The lower observation bound for normalization (None defaults to the observation_space default)
+        :param high: The lower observation bound for normalization (None defaults to the observation_space default)
+        :param use_tensorboard: Whether to use tensorboard for logging
+        """
         self.env = env
 
         self.dim_obs = env.observation_space.shape[0]
@@ -21,7 +39,6 @@ class NaturalPG:
         self.critic = critic
 
         self.gamma = gamma
-        self.min_steps = min_steps
 
         if critic is not None:
             self.optimizer_critic = torch.optim.Adam(self.critic.parameters(), lr=critic_lr)
@@ -34,13 +51,17 @@ class NaturalPG:
             from tensorboardX import SummaryWriter
             self.writer = SummaryWriter()
 
-    def train(self, max_episodes=100, max_episode_steps=10000, render_episodes_mod: int = None):
+    def train(self, max_episodes=100,max_episode_steps=10000, min_steps=1000, render_episodes_mod: int = None, save_best: bool = True,
+              save_path="../checkpoints/npg_actor_best_weights.pth"):
         """
         Runs the full training loop over several episodes.
 
-        :param max_episodes: The maximum number of training episodes.
-        :param max_episode_steps: The maximum amount of steps of a single episode.
+        :param max_episodes: The maximum number of training episodes
+        :param max_episode_steps: The maximum amount of steps of a single episode
+        :param min_steps: The minimum amount of environment samples used for an optimization step
         :param render_episodes_mod: Number of episodes when a new run will be rendered
+        :param save_best: Defines if the best model policy shall be saved during training
+        :param save_path: The path where the best policy will be stored
         :return: The final episode reached after training
         """
         episode = 0
@@ -53,8 +74,19 @@ class NaturalPG:
                     self.critic.eval()
 
                 sample_episodes, sample_steps, memory, episode_rewards, episode_steps = \
-                    get_samples(self.env, self.actor, min_steps=self.min_steps,
+                    get_samples(self.env, self.actor, min_steps=min_steps,
                                 normalize_observations=self.normalize_observations, low=self.low, high=self.high)
+
+                episode_reward = episode_rewards.mean()
+
+                # check if episode reward is better than best model so far
+                if self.best_episode_reward is None or episode_reward > self.best_episode_reward:
+                    self.best_episode_reward = episode_reward
+                    print("New best model has reward {:5.5f}".format(self.best_episode_reward))
+
+                    if save_best:
+                        torch.save(self.actor.state_dict(), save_path)
+                        print("Model of actor saved.")
 
                 if self.use_tensorboard:
                     tensorboard_total_steps = total_steps
