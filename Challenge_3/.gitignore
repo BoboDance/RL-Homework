@@ -1,0 +1,7 @@
+reinforce_eval/
+reinforce_train/
+npg_eval/
+npg_train/
+nes_eval/
+nes_train/
+*runs/

@@ -88,6 +88,15 @@ def init_weights(m):
 
 
 def get_returns_torch(rewards, gamma, dones, normalize=True):
+    """
+    Gather the returns from the back to the front using the given (subsequent) rewards.
+
+    :param rewards: The sampled rewards
+    :param gamma: The discount factor
+    :param dones: Whether the episode was done after this step
+    :param normalize: Whether the returns should be normalized in the end
+    :return: the returns in a torch tensor
+    """
     returns = torch.zeros(rewards.shape)
     dones = (1 - dones)
     accumulated_return = 0
@@ -105,6 +114,18 @@ def get_returns_torch(rewards, gamma, dones, normalize=True):
 
 
 def get_samples(env, policy, min_steps, max_episode_steps=1000000, normalize_observations=False, low=None, high=None):
+    """
+    Gather samples from the environment.
+
+    :param env: The environment used for sampling
+    :param policy: The policy which defines which actions will be used
+    :param min_steps: The minimum amount of steps which will be sampled (can be multiple episodes)
+    :param max_episode_steps: The maximum amount of steps for a single sample episode
+    :param normalize_observations: Whether to normalize observations
+    :param low: The lower observation bound for normalization (use None to use the env.observation_space default)
+    :param high: The higher observation bound for normalization (use None to use the env.observation_space default)
+    :return: Sampling data and statistics about the individual episodes
+    """
     memory = deque()
 
     episode_rewards = deque()
