@@ -17,12 +17,12 @@ nes_load_model_weights(weights, model)
 
 
 def policy_fun(obs):
-    res = model(torch.Tensor(obs))
-    return res.detach().numpy()
+    with torch.no_grad():
+        return model(torch.Tensor(obs)).detach().numpy()
 
 
 sample_episodes, sample_steps, episode_rewards, episode_steps = \
-                    eval_policy_fun(env, policy_fun, 10, normalize_observations=False, low=None, high=None)
+                    eval_policy_fun(env, policy_fun, 100, normalize_observations=False, low=None, high=None)
 
 print("Eval ({} episodes): {:.4f} +/- {:.4f} ({:.4f} +/- {:.4f} steps)".
       format(sample_episodes, episode_rewards.mean(), episode_rewards.std(), episode_steps.mean(), episode_steps.std()))

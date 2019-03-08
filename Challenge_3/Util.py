@@ -232,12 +232,10 @@ def get_reward(weights, model, env, render=False, return_steps=False):
     while not done:
         if render:
             env.render()
-        batch = torch.from_numpy(state[np.newaxis, ...]).float()
 
         with torch.no_grad():
-            action = cloned_model(batch).numpy()[0]
+            action = cloned_model(torch.Tensor(state)).numpy()
 
-        # action = action.data[0]
         state, reward, done, _ = env.step(action)
         total_reward += reward
         t += 1
