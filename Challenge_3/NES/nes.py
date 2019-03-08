@@ -13,12 +13,12 @@ import pprint
 class NES(object):
     def __init__(self, weights, reward_func, population_size=50, sigma=0.1, learning_rate=0.001, decay=1.0,
                  sigma_decay=1.0, threadcount=4, render_test=False, reward_goal=None, consecutive_goal_stopping=None,
-                 save_path=None, seed=None, normalize_reward=True):
+                 seed=None, normalize_reward=True):
 
         np.random.seed(seed)
-        self.POPULATION_SIZE = population_size
-        self.SIGMA = sigma
-        self.LEARNING_RATE = learning_rate
+        self.pop_size = population_size
+        self.sigma = sigma
+        self.lr = learning_rate
 
         # lr and exploration decay
         self.decay = decay
@@ -32,8 +32,7 @@ class NES(object):
         self.consecutive_goal_stopping = consecutive_goal_stopping
         self.consecutive_goal_count = 0
 
-        # saving
-        self.save_path = save_path
+        # normalize reward
         self.normalize_reward = normalize_reward
 
         print("Parameter Settings:")
@@ -57,7 +56,7 @@ class NES(object):
             if no_mutation:
                 new_weights.append(param.data)
             else:
-                jittered = torch.from_numpy(self.SIGMA * population[i]).float()
+                jittered = torch.from_numpy(self.sigma * population[i]).float()
                 new_weights.append(param.data + jittered)
 
         return new_weights
@@ -69,11 +68,14 @@ class NES(object):
         :param print_mod: print frequency
         :return:
         """
+
+        best_reward = -np.inf
+
         for iteration in range(iterations):
 
             # init pop randomly, which specifies change in params
             population = []
-            for _ in range(self.POPULATION_SIZE):
+            for _ in range(self.pop_size):
                 x = []
                 for param in self.weights:
                     x.append(np.random.randn(*param.data.size()))
@@ -92,11 +94,11 @@ class NES(object):
                 for index, param in enumerate(self.weights):
                     A = np.array([p[index] for p in population])
                     rewards_pop = torch.from_numpy(np.dot(A.T, rewards).T).float()
-                    param.data = param.data + self.LEARNING_RATE / (self.POPULATION_SIZE * self.SIGMA) * rewards_pop
+                    param.data = param.data + self.lr / (self.pop_size * self.sigma) * rewards_pop
 
                     # lr decay and sigma decay
-                    self.LEARNING_RATE *= self.decay
-                    self.SIGMA *= self.sigma_decay
+                    self.lr *= self.decay
+                    self.sigma *= self.sigma_decay
 
             # compute reward for test run
             if (iteration + 1) % print_mod == 0:
@@ -104,11 +106,15 @@ class NES(object):
                     self.mutate_weights(copy.deepcopy(self.weights), no_mutation=True), render=self.render_test,
                     return_steps=True)
 
-                print(f'Iteration: {iteration + 1:d} -- reward: {test_reward:f}, steps={steps}')
+                print(
+                    f'Iteration: {iteration + 1:d} -- reward: {test_reward:f}, steps: {steps} '
+                    f'-- sigma: {self.sigma:.7f} -- lr: {self.lr:.7}')
 
                 # save model weights
-                if self.save_path:
-                    pickle.dump(self.weights, open(self.save_path, 'wb'))
+                if test_reward > best_reward:
+                    pickle.dump(self.weights, open(f"../checkpoints/reward-{test_reward}.pkl", 'wb'))
+                    print(f"Best model with {test_reward} saved.")
+                    best_reward = test_reward
 
                 # early stopping if threshold is crossed consecutive_goal_stopping times
                 if self.reward_goal and self.consecutive_goal_stopping:

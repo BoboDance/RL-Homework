@@ -24,8 +24,8 @@ print(f"Staring run for NES on {env_name}.")
 
 # general parameters
 population_size = 100
-sigma = .2
-lr = 1e-3
+sigma = 1
+lr = 1e-1
 
 # early stopping if goal is reached for n steps
 reward_goal = 700
@@ -37,10 +37,10 @@ iterations = 100
 normalize_rewards = True
 
 # decay for lr and exploration
-decay = .9999
-sigma_decay = 1.
+decay = .99
+sigma_decay = .99
 
-model = NESPolicy(env, n_hidden_units=6)
+model = NESPolicy(env, n_hidden_units=50)
 
 partial_func = partial(get_reward, model=model, env=env)
 global_parameters = list(model.parameters())
