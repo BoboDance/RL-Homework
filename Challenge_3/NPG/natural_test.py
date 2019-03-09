@@ -20,13 +20,13 @@ actor = ContinuousPolicy(env, n_hidden_units=32, state_dependent_sigma=False)
 critic = None
 
 naturalPG = NaturalPG(env, actor, gamma=0.99, critic=critic, use_tensorboard=True)
-naturalPG.train(min_steps=2500, max_episodes=500)
+naturalPG.train(min_steps=2500, max_episodes=1000, step_size=0.2)
 
 # load the best model again
 actor.load_state_dict(torch.load("../checkpoints/npg_actor_best_weights.pth"))
 
 sample_episodes, sample_steps, memory, episode_rewards, episode_steps = \
-                    get_samples(env, actor, min_steps=20000, normalize_observations=False, low=None, high=None)
+                    get_samples(env, actor, min_steps=40000, normalize_observations=False, low=None, high=None)
 
 print("Eval ({} episodes): {:.4f} +/- {:.4f} ({:.4f} +/- {:.4f} steps)".
       format(sample_episodes, episode_rewards.mean(), episode_rewards.std(), episode_steps.mean(), episode_steps.std()))

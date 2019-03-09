@@ -45,7 +45,7 @@ from Challenge_3.NPG.NaturalPG import NaturalPG
 from Challenge_3.Policy.ContinuousPolicy import ContinuousPolicy
 from Challenge_3.Policy.DiscretePolicy import DiscretePolicy
 from Challenge_3.REINFORCE.reinforce import REINFORCE
-from Challenge_3.Util import set_seed
+from Challenge_3.Util import set_seed, make_env_step_silent
 
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
@@ -136,12 +136,12 @@ def train_npg_policy(env):
     :param env: gym.Env
     :return: function pi: s -> a
     """
-    set_seed(env, 7)
+    set_seed(env, 1)
 
     actor = ContinuousPolicy(env, n_hidden_units=32, state_dependent_sigma=False)
 
     naturalPG = NaturalPG(env, actor, gamma=0.99, use_tensorboard=True)
-    naturalPG.train(min_steps=1500, max_episodes=100, save_path="./checkpoints/npg_train.pth")
+    naturalPG.train(min_steps=1500, max_episodes=1000, save_path="./checkpoints/npg_train.pth", step_size=0.2)
 
     # load the best model again
     actor.load_state_dict(torch.load("./checkpoints/npg_train.pth"))

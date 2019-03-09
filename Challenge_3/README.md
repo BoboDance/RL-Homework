@@ -77,10 +77,10 @@ We see stable training behaviour like the following on `BallBalancerSim-v0` very
 
 One can see that that the number of steps converge to the maximum episode steps (1000) and the reward increases until the maximum step size
 is reached. The illustrated policy receives an average reward of 365.0112 +/- 117.8526 (22 evaluation episodes).
-Corresponding parameters can be found in `NPG/natural_test.py`.
+Corresponding parameters can be found in `NPG/natural_test.py` (use `step_size=0.3` to reproduce the graphs).
 
-As training takes some time, we used a specific seed for the submission to shorten the required time significantly (see `NPG/natural_test_fast.py`).
-The corresponding policy receives a mean reward of 375.1006 +/- 88.8038 (25 evaluation episodes).
+Lowering the step size also lowers the variance in the policy, we get 403.4890 +/- 63.5127 (40 evaluation episodes) for 
+`step_size=0.2` after training 1000 episodes.
 
 ## Natural Evolution Strategies
 
