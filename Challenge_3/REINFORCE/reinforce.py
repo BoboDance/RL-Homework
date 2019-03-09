@@ -76,7 +76,7 @@ class REINFORCE:
                 returns = get_returns_torch(memory[:, 2], self.gamma, memory[:, 3])
                 log_confidence = torch.stack(list(memory[:, 4]))
                 episode_loss = -log_confidence * returns
-                episode_loss = episode_loss.mean()
+                episode_loss = episode_loss.sum()
 
                 # do the optimization step
                 self.optimizer.zero_grad()
