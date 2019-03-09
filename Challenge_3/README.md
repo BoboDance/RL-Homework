@@ -31,7 +31,7 @@ The implementation can be found in the python module `Challenge_3.NPG`.
 We first tried to implement NPG as a simple extension of REINFORCE by sampling the fisher information matrix from
 the policy gradient, 
 
-![fisher_information](supplementary/fisher_information.png)
+<img src="https://raw.githubusercontent.com/BoboDance/RL-Homework/master/Challenge_3/supplementary/fisher_information.png" height="70"></img>
 
 but we soon realized that this is too computationally inefficient.
 
@@ -48,7 +48,7 @@ As the plain npg implementation uses a fixed alpha for the parameter update,
 we tried to improve it by using the "normalized" step size as menioned in the
 [paper from Rajeswaran et al.](https://arxiv.org/pdf/1703.02660.pdf): 
 
-![normalized_step_size](supplementary/normalized_step_size.png)
+<img src="https://raw.githubusercontent.com/BoboDance/RL-Homework/master/Challenge_3/supplementary/normalized_step_size.png" height="70">
 
 but unfortunately, we were not able to improve our policy in comparison to the plain update step.
 
@@ -59,9 +59,9 @@ our policy network. Using an independent network parameter instead helped a lot 
 
 We see stable training behaviour like the following on `BallBalancerSim-v0` very frequently:
 
-![npg_episode_reward](supplementary/npg_episode_reward.png)
+<img src="https://raw.githubusercontent.com/BoboDance/RL-Homework/master/Challenge_3/supplementary/npg_episode_reward.png" height="200"></img>
 
-![npg_episode_steps](supplementary/npg_episode_steps.png)
+<img src="https://raw.githubusercontent.com/BoboDance/RL-Homework/master/Challenge_3/supplementary/npg_episode_steps.png" height="200"></img>
 
 One can see that that the number of steps converge to the maximum episode steps (1000) and the reward increases until the maximum step size
 is reached. The illustrated policy receives an average reward of 365.0112 +/- 117.8526 (22 evaluation episodes).
