@@ -25,7 +25,7 @@ print(f"Starting run for NES on {env_name}.")
 # general parameters
 population_size = 20
 sigma = 1
-lr = 5e-2
+lr = 5e-4
 
 # early stopping if goal is reached for n steps
 reward_goal = 700
@@ -37,10 +37,10 @@ iterations = 10000
 normalize_rewards = True
 
 # decay for lr and exploration
-decay = .99
-sigma_decay = .99
+decay = 1
+sigma_decay = 1
 
-model = NESPolicy(env, n_hidden_units=25)
+model = NESPolicy(env, n_hidden_units=10)
 
 partial_func = partial(get_reward, model=model, env=env)
 global_parameters = list(model.parameters())

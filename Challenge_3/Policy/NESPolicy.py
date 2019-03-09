@@ -24,8 +24,8 @@ class NESPolicy(nn.Module):
         self.model = nn.Sequential(
             nn.Linear(self.n_inputs, n_hidden_units),
             nn.ReLU(),
-            nn.Linear(n_hidden_units, n_hidden_units),
-            nn.ReLU(),
+            # nn.Linear(n_hidden_units, n_hidden_units),
+            # nn.ReLU(),
             nn.Linear(n_hidden_units, self.n_actions)
         )
 

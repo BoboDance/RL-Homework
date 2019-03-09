@@ -102,23 +102,31 @@ class NES(object):
 
             # compute reward for test run
             if (iteration + 1) % print_mod == 0:
-                test_reward, steps = self.reward_function(
-                    self.mutate_weights(copy.deepcopy(self.weights), no_mutation=True), render=self.render_test,
-                    return_steps=True)
+                test_reward_total = 0
+                steps_total = 0
+                for _ in range(10):
+                    test_reward, steps = self.reward_function(
+                        self.mutate_weights(copy.deepcopy(self.weights), no_mutation=True), render=self.render_test,
+                        return_steps=True)
+                    test_reward_total += test_reward
+                    steps_total += steps
+
+                test_reward_total /= 10
+                steps_total /= 10
 
                 print(
-                    f'Iteration: {iteration + 1:d} -- reward: {test_reward:f}, steps: {steps} '
+                    f'Iteration: {iteration + 1:d} -- reward: {test_reward_total:f}, steps: {steps_total} '
                     f'-- sigma: {self.sigma:.7f} -- lr: {self.lr:.7}')
 
                 # save model weights
-                if test_reward > best_reward:
-                    pickle.dump(self.weights, open(f"../checkpoints/reward-{test_reward}.pkl", 'wb'))
-                    print(f"Best model with {test_reward} saved.")
-                    best_reward = test_reward
+                if test_reward_total > best_reward:
+                    pickle.dump(self.weights, open(f"../checkpoints/reward-{test_reward_total}.pkl", 'wb'))
+                    print(f"Best model with {test_reward_total} saved.")
+                    best_reward = test_reward_total
 
                 # early stopping if threshold is crossed consecutive_goal_stopping times
                 if self.reward_goal and self.consecutive_goal_stopping:
-                    if test_reward >= self.reward_goal:
+                    if test_reward_total >= self.reward_goal:
                         self.consecutive_goal_count += 1
                     else:
                         self.consecutive_goal_count = 0
