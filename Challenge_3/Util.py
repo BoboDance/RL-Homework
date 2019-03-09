@@ -254,3 +254,9 @@ def nes_load_model_weights(weights, model):
         except:
             param.data.copy_(weights[i].data)
     return cloned_model
+
+
+def set_seed(env, seed):
+    env.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)

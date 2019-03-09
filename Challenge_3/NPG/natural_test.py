@@ -7,17 +7,13 @@ import quanser_robots
 from Challenge_3.NPG.NaturalPG import NaturalPG
 from Challenge_3.NPG.ValueModel import ValueModel
 from Challenge_3.Policy.ContinuousPolicy import ContinuousPolicy
-from Challenge_3.Util import make_env_step_silent, get_samples
+from Challenge_3.Util import make_env_step_silent, get_samples, set_seed
 
 env = gym.make("BallBalancerSim-v0")
-# env = gym.make("Pendulum-v0")
 make_env_step_silent(env)
 
 seed = 7
-if seed is not None:
-    env.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
+set_seed(env, seed)
 
 actor = ContinuousPolicy(env, n_hidden_units=32, state_dependent_sigma=False)
 # critic = ValueModel(env, n_hidden_units=64)

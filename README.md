@@ -12,3 +12,4 @@ For creating a new Anaconda-Env based on YML-file use:
 
 * Documentation of our solution for Challenge 1: [README.md](./Challenge_1/README.md#L1)
 * Documentation of our solution for Challenge 2: [README.md](./Challenge_2/README.md#L1)
+* Documentation of our solution for Challenge 3: [README.md](./Challenge_3/README.md#L1)

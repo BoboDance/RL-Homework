@@ -43,8 +43,6 @@ def optimization_step(actor, memory, gamma, critic=None, optimizer_critic=None):
 
     # Get step direction and step size
     params = flat_params(actor)
-    # shs = 0.5 * (step_dir * fisher_vector_product(actor, states, step_dir)).sum(0, keepdim=True)
-    # step_size = 1 / torch.sqrt(shs / 0.01)[0]
     step_size = 0.3
     new_params = params + step_size * step_dir
 
