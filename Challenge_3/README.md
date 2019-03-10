@@ -82,6 +82,13 @@ Corresponding parameters can be found in `NPG/natural_test.py` (use `step_size=0
 Lowering the step size also lowers the variance in the policy, we get 403.4890 +/- 63.5127 (40 evaluation episodes) for 
 `step_size=0.2` after training 1000 episodes.
 
+Using better gradient estimates by evaluating more samples for each update step yields even better results, but also requires
+longer training times (especially when combined with the lower step size). Our final submission receives a cumulative reward
+of about 500.1526 +/- 60.1290 (100 episodes) but already takes approximately one hour to train. However, the training
+behaviour seems to be very stable (take a look at the following episode return plot) and one could most likely improve the policy even further with longer training.
+
+<img src="https://raw.githubusercontent.com/BoboDance/RL-Homework/master/Challenge_3/supplementary/npg_reward_submission.png" height="200"></img>
+
 ## Natural Evolution Strategies
 
 In this section, we describe our experience with implementing NES.

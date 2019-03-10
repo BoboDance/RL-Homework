@@ -141,7 +141,7 @@ def train_npg_policy(env):
     actor = ContinuousPolicy(env, n_hidden_units=32, state_dependent_sigma=False)
 
     naturalPG = NaturalPG(env, actor, gamma=0.99, use_tensorboard=True)
-    naturalPG.train(min_steps=1500, max_episodes=1000, save_path="./checkpoints/npg_train.pth", step_size=0.2)
+    naturalPG.train(min_steps=5000, max_episodes=4500, step_size=0.25, save_path="./checkpoints/npg_train.pth")
 
     # load the best model again
     actor.load_state_dict(torch.load("./checkpoints/npg_train.pth"))
@@ -216,13 +216,13 @@ def main():
 
     # REINFORCE I: Check learned policy
     env = Monitor(gym.make('Levitation-v1'), 'reinforce_eval', force=True)
-    policy = load_reinforce_policy()
-    check(env, policy)
+    #policy = load_reinforce_policy()
+    #check(env, policy)
 
     # REINFORCE II: Check learning procedure
     env = Monitor(gym.make('Levitation-v1'), 'reinforce_train', video_callable=False, force=True)
-    policy = train_reinforce_policy(env)
-    check(env, policy)
+    #policy = train_reinforce_policy(env)
+    #check(env, policy)
 
     print("NPG")
 
