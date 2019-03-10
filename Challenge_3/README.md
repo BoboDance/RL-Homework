@@ -87,7 +87,7 @@ longer training times (especially when combined with the lower step size). Our f
 of about 500.1526 +/- 60.1290 (100 episodes) but already takes approximately one hour to train. However, the training
 behaviour seems to be very stable (take a look at the following episode return plot) and one could most likely improve the policy even further with longer training.
 
-<img src="https://raw.githubusercontent.com/BoboDance/RL-Homework/master/Challenge_3/supplementary/npg_reward_submission.png" height="200"></img>
+<img src="https://raw.githubusercontent.com/BoboDance/RL-Homework/master/Challenge_3/supplementary/npg_episode_reward_submission.png" height="200"></img>
 
 ## Natural Evolution Strategies
 
