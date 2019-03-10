@@ -12,6 +12,10 @@ Our main focus for the implementation is the environment `Levitation-v1` from th
 
 The implementation can be found in the python module `Challenge_3.REINFORCE`.
 
+We experimented a lot with with different policy types (discrete and continuous policies) and with different ways
+to weight the policy gradients (episode return, immediate rewards, discounting, baselines, normalization). However, we
+still had trouble learning a good policy for `Levitation-v1` (see issues).
+
 ### Issues
 
 The levitation environment appeared very trivial to us at first sight, but this appear not to be the case.
