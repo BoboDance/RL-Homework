@@ -34,7 +34,7 @@ Eval (198 episodes): -38.8739 +/- 2.7076 (253.5606 +/- 16.5262 steps)
 
 In this section, we describe our experience with implementing NPG.
 
-NPG was tested out on the `BallBalancerSim-v0` environment form the [Quanser platform](https://git.ias.informatik.tu-darmstadt.de/quanser/clients). Additionally, we created a model for the classic `Pendulum-v0` [environment](https://gym.openai.com/envs/Pendulum-v0/).
+NPG was tested out on the `BallBalancerSim-v0` environment form the [Quanser platform](https://git.ias.informatik.tu-darmstadt.de/quanser/clients).
 
 ### Implementation and observations
 
@@ -93,7 +93,7 @@ behaviour seems to be very stable (take a look at the following episode return p
 
 In this section, we describe our experience with implementing NES.
 
-NES was tested out on the `BallBalancerSim-v0` environment form the [Quanser platform](https://git.ias.informatik.tu-darmstadt.de/quanser/clients). Additionally, we created a model for the classic `Pendulum-v0` [environment](https://gym.openai.com/envs/Pendulum-v0/).
+NES was tested out on the `BallBalancerSim-v0` environment form the [Quanser platform](https://git.ias.informatik.tu-darmstadt.de/quanser/clients).
 
 ### Implementation and observations
 
