@@ -9,7 +9,7 @@ from Challenge_3.NPG.ValueModel import train_model
 from Challenge_3.Util import get_returns_torch
 
 
-def optimization_step(actor, memory, gamma, critic=None, optimizer_critic=None):
+def optimization_step(actor, memory, gamma, critic=None, optimizer_critic=None, step_size=0.3):
     """
     Single optimization step for the actor using the given samples. Also updates the critic, if available.
 
@@ -18,6 +18,7 @@ def optimization_step(actor, memory, gamma, critic=None, optimizer_critic=None):
     :param gamma: The gamma used to calculate the returns from the memory
     :param critic: The critic, can be trained optionally to feature a baseline
     :param optimizer_critic: The optimizer of the critic, used for training
+    :param step_size: The step size used for the parameter update
     """
     states = np.vstack(memory[:, 0])
     rewards = memory[:, 2]
@@ -43,7 +44,6 @@ def optimization_step(actor, memory, gamma, critic=None, optimizer_critic=None):
 
     # Get step direction and step size
     params = flat_params(actor)
-    step_size = 0.3
     new_params = params + step_size * step_dir
 
     # Update the actor

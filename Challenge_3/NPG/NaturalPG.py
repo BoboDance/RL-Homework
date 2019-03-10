@@ -52,7 +52,7 @@ class NaturalPG:
             self.writer = SummaryWriter()
 
     def train(self, max_episodes=100,max_episode_steps=10000, min_steps=1000, render_episodes_mod: int = None, save_best: bool = True,
-              save_path="../checkpoints/npg_actor_best_weights.pth"):
+              save_path="../checkpoints/npg_actor_best_weights.pth", step_size=0.3):
         """
         Runs the full training loop over several episodes.
 
@@ -62,6 +62,7 @@ class NaturalPG:
         :param render_episodes_mod: Number of episodes when a new run will be rendered
         :param save_best: Defines if the best model policy shall be saved during training
         :param save_path: The path where the best policy will be stored
+        :param step_size: The step size for the parameter update step
         :return: The final episode reached after training
         """
         episode = 0
@@ -105,7 +106,7 @@ class NaturalPG:
 
                 self.actor.train()
                 if self.critic is None:
-                    actor_loss, _ = optimization_step(self.actor, memory, self.gamma)
+                    actor_loss, _ = optimization_step(self.actor, memory, self.gamma, step_size=step_size)
                     print(
                         "\rEpisode {:5d} -- total steps: {:8d} > avg steps: {:.2f} -- avg reward: {:5.5f} "
                         "-- actor loss: {:.5f}".format(episode, total_steps, episode_steps.mean(),
@@ -118,8 +119,8 @@ class NaturalPG:
                 else:
                     self.critic.train()
                     actor_loss, critic_loss = \
-                        optimization_step(self.actor, memory, self.gamma,
-                                          critic=self.critic, optimizer_critic=self.optimizer_critic)
+                        optimization_step(self.actor, memory, self.gamma, critic=self.critic,
+                                          optimizer_critic=self.optimizer_critic, step_size=step_size)
 
                     print(
                         "\rEpisode {:5d} -- total steps: {:8d} > avg steps: {:.2f} -- avg reward: {:5.5f} "

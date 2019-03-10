@@ -12,6 +12,10 @@ Our main focus for the implementation is the environment `Levitation-v1` from th
 
 The implementation can be found in the python module `Challenge_3.REINFORCE`.
 
+We experimented a lot with with different policy types (discrete and continuous policies) and with different ways
+to weight the policy gradients (episode return, immediate rewards, discounting, baselines, normalization). However, we
+still had trouble learning a good policy for `Levitation-v1` (see issues).
+
 ### Issues
 
 The levitation environment appeared very trivial to us at first sight, but this appear not to be the case.
@@ -34,7 +38,7 @@ Eval (198 episodes): -38.8739 +/- 2.7076 (253.5606 +/- 16.5262 steps)
 
 In this section, we describe our experience with implementing NPG.
 
-NPG was tested out on the `BallBalancerSim-v0` environment form the [Quanser platform](https://git.ias.informatik.tu-darmstadt.de/quanser/clients). Additionally, we created a model for the classic `Pendulum-v0` [environment](https://gym.openai.com/envs/Pendulum-v0/).
+NPG was tested out on the `BallBalancerSim-v0` environment form the [Quanser platform](https://git.ias.informatik.tu-darmstadt.de/quanser/clients).
 
 ### Implementation and observations
 
@@ -77,16 +81,22 @@ We see stable training behaviour like the following on `BallBalancerSim-v0` very
 
 One can see that that the number of steps converge to the maximum episode steps (1000) and the reward increases until the maximum step size
 is reached. The illustrated policy receives an average reward of 365.0112 +/- 117.8526 (22 evaluation episodes).
-Corresponding parameters can be found in `NPG/natural_test.py`.
 
-As training takes some time, we used a specific seed for the submission to shorten the required time significantly (see `NPG/natural_test_fast.py`).
-The corresponding policy receives a mean reward of 375.1006 +/- 88.8038 (25 evaluation episodes).
+Lowering the step size also lowers the variance in the policy, we get 403.4890 +/- 63.5127 (40 evaluation episodes) for 
+`step_size=0.2` after training 1000 episodes.
+
+Using better gradient estimates by evaluating more samples for each update step yields even better results, but also requires
+longer training times (especially when combined with the lower step size). Our final submission receives a cumulative reward
+of about 500.1526 +/- 60.1290 (100 episodes) but already takes approximately one hour to train. However, the training
+behaviour seems to be very stable (take a look at the following episode return plot) and one could most likely improve the policy even further with longer training.
+
+<img src="https://raw.githubusercontent.com/BoboDance/RL-Homework/master/Challenge_3/supplementary/npg_episode_reward_submission.png" height="200"></img>
 
 ## Natural Evolution Strategies
 
 In this section, we describe our experience with implementing NES.
 
-NES was tested out on the `BallBalancerSim-v0` environment form the [Quanser platform](https://git.ias.informatik.tu-darmstadt.de/quanser/clients). Additionally, we created a model for the classic `Pendulum-v0` [environment](https://gym.openai.com/envs/Pendulum-v0/).
+NES was tested out on the `BallBalancerSim-v0` environment form the [Quanser platform](https://git.ias.informatik.tu-darmstadt.de/quanser/clients).
 
 ### Implementation and observations
 

@@ -36,8 +36,16 @@ Learning progress and learning algorithms will be checked to confirm
 correctness and fairness of implementation. Supplementary material
 will be manually analyzed to identify outstanding submissions.
 """
+import torch
 
+import gym
 import numpy as np
+
+from Challenge_3.NPG.NaturalPG import NaturalPG
+from Challenge_3.Policy.ContinuousPolicy import ContinuousPolicy
+from Challenge_3.Policy.DiscretePolicy import DiscretePolicy
+from Challenge_3.REINFORCE.reinforce import REINFORCE
+from Challenge_3.Util import set_seed, make_env_step_silent
 
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
@@ -57,7 +65,16 @@ def load_reinforce_policy():
 
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([3.1415])
+    env = gym.make("Levitation-v1")
+    discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 2)
+    reinforce_model = DiscretePolicy(env, discrete_actions, n_hidden_units=8)
+    reinforce_model.load_state_dict(torch.load("./checkpoints/reinforce_submission.pth"))
+
+    def policy_fun(obs):
+        action, _ = reinforce_model.choose_action_by_sampling(obs)
+        return np.array(action)
+
+    return policy_fun
 
 
 def train_reinforce_policy(env):
@@ -69,7 +86,25 @@ def train_reinforce_policy(env):
     :param env: gym.Env
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([2.7183])
+    set_seed(env, 42)
+
+    discrete_actions = np.linspace(env.action_space.low, env.action_space.high, 2)
+    reinforce_model = DiscretePolicy(env, discrete_actions, n_hidden_units=8)
+
+    low = env.observation_space.low
+    low[1] = 0
+
+    reinforce = REINFORCE(env, reinforce_model, gamma=1, lr=0.1, normalize_observations=False, low=low)
+    reinforce.train(min_steps=100, save_best=True, render_episodes_mod=100, max_episodes=10, save_path="./checkpoints/reinforce_train.pth")
+
+    # load the best model again
+    reinforce_model.load_state_dict(torch.load("./checkpoints/reinforce_train.pth"))
+
+    def policy_fun(obs):
+        action, _ = reinforce_model.choose_action_by_sampling(obs)
+        return np.array(action)
+
+    return policy_fun
 
 
 def load_npg_policy():
@@ -81,7 +116,15 @@ def load_npg_policy():
 
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([1.6180])
+    env = gym.make("BallBalancerSim-v0")
+    actor = ContinuousPolicy(env, n_hidden_units=32, state_dependent_sigma=False)
+    actor.load_state_dict(torch.load("./checkpoints/npg_submission.pth"))
+
+    def policy_fun(obs):
+        action, _ = actor.choose_action_by_sampling(obs)
+        return np.array(action)
+
+    return policy_fun
 
 
 def train_npg_policy(env):
@@ -93,7 +136,21 @@ def train_npg_policy(env):
     :param env: gym.Env
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([0.5772])
+    set_seed(env, 1)
+
+    actor = ContinuousPolicy(env, n_hidden_units=32, state_dependent_sigma=False)
+
+    naturalPG = NaturalPG(env, actor, gamma=0.99, use_tensorboard=True)
+    naturalPG.train(min_steps=5000, max_episodes=4500, step_size=0.25, save_path="./checkpoints/npg_train.pth")
+
+    # load the best model again
+    actor.load_state_dict(torch.load("./checkpoints/npg_train.pth"))
+
+    def policy_fun(obs):
+        action, _ = actor.choose_action_by_sampling(obs)
+        return action
+
+    return policy_fun
 
 
 def load_nes_policy():
@@ -148,38 +205,46 @@ def main():
             obs, _, done, _ = env.step(act)
 
     def check(env, policy):
-        render(env, policy)
+        # CHANGED: Do not render levitation!
+        if env.unwrapped.spec.id != 'Levitation-v1':
+            render(env, policy)
         ret_all = evaluate(env, policy)
         print(np.mean(ret_all), np.std(ret_all))
         env.close()
 
+    print("REINFORCE")
+
     # REINFORCE I: Check learned policy
-    env = Monitor(gym.make('Levitation-v1'), 'reinforce_eval')
-    policy = load_reinforce_policy()
-    check(env, policy)
+    env = Monitor(gym.make('Levitation-v1'), 'reinforce_eval', force=True)
+    #policy = load_reinforce_policy()
+    #check(env, policy)
 
     # REINFORCE II: Check learning procedure
-    env = Monitor(gym.make('Levitation-v1'), 'reinforce_train', video_callable=False)
-    policy = train_reinforce_policy(env)
-    check(env, policy)
+    env = Monitor(gym.make('Levitation-v1'), 'reinforce_train', video_callable=False, force=True)
+    #policy = train_reinforce_policy(env)
+    #check(env, policy)
+
+    print("NPG")
 
     # NPG I: Check learned policy
-    env = Monitor(gym.make('BallBalancerSim-v0'), 'npg_eval')
+    env = Monitor(gym.make('BallBalancerSim-v0'), 'npg_eval', force=True)
     policy = load_npg_policy()
     check(env, policy)
 
     # NPG II: Check learning procedure
-    env = Monitor(gym.make('BallBalancerSim-v0'), 'npg_train', video_callable=False)
+    env = Monitor(gym.make('BallBalancerSim-v0'), 'npg_train', video_callable=False, force=True)
     policy = train_npg_policy(env)
     check(env, policy)
 
+    print("NES")
+
     # NES I: Check learned policy
-    env = Monitor(gym.make('BallBalancerSim-v0'), 'nes_eval')
+    env = Monitor(gym.make('BallBalancerSim-v0'), 'nes_eval', force=True)
     policy = load_nes_policy()
     check(env, policy)
 
     # NES II: Check learning procedure
-    env = Monitor(gym.make('BallBalancerSim-v0'), 'nes_train', video_callable=False)
+    env = Monitor(gym.make('BallBalancerSim-v0'), 'nes_train', video_callable=False, force=True)
     policy = train_nes_policy(env)
     check(env, policy)
 
