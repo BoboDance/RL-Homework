@@ -202,7 +202,7 @@ def train_nes_policy(env):
 
     thread_count = 1
     render = False
-    iterations = 2000
+    iterations = 1000
     normalize_rewards = True
 
     # decay for lr and exploration
