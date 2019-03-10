@@ -22,10 +22,10 @@ make_env_step_silent(env)
 
 print(f"Starting run for NES on {env_name}.")
 
-# general parameters
-population_size = 20
+# important parameters
+population_size = 17
 sigma = 1
-lr = 5e-4
+lr = 5e-2
 
 # early stopping if goal is reached for n steps
 reward_goal = 700
