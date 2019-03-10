@@ -119,4 +119,4 @@ The Monitor env does not support thread pool's mapping function, therefore the t
 
 ### Results
 
-For evaluation we achieve with almost all hyperparameter setting as reward of 371.6127 +/- 28.2781 (1000.0000 +/- 0.0000 steps). 
+For evaluation, we achieve with almost all hyperparameter setting a cumulative reward about 371.6127 +/- 28.2781 (1000.0000 +/- 0.0000 steps). 

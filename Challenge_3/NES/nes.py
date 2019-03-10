@@ -13,9 +13,24 @@ import pprint
 class NES(object):
     def __init__(self, weights, reward_func, population_size=50, sigma=0.1, learning_rate=0.001, decay=1.0,
                  sigma_decay=1.0, threadcount=4, render_test=False, reward_goal=None, consecutive_goal_stopping=None,
-                 seed=None, normalize_reward=True, save_path=None):
+                 normalize_reward=True, save_path=None):
+        """
+        Initializes the learner.
 
-        np.random.seed(seed)
+        :param weights: The initial weights of the model
+        :param reward_func: A partial function which can map weights to some reward measure
+        :param population_size: The size of the population (random permutations per iteration)
+        :param sigma: Parameter sigma which defines the strength of the jitter and
+        :param learning_rate: The learning rate (defines step size)
+        :param decay: Learning rate decay for each iteration
+        :param sigma_decay: Sigma decay for each iteration
+        :param threadcount: Number of threads used for learning
+        :param render_test: Whether to render the reward_func
+        :param reward_goal: Some goal reward used for early stopping
+        :param consecutive_goal_stopping: The amount of times the reward_goal must be passed to stop training
+        :param normalize_reward: Whether to normalize the rewards
+        :param save_path: The path where the best weights will be saved
+        """
         self.pop_size = population_size
         self.sigma = sigma
         self.lr = learning_rate
@@ -47,11 +62,12 @@ class NES(object):
 
     def mutate_weights(self, weights, population: list = [], no_mutation: bool = False):
         """
-        Add some random jitter to params or  if
+        Add some random jitter to the given weights.
+
         :param weights: current set of weights
         :param population: population which defines mutation base
         :param no_mutation: add jitter or not, if false just get back weight vector
-        :return: new_weights
+        :return: the mutated weights
         """
         new_weights = []
         for i, param in enumerate(weights):
@@ -65,10 +81,11 @@ class NES(object):
 
     def run(self, iterations, print_mod=10):
         """
-        run NES for iterations and print after mod steps
-        :param iterations: number of steps
-        :param print_mod: print frequency
-        :return:
+        Run NES for "iterations" iterations and evaluate the current weights after "print_mod" steps
+
+        :param iterations: Number of iterations
+        :param print_mod: Print frequency
+        :return: The last weights
         """
 
         best_reward = -np.inf
@@ -122,8 +139,9 @@ class NES(object):
 
                 # save model weights
                 if test_reward_total > best_reward:
-                    pickle.dump(self.weights, open(self.save_path, 'wb'))
-                    print(f"Best model with {test_reward_total} saved.")
+                    if self.save_path is not None:
+                        pickle.dump(self.weights, open(self.save_path, 'wb'))
+                        print(f"Best model with {test_reward_total} saved.")
                     best_reward = test_reward_total
 
                 # early stopping if threshold is crossed consecutive_goal_stopping times
