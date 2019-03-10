@@ -274,26 +274,26 @@ def main():
     print("REINFORCE")
 
     # REINFORCE I: Check learned policy
-    # env = Monitor(gym.make('Levitation-v1'), 'reinforce_eval', force=True)
-    # policy = load_reinforce_policy()
-    # check(env, policy)
-    #
-    # # REINFORCE II: Check learning procedure
-    # env = Monitor(gym.make('Levitation-v1'), 'reinforce_train', video_callable=False, force=True)
-    # policy = train_reinforce_policy(env)
-    # check(env, policy)
-    #
-    # print("NPG")
-    #
-    # # NPG I: Check learned policy
-    # env = Monitor(gym.make('BallBalancerSim-v0'), 'npg_eval', force=True)
-    # policy = load_npg_policy()
-    # check(env, policy)
-    #
-    # # NPG II: Check learning procedure
-    # env = Monitor(gym.make('BallBalancerSim-v0'), 'npg_train', video_callable=False, force=True)
-    # policy = train_npg_policy(env)
-    # check(env, policy)
+    env = Monitor(gym.make('Levitation-v1'), 'reinforce_eval', force=True)
+    policy = load_reinforce_policy()
+    check(env, policy)
+
+    # REINFORCE II: Check learning procedure
+    env = Monitor(gym.make('Levitation-v1'), 'reinforce_train', video_callable=False, force=True)
+    policy = train_reinforce_policy(env)
+    check(env, policy)
+
+    print("NPG")
+
+    # NPG I: Check learned policy
+    env = Monitor(gym.make('BallBalancerSim-v0'), 'npg_eval', force=True)
+    policy = load_npg_policy()
+    check(env, policy)
+
+    # NPG II: Check learning procedure
+    env = Monitor(gym.make('BallBalancerSim-v0'), 'npg_train', video_callable=False, force=True)
+    policy = train_npg_policy(env)
+    check(env, policy)
 
     print("NES")
 
