@@ -55,10 +55,13 @@ from Challenge_3.Util import set_seed, make_env_step_silent, nes_load_model_weig
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
     authors="Jannis Weil; Johannes Czech; Fabian Otto",
-    description="Explain what your code does and how. "
-                "Keep this description short "
-                "as it is not meant to be a replacement for docstrings "
-                "but rather a quick summary to help the grader.")
+    description="Our code covers an implementation for all requested three algorithms:"
+                "REINFORCE, Natural Evolution Strategies (NES), Natural Policy Gradient (NPG)"
+                "which have been trained and evaluated on "
+                "Levitation-v1, BallBalancerSim-v0, BallBalancerSim-v0 respectively."
+                "Our REINFORCE consists of a discrete as well as a continuous version."
+                "Our chosen policy uses the discrete version."
+                "For more detailed documentation please take a look at our README.md.")
 
 
 def load_reinforce_policy():
