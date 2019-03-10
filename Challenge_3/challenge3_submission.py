@@ -102,7 +102,7 @@ def train_reinforce_policy(env):
     low = env.observation_space.low
     low[1] = 0
 
-    reinforce = REINFORCE(env, reinforce_model, gamma=1, lr=0.1, normalize_observations=False, low=low)
+    reinforce = REINFORCE(env, reinforce_model, gamma=1, lr=0.1, normalize_observations=False, low=low, use_tensorboard=False)
     reinforce.train(min_steps=100, save_best=True, render_episodes_mod=100, max_episodes=10,
                     save_path="./checkpoints/reinforce_train.pth")
 
@@ -149,7 +149,7 @@ def train_npg_policy(env):
 
     actor = ContinuousPolicy(env, n_hidden_units=32, state_dependent_sigma=False)
 
-    naturalPG = NaturalPG(env, actor, gamma=0.99, use_tensorboard=True)
+    naturalPG = NaturalPG(env, actor, gamma=0.997, use_tensorboard=False)
     naturalPG.train(min_steps=5000, max_episodes=4500, step_size=0.25, save_path="./checkpoints/npg_train.pth")
 
     # load the best model again
