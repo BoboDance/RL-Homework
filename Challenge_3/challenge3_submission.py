@@ -36,16 +36,21 @@ Learning progress and learning algorithms will be checked to confirm
 correctness and fairness of implementation. Supplementary material
 will be manually analyzed to identify outstanding submissions.
 """
+import pickle
+from functools import partial
+
 import torch
 
 import gym
 import numpy as np
 
+from Challenge_3.NES.nes import NES
 from Challenge_3.NPG.NaturalPG import NaturalPG
 from Challenge_3.Policy.ContinuousPolicy import ContinuousPolicy
 from Challenge_3.Policy.DiscretePolicy import DiscretePolicy
+from Challenge_3.Policy.NESPolicy import NESPolicy
 from Challenge_3.REINFORCE.reinforce import REINFORCE
-from Challenge_3.Util import set_seed, make_env_step_silent
+from Challenge_3.Util import set_seed, make_env_step_silent, nes_load_model_weights, get_reward
 
 info = dict(
     group_number=16,  # change if you are an existing seminar/project group
@@ -95,7 +100,8 @@ def train_reinforce_policy(env):
     low[1] = 0
 
     reinforce = REINFORCE(env, reinforce_model, gamma=1, lr=0.1, normalize_observations=False, low=low)
-    reinforce.train(min_steps=100, save_best=True, render_episodes_mod=100, max_episodes=10, save_path="./checkpoints/reinforce_train.pth")
+    reinforce.train(min_steps=100, save_best=True, render_episodes_mod=100, max_episodes=10,
+                    save_path="./checkpoints/reinforce_train.pth")
 
     # load the best model again
     reinforce_model.load_state_dict(torch.load("./checkpoints/reinforce_train.pth"))
@@ -162,7 +168,17 @@ def load_nes_policy():
 
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([299792458.0])
+
+    env = gym.make('BallBalancerSim-v0')
+    model = NESPolicy(env, n_hidden_units=10)
+    weights = pickle.load(open(f"./checkpoints/nes_submission.pkl", 'rb'))
+    nes_load_model_weights(weights, model)
+
+    def policy_fun(obs):
+        with torch.no_grad():
+            return model(torch.Tensor(obs)).detach().numpy()
+
+    return policy_fun
 
 
 def train_nes_policy(env):
@@ -174,7 +190,45 @@ def train_nes_policy(env):
     :param env: gym.Env
     :return: function pi: s -> a
     """
-    return lambda obs: np.array([9.10938356 * 1e-31])
+
+    # important parameters
+    population_size = 20
+    sigma = 1
+    lr = 5e-2
+
+    # early stopping if goal is reached for n steps
+    reward_goal = 700
+    consecutive_goal_stopping = 20
+
+    thread_count = 1
+    render = False
+    iterations = 2000
+    normalize_rewards = True
+
+    # decay for lr and exploration
+    decay = 1
+    sigma_decay = 1
+
+    model = NESPolicy(env, n_hidden_units=10)
+
+    partial_func = partial(get_reward, model=model, env=env)
+    global_parameters = list(model.parameters())
+
+    nes = NES(global_parameters, partial_func, population_size=population_size, sigma=sigma, learning_rate=lr,
+              reward_goal=reward_goal, consecutive_goal_stopping=consecutive_goal_stopping, threadcount=thread_count,
+              render_test=render, decay=decay, sigma_decay=sigma_decay, normalize_reward=normalize_rewards,
+              save_path="./checkpoints/nes_train.pkl")
+
+    nes.run(iterations=iterations, print_mod=1)
+
+    weights = pickle.load(open(f"./checkpoints/nes_train.pkl", 'rb'))
+    nes_load_model_weights(weights, model)
+
+    def policy_fun(obs):
+        with torch.no_grad():
+            return model(torch.Tensor(obs)).detach().numpy()
+
+    return policy_fun
 
 
 # ==== Example evaluation
@@ -216,13 +270,13 @@ def main():
 
     # REINFORCE I: Check learned policy
     env = Monitor(gym.make('Levitation-v1'), 'reinforce_eval', force=True)
-    #policy = load_reinforce_policy()
-    #check(env, policy)
+    policy = load_reinforce_policy()
+    check(env, policy)
 
     # REINFORCE II: Check learning procedure
     env = Monitor(gym.make('Levitation-v1'), 'reinforce_train', video_callable=False, force=True)
-    #policy = train_reinforce_policy(env)
-    #check(env, policy)
+    policy = train_reinforce_policy(env)
+    check(env, policy)
 
     print("NPG")
 

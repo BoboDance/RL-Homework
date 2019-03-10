@@ -172,7 +172,8 @@ def get_samples(env, policy, min_steps, max_episode_steps=1000000, normalize_obs
     return total_episodes, total_steps, np.array(memory), np.array(episode_rewards), np.array(episode_steps)
 
 
-def eval_policy_fun(env, policy_fun, episodes, max_episode_steps=1000000, normalize_observations=False, low=None, high=None):
+def eval_policy_fun(env, policy_fun, episodes, max_episode_steps=1000000, normalize_observations=False, low=None,
+                    high=None):
     """
     Gather samples from the environment.
 
@@ -222,9 +223,17 @@ def eval_policy_fun(env, policy_fun, episodes, max_episode_steps=1000000, normal
     return total_episodes, total_steps, np.array(episode_rewards), np.array(episode_steps)
 
 
-def get_reward(weights, model, env, render=False, return_steps=False):
+def get_reward(weights, model, env, render=False, return_steps: bool = False):
+    """
+    nes helper for trajectory reward given set of weights
+    :param weights: weights to evaluate
+    :param model: NN model
+    :param env: env to work with
+    :param render: render the run
+    :param return_steps: return the step count of the run
+    :return: reward or reward,steps
+    """
     cloned_model = nes_load_model_weights(weights, model)
-
     state = env.reset()
     done = False
     total_reward = 0

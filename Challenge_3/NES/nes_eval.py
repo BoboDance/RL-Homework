@@ -12,7 +12,7 @@ env = gym.make("BallBalancerSim-v0")
 make_env_step_silent(env)
 
 model = NESPolicy(env, n_hidden_units=10)
-weights = pickle.load(open(f"../checkpoints/reward-705.3502091955527.pkl", 'rb'))
+weights = pickle.load(open(f"../checkpoints/reward-715.5677933067004.pkl", 'rb'))
 nes_load_model_weights(weights, model)
 
 

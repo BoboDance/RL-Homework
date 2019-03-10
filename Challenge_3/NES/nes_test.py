@@ -47,7 +47,8 @@ global_parameters = list(model.parameters())
 
 nes = NES(global_parameters, partial_func, population_size=population_size, sigma=sigma, learning_rate=lr,
           reward_goal=reward_goal, consecutive_goal_stopping=consecutive_goal_stopping, threadcount=thread_count,
-          render_test=render, decay=decay, sigma_decay=sigma_decay, normalize_reward=normalize_rewards)
+          render_test=render, decay=decay, sigma_decay=sigma_decay, normalize_reward=normalize_rewards,
+          save_path=f"../checkpoints/nes_train.pkl")
 
 start = time.time()
 final_weights = nes.run(iterations=iterations, print_mod=1)
@@ -59,24 +60,21 @@ pickle.dump(final_weights, open(f"../checkpoints/reward-{reward}.pkl", 'wb'))
 print(f"Reward from final weights: {reward}")
 print(f"Time to completion: {end}")
 
-
 # Best setup so far.
 # NN architecture:
 # Sequential(
 #   (0): Linear(in_features=8, out_features=10, bias=True)
 #   (1): ReLU()
-#   (2): Linear(in_features=10, out_features=10, bias=True)
-#   (3): ReLU()
-#   (4): Linear(in_features=10, out_features=2, bias=True)
+#   (3): Linear(in_features=10, out_features=2, bias=True)
 # )
 # Parameter Settings:
 # {   'consecutive_goal_count': 0,
 #     'consecutive_goal_stopping': 20,
-#     'decay': 0.99,
+#     'decay': 1,
 #     'lr': 0.05,
 #     'normalize_reward': True,
 #     'pop_size': 20,
 #     'render_test': False,
 #     'reward_goal': 700,
 #     'sigma': 1,
-#     'sigma_decay': 0.99}
+#     'sigma_decay': 1}

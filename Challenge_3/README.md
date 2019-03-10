@@ -102,7 +102,21 @@ NES was tested out on the `BallBalancerSim-v0` environment form the [Quanser pla
 
 The implementation can be found in the python module `Challenge_3.NES`.
 
+We experimented with different learning rate settings and exploration parameters. 
+Training with no decay and choosing `sigma=1` helped the most for our experiments. 
+We found that including reward normalization significantly improved the progress of learning and almost immediately resulted in better rewards.
+In general, NES does not require larger networks, two hidden layers with 10 nodes where sufficient. 
+Increasing nodes or layers did not improve the results.
+Smaller population also helped to maintain computational efficiency.   
 
 ### Issues
+We found that NES does not change a lot in performance when adjusting hyperparameters for `BallBalancerSim-v0`. 
+Almost all settings end up at a policy, which tries to keep the ball in place without moving it.
+Even longer training times, larger networks and smaller learning rate did not change this. 
+This could be result of a local optima, because moving to strongly in the wrong direction almost immediately results in a worse reward. 
+
+The Monitor env does not support thread pool's mapping function, therefore the training time might be longer, because we can only use one worker in the submission.
 
 ### Results
+
+For evaluation we achieve with almost all hyperparameter setting as reward of 371.6127 +/- 28.2781 (1000.0000 +/- 0.0000 steps). 

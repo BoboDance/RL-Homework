@@ -13,7 +13,7 @@ import pprint
 class NES(object):
     def __init__(self, weights, reward_func, population_size=50, sigma=0.1, learning_rate=0.001, decay=1.0,
                  sigma_decay=1.0, threadcount=4, render_test=False, reward_goal=None, consecutive_goal_stopping=None,
-                 seed=None, normalize_reward=True):
+                 seed=None, normalize_reward=True, save_path=None):
 
         np.random.seed(seed)
         self.pop_size = population_size
@@ -21,7 +21,7 @@ class NES(object):
         self.lr = learning_rate
 
         # lr and exploration decay
-        self.decay = decay
+        self.lr_decay = decay
         self.sigma_decay = sigma_decay
 
         # rendering
@@ -42,6 +42,8 @@ class NES(object):
         self.pool = ThreadPool(threadcount)
         self.weights = weights
         self.reward_function = reward_func
+
+        self.save_path = save_path
 
     def mutate_weights(self, weights, population: list = [], no_mutation: bool = False):
         """
@@ -97,7 +99,7 @@ class NES(object):
                     param.data = param.data + self.lr / (self.pop_size * self.sigma) * rewards_pop
 
                     # lr decay and sigma decay
-                    self.lr *= self.decay
+                    self.lr *= self.lr_decay
                     self.sigma *= self.sigma_decay
 
             # compute reward for test run
@@ -120,7 +122,7 @@ class NES(object):
 
                 # save model weights
                 if test_reward_total > best_reward:
-                    pickle.dump(self.weights, open(f"../checkpoints/reward-{test_reward_total}.pkl", 'wb'))
+                    pickle.dump(self.weights, open(self.save_path, 'wb'))
                     print(f"Best model with {test_reward_total} saved.")
                     best_reward = test_reward_total
 
